@@ -1,41 +1,53 @@
 <script>
 import Login from './components/Login.vue'
 import Dashboard from './components/Dashboard.vue'
+import Biblioteca from './components/Biblioteca.vue'
 
 export default {
   name: 'AppContainer',
   components: {
-    Login,    // ← Corregido: usas el nombre correcto
-    Dashboard
+    Login,
+    Dashboard,
+    Biblioteca
   },
   data() {
     return {
-      isLoggedIn: false // Estado inicial: no logueado
+      currentPage: 'login' // 👈 empezamos en login
     }
   },
   methods: {
     handleUserLogin() {
       console.log('🚀 Usuario logueado! Cambiando a Dashboard...')
-      this.isLoggedIn = true
+      this.currentPage = 'dashboard'
     },
-
     handleUserLogout() {
       console.log('👋 Usuario deslogueado! Volviendo al Login...')
-      this.isLoggedIn = false
+      this.currentPage = 'login'
     }
   }
 }
 </script>
 
-
 <template>
-  <div class="app-container">
-    <!-- Muestra Login si no está logueado -->
-    <Login v-if="!isLoggedIn" @login="handleUserLogin" />
+  <div>
+    <!-- Login -->
+    <Login 
+      v-if="currentPage === 'login'" 
+      @login="handleUserLogin" 
+    />
 
-    <!-- Muestra Dashboard si está logueado -->
-    <Dashboard v-if="isLoggedIn" @logout="handleUserLogout" />
+    <!-- Dashboard -->
+    <Dashboard 
+      v-else-if="currentPage === 'dashboard'" 
+      @goBiblioteca="currentPage = 'biblioteca'" 
+    />
+
+    <!-- Biblioteca -->
+    <Biblioteca 
+      v-else-if="currentPage === 'biblioteca'" 
+    />
   </div>
 </template>
+
 
 <style scoped></style>
