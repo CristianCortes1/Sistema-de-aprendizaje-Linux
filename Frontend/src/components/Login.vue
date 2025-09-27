@@ -6,7 +6,7 @@ export default {
         handleLogin() {
             // Credenciales por defecto para pruebas
             const defaultEmail = 'admin'
-            const defaultPassword = '123'
+            const defaultPassword = '1'
 
             // Obtener valores de los inputs
             const emailInput = this.$el.querySelector('input[type="email"]')
@@ -21,7 +21,7 @@ export default {
                 this.$emit('login') // Emite evento al componente padre
             } else {
                 console.log('❌ Credenciales incorrectas')
-                alert('Credenciales incorrectas.\nUsa:\nEmail: admin\nPassword: 123')
+                alert('Credenciales incorrectas.\nUsa:\nEmail: admin\nPassword: 1')
             }
         }
     }

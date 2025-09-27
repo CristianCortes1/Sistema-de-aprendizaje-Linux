@@ -4,8 +4,8 @@ export default (await import('vue')).defineComponent({
     methods: {
         handleLogin() {
             // Credenciales por defecto para pruebas
-            const defaultEmail = 'admin@penguinpath.com';
-            const defaultPassword = '12345';
+            const defaultEmail = 'admin';
+            const defaultPassword = '123';
             // Obtener valores de los inputs
             const emailInput = this.$el.querySelector('input[type="email"]');
             const passwordInput = this.$el.querySelector('input[type="password"]');
@@ -18,7 +18,7 @@ export default (await import('vue')).defineComponent({
             }
             else {
                 console.log('❌ Credenciales incorrectas');
-                alert('Credenciales incorrectas.\nUsa:\nEmail: admin@penguinpath.com\nPassword: 12345');
+                alert('Credenciales incorrectas.\nUsa:\nEmail: admin\nPassword: 123');
             }
         }
     }

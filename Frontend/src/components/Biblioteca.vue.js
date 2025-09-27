@@ -3,6 +3,17 @@ const __VLS_ctx = {};
 let __VLS_elements;
 let __VLS_components;
 let __VLS_directives;
+/** @type {__VLS_StyleScopedClasses['logo']} */ ;
+/** @type {__VLS_StyleScopedClasses['comandos-basicos']} */ ;
+/** @type {__VLS_StyleScopedClasses['comandos-basicos']} */ ;
+/** @type {__VLS_StyleScopedClasses['comandos-basicos']} */ ;
+/** @type {__VLS_StyleScopedClasses['archivos-y-directorios']} */ ;
+/** @type {__VLS_StyleScopedClasses['archivos-y-directorios']} */ ;
+/** @type {__VLS_StyleScopedClasses['archivos-y-directorios']} */ ;
+/** @type {__VLS_StyleScopedClasses['titulo']} */ ;
+/** @type {__VLS_StyleScopedClasses['footer']} */ ;
+/** @type {__VLS_StyleScopedClasses['footer']} */ ;
+/** @type {__VLS_StyleScopedClasses['footer']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -11,7 +22,17 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: " header" },
 });
-__VLS_asFunctionalElement(__VLS_elements.h1, __VLS_elements.h1)({});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "logo" },
+});
+__VLS_asFunctionalElement(__VLS_elements.img)({
+    src: "@/Assets/Biblioteca.svg",
+    alt: "Libro",
+    ...{ class: "logo" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "brand" },
+});
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "comandos-basicos" },
 });
@@ -110,6 +131,9 @@ __VLS_asFunctionalElement(__VLS_elements.img)({
 });
 /** @type {__VLS_StyleScopedClasses['biblioteca']} */ ;
 /** @type {__VLS_StyleScopedClasses['header']} */ ;
+/** @type {__VLS_StyleScopedClasses['logo']} */ ;
+/** @type {__VLS_StyleScopedClasses['logo']} */ ;
+/** @type {__VLS_StyleScopedClasses['brand']} */ ;
 /** @type {__VLS_StyleScopedClasses['comandos-basicos']} */ ;
 /** @type {__VLS_StyleScopedClasses['titulo']} */ ;
 /** @type {__VLS_StyleScopedClasses['archivos-y-directorios']} */ ;
