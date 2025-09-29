@@ -1,0 +1,85 @@
+package com.penguinpath.backend.service;
+import com.penguinpath.backend.model.Usuario;
+import com.penguinpath.backend.repository.UsuarioRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class UsuarioService {
+
+    private final UsuarioRepository usuarioRepository;
+
+    public UsuarioService(UsuarioRepository usuarioRepository) {
+        this.usuarioRepository = usuarioRepository;
+    }
+
+    // ==============================
+    // Crear o actualizar usuario
+    // ==============================
+    public Usuario guardar(Usuario usuario) {
+        return usuarioRepository.save(usuario);
+    }
+
+    // ==============================
+    // Listar todos los usuarios
+    // ==============================
+    public List<Usuario> listarUsuarios() {
+        return usuarioRepository.findAll();
+    }
+
+    // ==============================
+    // Buscar usuario por ID
+    // ==============================
+    public Optional<Usuario> buscarPorId(Integer id) {
+        return usuarioRepository.findById(Long.valueOf(id));
+    }
+
+    // ==============================
+    // Buscar usuario por username
+    // ==============================
+    public Optional<Usuario> buscarPorUsername(String username) {
+        return usuarioRepository.findByUsername(username);
+    }
+
+    // ==============================
+    // Buscar usuario por correo
+    // ==============================
+    public Optional<Usuario> buscarPorCorreo(String correo) {
+        return usuarioRepository.findByCorreo(correo);
+    }
+
+    // ==============================
+    // Actualizar usuario
+    // ==============================
+    public Optional<Usuario> actualizar(Integer id, Usuario datos) {
+        return usuarioRepository.findById(Long.valueOf(id)).map(usuario -> {
+            usuario.setUsername(datos.getUsername());
+            usuario.setCorreo(datos.getCorreo());
+            usuario.setContraseña(datos.getContraseña());
+            usuario.setAvatar(datos.getAvatar());
+            usuario.setRacha(datos.getRacha());
+            usuario.setExperiencia(datos.getExperiencia());
+            return usuarioRepository.save(usuario);
+        });
+    }
+
+    // ==============================
+    // Eliminar usuario
+    // ==============================
+    public boolean eliminar(Integer id) {
+        if (usuarioRepository.existsById(Long.valueOf(id))) {
+            usuarioRepository.deleteById(Long.valueOf(id));
+            return true;
+        }
+        return false;
+    }
+
+    // ==============================
+    // Ranking de usuarios por experiencia
+    // ==============================
+    public List<Usuario> obtenerRanking() {
+        return usuarioRepository.findAllByOrderByExperienciaDesc();
+    }
+}
