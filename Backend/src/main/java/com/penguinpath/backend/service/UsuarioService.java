@@ -1,8 +1,11 @@
 package com.penguinpath.backend.service;
+
 import com.penguinpath.backend.model.Usuario;
 import com.penguinpath.backend.repository.UsuarioRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,13 +13,43 @@ import java.util.Optional;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder encoder;
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder encoder) {
         this.usuarioRepository = usuarioRepository;
+        this.encoder = encoder;
     }
 
+    public Usuario registrar(String username, String correo, String contraseña) {
+        Usuario usuario = new Usuario();
+        usuario.setUsername(username);
+        usuario.setCorreo(correo);
+        usuario.setContraseña(encoder.encode(contraseña));
+        usuario.setRacha(0);
+        usuario.setExperiencia(0);
+        usuario.setAvatar(1);
+        usuario.setUltimaConexion(LocalDate.now());
+        return usuarioRepository.save(usuario);
+    }
+
+    public Usuario login(String username, String contraseña) {
+        Usuario usuario = usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        if (!encoder.matches(contraseña, usuario.getContraseña())) {
+            throw new RuntimeException("Contraseña incorrecta");
+        } else {
+            if (usuario.getUltimaConexion() == null || usuario.getUltimaConexion().isBefore(LocalDate.now())) {
+                usuario.setUltimaConexion(LocalDate.now());
+                usuario.setRacha(usuario.getRacha() + 1);
+                usuarioRepository.save(usuario);
+            }
+        }
+        return usuario;
+    }
+
+
     // ==============================
-    // Crear o actualizar usuario
+    // Crear o actualizar usuarios
     // ==============================
     public Usuario guardar(Usuario usuario) {
         return usuarioRepository.save(usuario);

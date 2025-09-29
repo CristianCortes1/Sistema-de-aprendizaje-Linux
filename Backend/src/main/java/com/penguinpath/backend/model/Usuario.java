@@ -26,6 +26,7 @@ public class Usuario {
     @Column(name = "`contraseña`", nullable = false, length = 100)
     private String contraseña;
 
+    @ColumnDefault("1")
     @Column(name = "avatar")
     private Integer avatar;
 
