@@ -1,41 +1,74 @@
 <script>
 import Login from './components/Login.vue'
 import Dashboard from './components/Dashboard.vue'
+import Biblioteca from './components/Biblioteca.vue'
 
 export default {
   name: 'AppContainer',
-  components: {
-    Login,    // ← Corregido: usas el nombre correcto
-    Dashboard
-  },
+  components: { Login, Dashboard, Biblioteca },
   data() {
     return {
-      isLoggedIn: false // Estado inicial: no logueado
+      currentPage: window.location.hash.replace('#', '') || 'login',
+      isAuthenticated: false // 👈 nuevo estado de sesión
     }
   },
   methods: {
-    handleUserLogin() {
-      console.log('🚀 Usuario logueado! Cambiando a Dashboard...')
-      this.isLoggedIn = true
+    setPage(page) {
+      // 👇 Seguridad: si intenta ir al dashboard/biblioteca sin login, redirige a login
+      if (!this.isAuthenticated && page !== 'login') {
+        console.warn('⛔ Acceso denegado, vuelve a login')
+        this.currentPage = 'login'
+        window.location.hash = 'login'
+        return
+      }
+      this.currentPage = page
+      window.location.hash = page
     },
-
+    handleUserLogin() {
+      // 🔑 aquí deberías validar credenciales reales
+      this.isAuthenticated = true
+      this.setPage('dashboard')
+    },
     handleUserLogout() {
-      console.log('👋 Usuario deslogueado! Volviendo al Login...')
-      this.isLoggedIn = false
+      this.isAuthenticated = false
+      this.setPage('login')
     }
+  },
+  mounted() {
+    window.addEventListener('hashchange', () => {
+      const page = window.location.hash.replace('#', '') || 'login'
+      // 👇 aplica validación al navegar con flechitas
+      if (!this.isAuthenticated && page !== 'login') {
+        console.warn('⛔ Intento de entrar sin login')
+        this.setPage('login')
+      } else {
+        this.currentPage = page
+      }
+    })
   }
 }
 </script>
 
-
 <template>
-  <div class="app-container">
-    <!-- Muestra Login si no está logueado -->
-    <Login v-if="!isLoggedIn" @login="handleUserLogin" />
+  <div>
+    <!-- Login -->
+    <Login 
+      v-if="currentPage === 'login'" 
+      @login="handleUserLogin" 
+    />
 
-    <!-- Muestra Dashboard si está logueado -->
-    <Dashboard v-if="isLoggedIn" @logout="handleUserLogout" />
+    <!-- Dashboard -->
+    <Dashboard 
+      v-else-if="currentPage === 'dashboard'" 
+      @goBiblioteca="setPage('biblioteca')" 
+      @logout="handleUserLogout"
+    />
+
+    <!-- Biblioteca -->
+    <Biblioteca 
+      v-else-if="currentPage === 'biblioteca'" 
+      @goInicio="setPage('dashboard')" 
+      @logout="handleUserLogout"
+    />
   </div>
 </template>
-
-<style scoped></style>
