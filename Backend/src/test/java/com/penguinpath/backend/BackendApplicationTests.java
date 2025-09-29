@@ -1,13 +1,13 @@
-package com.penguinpath.App;
+package com.penguinpath.backend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class PenguinPathApplicationTests {
+class BackendApplicationTests {
 
-    @Test
-    void contextLoads() {
-    }
+	@Test
+	void contextLoads() {
+	}
 
 }
