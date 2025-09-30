@@ -14,7 +14,7 @@ CREATE TABLE Usuarios (
   id_usuario INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(25) NOT NULL UNIQUE,
   correo VARCHAR(60) NOT NULL UNIQUE,
-  contraseña VARCHAR(100) NOT NULL, -- aquí deberías guardar un hash (bcrypt)
+  password VARCHAR(100) NOT NULL, -- aquí deberías guardar un hash (bcrypt)
   avatar INT,
   racha INT DEFAULT 0,
   experiencia INT DEFAULT 0,

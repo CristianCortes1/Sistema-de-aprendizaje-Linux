@@ -19,7 +19,7 @@ public class Usuario {
     @Column(name = "correo", nullable = false, length = 60)
     private String correo;
 
-    @Column(name = "`contraseña`", nullable = false, length = 100)
+    @Column(name = "password", nullable = false, length = 100)
     private String password;
 
     @ColumnDefault("1")

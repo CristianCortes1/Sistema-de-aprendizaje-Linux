@@ -2,12 +2,19 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import AuthService from '../services/AuthService'
 import Login from '@/components/Login.vue'
 import Dashboard from '@/components/Dashboard.vue'
+import Registro from '@/components/Registro.vue'
 
 const routes: Array<RouteRecordRaw> = [
     {
         path: '/',
         name: 'Login',
         component: Login,
+        meta: { guestOnly: true }
+    },
+    {
+        path: '/registro',
+        name: 'Registro',
+        component: Registro,
         meta: { guestOnly: true }
     },
     {
