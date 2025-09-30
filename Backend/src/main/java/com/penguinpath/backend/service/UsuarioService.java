@@ -24,7 +24,7 @@ public class UsuarioService {
         Usuario usuario = new Usuario();
         usuario.setUsername(username);
         usuario.setCorreo(correo);
-        usuario.setpassword(encoder.encode(password));
+        usuario.setPassword(encoder.encode(password));
         usuario.setRacha(0);
         usuario.setExperiencia(0);
         usuario.setAvatar(1);
@@ -35,7 +35,7 @@ public class UsuarioService {
     public Usuario login(String username, String password) {
         Usuario usuario = usuarioRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        if (!encoder.matches(password, usuario.getpassword())) {
+        if (!encoder.matches(password, usuario.getPassword())) {
             throw new RuntimeException("password incorrecta");
         } else {
             if (usuario.getUltimaConexion() == null || usuario.getUltimaConexion().isBefore(LocalDate.now())) {
@@ -95,7 +95,7 @@ public class UsuarioService {
         return usuarioRepository.findById(Long.valueOf(id)).map(usuario -> {
             usuario.setUsername(datos.getUsername());
             usuario.setCorreo(datos.getCorreo());
-            usuario.setpassword(datos.getpassword());
+            usuario.setPassword(datos.getPassword());
             usuario.setAvatar(datos.getAvatar());
             usuario.setRacha(datos.getRacha());
             usuario.setExperiencia(datos.getExperiencia());

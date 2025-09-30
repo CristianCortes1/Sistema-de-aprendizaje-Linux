@@ -19,7 +19,7 @@ public class Usuario {
     @Column(name = "correo", nullable = false, length = 60)
     private String correo;
 
-    @Column(name = "`contraseña`", nullable = false, length = 100)
+    @Column(name = "`password`", nullable = false, length = 100)
     private String password;
 
     @ColumnDefault("1")
@@ -61,21 +61,12 @@ public class Usuario {
         this.correo = correo;
     }
 
-<<<<<<< HEAD
-    public String getContraseña() {
-        return contraseña;
-    }
-
-    public void setContraseña(String contraseña) {
-        this.contraseña = contraseña;
-=======
-    public String getpassword() {
+    public String getPassword() {
         return password;
     }
 
-    public void setpassword(String password) {
+    public void setPassword(String password) {
         this.password = password;
->>>>>>> Frontend
     }
 
     public Integer getAvatar() {
