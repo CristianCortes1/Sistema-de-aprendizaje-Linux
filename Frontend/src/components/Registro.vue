@@ -1,46 +1,61 @@
-<script>
-export default {
+<script lang="ts">
+import { defineComponent, ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+export default defineComponent({
     name: 'RegistroComponent',
-    emits: ['goLogin'],
-    data() {
-        return {
-            username: '',
-            correo: '',
-            contraseña: ''
-        }
-    },
-    methods: {
-        async handleRegistro() {
+    setup() {
+        const username = ref<string>('')
+        const correo = ref<string>('')
+        const password = ref<string>('')
+        const loading = ref<boolean>(false)
+        const router = useRouter()
+
+        const handleRegistro = async () => {
+            if (!username.value || !correo.value || !password.value) {
+                alert('Por favor llena todos los campos')
+                return
+            }
+
+            loading.value = true
             try {
                 const response = await fetch('http://127.0.0.1:8080/api/auth/registro', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        username: this.username,
-                        correo: this.correo,
-                        contraseña: this.contraseña
+                        username: username.value,
+                        correo: correo.value,
+                        password: password.value
                     })
-                });
+                })
 
                 if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status}`);
+                    throw new Error(`Error HTTP: ${response.status}`)
                 }
 
-                const user = await response.json();
-                console.log('✅ Registro exitoso:', user);
+                const user = await response.json()
+                console.log('✅ Registro exitoso:', user)
 
-                alert('Usuario registrado con éxito');
-                this.$emit('goLogin');
-
+                alert('Usuario registrado con éxito')
+                router.push('/') // 👈 redirige directo al login
             } catch (err) {
-                console.error('❌ Error en registro:', err);
-                alert('No se pudo registrar el usuario');
+                console.error('❌ Error en registro:', err)
+                alert('No se pudo registrar el usuario')
+            } finally {
+                loading.value = false
             }
         }
-    }
-}
-</script>
 
+        return {
+            username,
+            correo,
+            contraseña: password,
+            loading,
+            handleRegistro
+        }
+    }
+})
+</script>
 
 <template>
     <div class="login">
@@ -50,26 +65,28 @@ export default {
             <h1>Crear cuenta en Penguin Path</h1>
             <p>Llena el formulario para registrarte.</p><br>
 
-            <form @submit.prevent="registrarUsuario" class="form-group">
+            <form @submit.prevent="handleRegistro" class="form-group">
                 <label for="username">Apodo:</label>
-                <input v-model="username" type="text" id="username" name="username" placeholder="Escribe el apodo"
-                    required>
+                <input v-model="username" type="text" id="username" placeholder="Escribe el apodo" required />
 
                 <label for="correo">Correo:</label>
-                <input v-model="correo" type="email" id="correo" name="correo" placeholder="Escribe el correo" required>
+                <input v-model="correo" type="email" id="correo" placeholder="Escribe el correo" required />
 
                 <label for="contraseña">Contraseña:</label>
-                <input v-model="contraseña" type="password" id="contraseña" name="contraseña"
-                    placeholder="Escribe la contraseña" required>
+                <input v-model="contraseña" type="password" id="contraseña" placeholder="Escribe la contraseña"
+                    required />
 
-                <button type="submit" class="boton-enviar">Registrar</button>
+                <button type="submit" class="boton-enviar" :disabled="loading">
+                    {{ loading ? 'Registrando...' : 'Registrar' }}
+                </button>
             </form>
-            <!-- 
-            <button class="login-btn" @click="$emit('goLogin')">Volver al Login</button> -->
+
+            <router-link to="/" class="login-btn">
+                Volver al Login
+            </router-link>
         </div>
     </div>
 </template>
-
 
 
 <style scoped>
@@ -77,6 +94,7 @@ export default {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    text-decoration: none;
 }
 
 body {
@@ -147,7 +165,8 @@ input {
     border-radius: 5px;
 }
 
-button {
+button,
+.login-btn {
     background-color: #ff6600;
     color: white;
     border: none;

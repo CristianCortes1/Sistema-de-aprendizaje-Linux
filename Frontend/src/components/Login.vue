@@ -1,43 +1,57 @@
-<script>
-export default {
-    name: 'LoginComponent',
-    emits: ['login'],
-    data() {
-        return {
-            email: '',
-            password: ''
-        }
-    },
-    methods: {
-        async handleLogin() {
-            try {
-                const response = await fetch('http://127.0.0.1:8080/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: this.email,       // 👈 mapea igual que tu DTO en backend
-                        contraseña: this.password   // 👈 usa el mismo nombre del campo en el backend
-                    })
-                });
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import AuthService from '../services/AuthService'
 
-                if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status}`);
-                }
+const email = ref('')
+const password = ref('')
+const loading = ref(false)
+const router = useRouter()
 
-                const user = await response.json();
-                console.log('✅ Login exitoso:', user);
+async function handleLogin() {
+    if (!email.value || !password.value) {
+        alert('Por favor llena todos los campos')
+        return
+    }
 
-                // 👇 aquí ya puedes marcar sesión activa
-                this.$emit('login', user);
+    loading.value = true
+    try {
+        const response = await fetch('http://127.0.0.1:8080/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: email.value,
+                password: password.value
+            })
+        })
 
-            } catch (err) {
-                console.error('❌ Error en login:', err);
-                alert('Credenciales incorrectas o error en el servidor');
-            }
-        }
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
+
+        const data = await response.json()
+        console.log('✅ Login exitoso:', data)
+
+        // Guardar token y datos del usuario en localStorage
+        AuthService.setToken(data.token)
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify({
+            id: data.id,
+            username: data.username,
+            correo: data.correo,
+            racha: data.racha,
+            experiencia: data.experiencia,
+            avatar: data.avatar
+        }))
+
+        router.push('/dashboard') // redirigir al dashboard
+    } catch (err) {
+        console.error('❌ Error en login:', err)
+        alert('Credenciales incorrectas o error en el servidor')
+    } finally {
+        loading.value = false
     }
 }
 </script>
+
 
 <template>
     <div class="login">
@@ -49,26 +63,29 @@ export default {
 
             <div class="form-group">
                 <label class="label-left">Apodo</label>
-                <input type="input" placeholder="ingresa tu apodo" />
+                <input type="text" placeholder="Ingresa tu apodo" v-model="email" />
             </div>
 
             <div class="form-group">
                 <label class="label-left">Contraseña</label>
-                <input type="password" placeholder="Ingresa tu contraseña" />
+                <input type="password" placeholder="Ingresa tu contraseña" v-model="password" />
             </div>
 
-            <button class="login-btn" @click="handleLogin">Iniciar sesión</button>
+            <button class="login-btn" :disabled="loading" @click="handleLogin">
+                {{ loading ? 'Cargando...' : 'Iniciar sesión' }}
+            </button>
 
             <div class="links">
                 <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
                 <p class="register-text">
                     ¿No tienes cuenta?
-                    <a href="#" class="register-link" @click.prevent="handleRegistro">Regístrate</a>
+                    <router-link to="/registro" class="register-link">Regístrate</router-link>
                 </p>
             </div>
         </div>
     </div>
 </template>
+
 
 
 <style scoped>

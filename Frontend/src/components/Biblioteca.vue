@@ -55,7 +55,7 @@ export default {
     <div class="biblioteca">
         <div class="header">
             <div class="logo">
-                <img src="@/Assets/Biblioteca.svg" alt="Libro" class="logo" />
+                <img src="/Assets/Biblioteca.svg" alt="Libro" class="logo" />
                 <span class="brand">Biblioteca</span>
             </div>
         </div>
@@ -148,19 +148,19 @@ export default {
         <footer class="footer">
             <div class="barra-inicio">
                 <button @click="$emit('goInicio')">
-                    <img src="@/Assets/Inicio.svg" />Inicio</button>
+                    <img src="/Assets/Inicio.svg" />Inicio</button>
             </div>
             <div class="barra">
                 <button type="button">
-                    <img src="@/Assets/Biblioteca.svg" />Biblioteca</button>
+                    <img src="/Assets/Biblioteca.svg" />Biblioteca</button>
             </div>
             <div class="barra">
                 <button type="button">
-                    <img src="@/Assets/Ranking.svg" />Ranking</button>
+                    <img src="/Assets/Ranking.svg" />Ranking</button>
             </div>
             <div class="barra">
                 <button type="button">
-                    <img src="@/Assets/Configuración.svg" />Configuracion</button>
+                    <img src="/Assets/Configuración.svg" />Configuracion</button>
             </div>
         </footer>
     </div>
