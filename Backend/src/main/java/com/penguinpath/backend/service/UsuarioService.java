@@ -42,6 +42,11 @@ public class UsuarioService {
                 usuario.setUltimaConexion(LocalDate.now());
                 usuario.setRacha(usuario.getRacha() + 1);
                 usuarioRepository.save(usuario);
+                // si no se conecta en un dia quitar racha
+            } else {
+                usuario.setRacha(0);
+                usuario.setUltimaConexion(LocalDate.now());
+                usuarioRepository.save(usuario);
             }
         }
         return usuario;

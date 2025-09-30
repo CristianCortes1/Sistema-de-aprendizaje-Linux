@@ -1,14 +1,10 @@
 package com.penguinpath.backend.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDate;
 
-@Getter
-@Setter
 @Entity
 @Table(name = "usuarios", schema = "penguin_path")
 public class Usuario {
@@ -41,4 +37,67 @@ public class Usuario {
     @Column(name = "ultima_conexion")
     private LocalDate ultimaConexion;
 
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getCorreo() {
+        return correo;
+    }
+
+    public void setCorreo(String correo) {
+        this.correo = correo;
+    }
+
+    public String getContraseña() {
+        return contraseña;
+    }
+
+    public void setContraseña(String contraseña) {
+        this.contraseña = contraseña;
+    }
+
+    public Integer getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(Integer avatar) {
+        this.avatar = avatar;
+    }
+
+    public Integer getRacha() {
+        return racha;
+    }
+
+    public void setRacha(Integer racha) {
+        this.racha = racha;
+    }
+
+    public Integer getExperiencia() {
+        return experiencia;
+    }
+
+    public void setExperiencia(Integer experiencia) {
+        this.experiencia = experiencia;
+    }
+
+    public LocalDate getUltimaConexion() {
+        return ultimaConexion;
+    }
+
+    public void setUltimaConexion(LocalDate ultimaConexion) {
+        this.ultimaConexion = ultimaConexion;
+    }
 }
