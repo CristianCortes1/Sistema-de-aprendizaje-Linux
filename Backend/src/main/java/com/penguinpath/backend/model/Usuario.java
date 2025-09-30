@@ -20,7 +20,7 @@ public class Usuario {
     private String correo;
 
     @Column(name = "`contraseña`", nullable = false, length = 100)
-    private String contraseña;
+    private String password;
 
     @ColumnDefault("1")
     @Column(name = "avatar")
@@ -61,12 +61,21 @@ public class Usuario {
         this.correo = correo;
     }
 
+<<<<<<< HEAD
     public String getContraseña() {
         return contraseña;
     }
 
     public void setContraseña(String contraseña) {
         this.contraseña = contraseña;
+=======
+    public String getpassword() {
+        return password;
+    }
+
+    public void setpassword(String password) {
+        this.password = password;
+>>>>>>> Frontend
     }
 
     public Integer getAvatar() {

@@ -20,11 +20,11 @@ public class UsuarioService {
         this.encoder = encoder;
     }
 
-    public Usuario registrar(String username, String correo, String contraseña) {
+    public Usuario registrar(String username, String correo, String password) {
         Usuario usuario = new Usuario();
         usuario.setUsername(username);
         usuario.setCorreo(correo);
-        usuario.setContraseña(encoder.encode(contraseña));
+        usuario.setpassword(encoder.encode(password));
         usuario.setRacha(0);
         usuario.setExperiencia(0);
         usuario.setAvatar(1);
@@ -32,11 +32,11 @@ public class UsuarioService {
         return usuarioRepository.save(usuario);
     }
 
-    public Usuario login(String username, String contraseña) {
+    public Usuario login(String username, String password) {
         Usuario usuario = usuarioRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        if (!encoder.matches(contraseña, usuario.getContraseña())) {
-            throw new RuntimeException("Contraseña incorrecta");
+        if (!encoder.matches(password, usuario.getpassword())) {
+            throw new RuntimeException("password incorrecta");
         } else {
             if (usuario.getUltimaConexion() == null || usuario.getUltimaConexion().isBefore(LocalDate.now())) {
                 usuario.setUltimaConexion(LocalDate.now());
@@ -95,7 +95,7 @@ public class UsuarioService {
         return usuarioRepository.findById(Long.valueOf(id)).map(usuario -> {
             usuario.setUsername(datos.getUsername());
             usuario.setCorreo(datos.getCorreo());
-            usuario.setContraseña(datos.getContraseña());
+            usuario.setpassword(datos.getpassword());
             usuario.setAvatar(datos.getAvatar());
             usuario.setRacha(datos.getRacha());
             usuario.setExperiencia(datos.getExperiencia());

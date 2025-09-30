@@ -1,89 +1,119 @@
-<script>
-export default {
-    name: 'DashboardComponent',
-    emits: ['goBiblioteca'] 
-}
+<script lang="ts">
+import { defineComponent, ref, onMounted } from 'vue'
+import AuthService from '../services/AuthService'
+
+export default defineComponent({
+    setup() {
+        const user = ref({
+            username: '',
+            correo: '',
+            racha: 0,
+            experiencia: 0,
+            avatar: 1
+        })
+
+        const modules = ref([
+            { name: 'Comandos básicos', icon: '' },
+            { name: 'Archivos y directorios', icon: '/Assets/Archivos.svg' },
+            { name: 'Permisos', icon: '/Assets/Permisos.svg' },
+            { name: 'Procesos y señales', icon: '/Assets/Procesos.svg' },
+        ])
+
+        onMounted(() => {
+            const storedUser = localStorage.getItem('user')
+            if (storedUser) {
+                const parsed = JSON.parse(storedUser)
+                user.value.username = parsed.username
+                user.value.racha = parsed.racha
+                user.value.experiencia = parsed.experiencia
+                user.value.avatar = parsed.avatar
+                user.value.correo = parsed.correo
+            }
+        })
+
+        const logout = () => {
+            AuthService.logout() // limpiar token del backend si es necesario
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            window.location.href = '/'
+        }
+
+        return { user, modules, logout }
+    }
+})
 </script>
 
 <template>
-
     <div class="dashboard">
 
+        <!-- HEADER -->
         <header class="header">
             <div class="logo">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Penguin" class="logo" />
                 <span class="brand">Penguin Path</span>
-                <!-- <h1 class="brand">Penguin Path</h1> -->
             </div>
 
             <div class="status">
                 <div class="streak">
-                    <img src="@/Assets/Racha.svg" alt="Racha" />
-                    <span>Racha: 5 días</span>
+                    <img src="/Assets/Racha.svg" alt="Racha" />
+                    <span>Racha: {{ user.racha }} días</span>
                 </div>
                 <div class="xp">
-                    <img src="@/Assets/xp.svg" alt="XP" />
-                    <span>120 XP</span>
+                    <img src="/Assets/xp.svg" alt="XP" />
+                    <span>{{ user.experiencia }} XP</span>
                 </div>
                 <div class="perfil">
-                    <img src="@/Assets/Avatar2.svg" alt="Perfil" />
-                    <span>Pedrito</span>
+                    <img :src="`/Assets/Avatar${user.avatar}.svg`" alt="Perfil" />
+                    <span>{{ user.username }}</span>
+                    <!-- Botón Cerrar sesión dentro del header, al lado del perfil -->
+                    <button class="logout-btn" @click="logout"><svg xmlns="http://www.w3.org/2000/svg" width="24"
+                            height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" class="feather feather-log-out">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                    </button>
                 </div>
             </div>
         </header>
 
+        <!-- PROGRESO -->
         <h1 class="titulo">Tu progreso en Linux</h1>
         <p class="subtitulo">Domina la línea de comandos paso a paso</p>
 
         <div class="form-group">
-            <div class="card">
+            <div class="card" v-for="module in modules" :key="module.name">
                 <button type="button">
-                    <span>>_</span>
-                    <span>Comandos básicos</span>
+                    <img v-if="module.icon" :src="module.icon" :alt="module.name" />
+                    <span v-else>>_</span>
+                    <span>{{ module.name }}</span>
                 </button>
             </div>
-            <div class="card">
-                <button type="button">
-                    <img src="@/Assets/Archivos.svg" alt="Archivos" />
-                    <span>Archivos y directorios</span>
-                </button>
-            </div>
-            <div class="card">
-                <button type="button">
-                    <img src="@/Assets/Permisos.svg" alt="Permisos" />
-                    <span>Permisos</span>
-                </button>
-            </div>
-            <div class="card">
-                <button type="button">
-                    <img src="@/Assets/Procesos.svg" alt="Procesos" />
-                    <span>Procesos y señales</span>
-                </button>
-            </div>
-
         </div>
 
+        <!-- FOOTER -->
         <footer class="footer">
             <div class="barra-inicio">
-                <button type="button"><img src="@/Assets/Inicio.svg">Inicio</button>
+                <button type="button"><img src="/Assets/Inicio.svg">Inicio</button>
             </div>
             <div class="barra">
-                <button @click="$emit('goBiblioteca')" >
-                <img src="@/Assets/Biblioteca.svg" alt="Biblioteca">
+                <button @click="$emit('goBiblioteca')">
+                    <img src="/Assets/Biblioteca.svg" alt="Biblioteca">
                     Biblioteca
                 </button>
             </div>
             <div class="barra">
-                <button type="button"><img src="@/Assets/Ranking.svg">Ranking</button>
+                <button type="button"><img src="/Assets/Ranking.svg">Ranking</button>
             </div>
             <div class="barra">
-                <button type="button"><img src="@/Assets/Configuración.svg">Configuracion</button>
+                <button type="button"><img src="/Assets/Configuración.svg">Configuración</button>
             </div>
         </footer>
 
     </div>
-
 </template>
+
 
 <style scoped>
 * {
@@ -99,7 +129,7 @@ export default {
     right: 0;
     bottom: 0;
     /* background: linear-gradient(135deg, #ff6b35 0%, #dc8522 25%, #c2185b 75%, #7b1fa2 100%); */
-    background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%,  #956eaa 100%);
+    background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     display: flex;
     flex-direction: column;
@@ -315,6 +345,27 @@ export default {
     width: 60px;
     height: 60px;
     object-fit: contain;
+}
+
+.logout-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background 0.3s ease;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
 }
 
 .footer {

@@ -1,64 +1,92 @@
-<script>
-export default {
-    name: 'LoginComponent',
-    emits: ['login'],
-    methods: {
-        handleLogin() {
-            // Credenciales por defecto para pruebas
-            const defaultEmail = 'admin'
-            const defaultPassword = '1'
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import AuthService from '../services/AuthService'
 
-            // Obtener valores de los inputs
-            const emailInput = this.$el.querySelector('input[type="email"]')
-            const passwordInput = this.$el.querySelector('input[type="password"]')
+const email = ref('')
+const password = ref('')
+const loading = ref(false)
+const router = useRouter()
 
-            const email = emailInput.value
-            const password = passwordInput.value
+async function handleLogin() {
+    if (!email.value || !password.value) {
+        alert('Por favor llena todos los campos')
+        return
+    }
 
-            // Validación simple con credenciales por defecto
-            if (email === defaultEmail && password === defaultPassword) {
-                console.log('✅ Login exitoso!')
-                this.$emit('login') // Emite evento al componente padre
-            } else {
-                console.log('❌ Credenciales incorrectas')
-                alert('Credenciales incorrectas.\nUsa:\nEmail: admin\nPassword: 1')
-            }
-        }
+    loading.value = true
+    try {
+        const response = await fetch('http://127.0.0.1:8080/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: email.value,
+                password: password.value
+            })
+        })
+
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
+
+        const data = await response.json()
+        console.log('✅ Login exitoso:', data)
+
+        // Guardar token y datos del usuario en localStorage
+        AuthService.setToken(data.token)
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify({
+            id: data.id,
+            username: data.username,
+            correo: data.correo,
+            racha: data.racha,
+            experiencia: data.experiencia,
+            avatar: data.avatar
+        }))
+
+        router.push('/dashboard') // redirigir al dashboard
+    } catch (err) {
+        console.error('❌ Error en login:', err)
+        alert('Credenciales incorrectas o error en el servidor')
+    } finally {
+        loading.value = false
     }
 }
 </script>
 
 
-
 <template>
     <div class="login">
-        <div class="Background"> </div>
-
-
+        <div class="Background"></div>
         <div class="Plantilla">
             <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Mi logo" />
             <h1>Bienvenido a Penguin Path</h1>
             <p>La mejor plataforma para aprender linux paso a paso.</p><br>
+
             <div class="form-group">
-                <label class=label-left>Correo electrónico</label>
-                <input type="email" placeholder="ejemplo@correo.com" />
+                <label class="label-left">Apodo</label>
+                <input type="text" placeholder="Ingresa tu apodo" v-model="email" />
             </div>
 
             <div class="form-group">
                 <label class="label-left">Contraseña</label>
-                <input type="password" placeholder="Ingresa tu contraseña" />
+                <input type="password" placeholder="Ingresa tu contraseña" v-model="password" />
             </div>
 
-            <button class="login-btn" @click="handleLogin">Iniciar sesión</button>
+            <button class="login-btn" :disabled="loading" @click="handleLogin">
+                {{ loading ? 'Cargando...' : 'Iniciar sesión' }}
+            </button>
 
             <div class="links">
                 <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
-                <p class="register-text">¿No tienes cuenta? <a href="#" class="register-link">Regístrate</a></p>
+                <p class="register-text">
+                    ¿No tienes cuenta?
+                    <router-link to="/registro" class="register-link">Regístrate</router-link>
+                </p>
             </div>
-
         </div>
     </div>
 </template>
+
+
 
 <style scoped>
 * {

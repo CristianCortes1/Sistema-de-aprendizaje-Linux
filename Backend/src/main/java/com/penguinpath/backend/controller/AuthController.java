@@ -2,7 +2,9 @@ package com.penguinpath.backend.controller;
 
 import com.penguinpath.backend.dto.RegistroRequest;
 import com.penguinpath.backend.dto.LoginRequest;
+import com.penguinpath.backend.dto.UsuarioResponse;
 import com.penguinpath.backend.model.Usuario;
+import com.penguinpath.backend.security.JwtUtil;
 import com.penguinpath.backend.service.UsuarioService;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,12 +18,16 @@ public class AuthController {
     }
 
     @PostMapping("/registro")
-    public Usuario registro(@RequestBody RegistroRequest req) {
-        return service.registrar(req.username, req.correo, req.contraseña);
+    public UsuarioResponse registro(@RequestBody RegistroRequest req) {
+        Usuario usuario = service.registrar(req.username, req.correo, req.password);
+        String token = JwtUtil.generarToken(usuario.getUsername());
+        return UsuarioResponse.from(usuario, token);
     }
 
     @PostMapping("/login")
-    public Usuario login(@RequestBody LoginRequest req) {
-        return service.login(req.username, req.contraseña);
+    public UsuarioResponse login(@RequestBody LoginRequest req) {
+        Usuario usuario = service.login(req.username, req.password);
+        String token = JwtUtil.generarToken(usuario.getUsername());
+        return UsuarioResponse.from(usuario, token);
     }
 }
