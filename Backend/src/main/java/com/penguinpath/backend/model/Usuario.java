@@ -19,7 +19,11 @@ public class Usuario {
     @Column(name = "correo", nullable = false, length = 60)
     private String correo;
 
+<<<<<<< HEAD
     @Column(name = "password", nullable = false, length = 100)
+=======
+    @Column(name = "`password`", nullable = false, length = 100)
+>>>>>>> 284a2c820f856cef3f98c81a13586cc72dd7ec9d
     private String password;
 
     @ColumnDefault("1")
@@ -61,11 +65,11 @@ public class Usuario {
         this.correo = correo;
     }
 
-    public String getpassword() {
+    public String getPassword() {
         return password;
     }
 
-    public void setpassword(String password) {
+    public void setPassword(String password) {
         this.password = password;
     }
 
