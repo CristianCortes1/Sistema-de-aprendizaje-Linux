@@ -2,46 +2,54 @@
 export default {
     name: 'LoginComponent',
     emits: ['login'],
+    data() {
+        return {
+            email: '',
+            password: ''
+        }
+    },
     methods: {
-        handleLogin() {
-            // Credenciales por defecto para pruebas
-            const defaultEmail = 'admin'
-            const defaultPassword = '1'
+        async handleLogin() {
+            try {
+                const response = await fetch('http://127.0.0.1:8080/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: this.email,       // 👈 mapea igual que tu DTO en backend
+                        contraseña: this.password   // 👈 usa el mismo nombre del campo en el backend
+                    })
+                });
 
-            // Obtener valores de los inputs
-            const emailInput = this.$el.querySelector('input[type="email"]')
-            const passwordInput = this.$el.querySelector('input[type="password"]')
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
 
-            const email = emailInput.value
-            const password = passwordInput.value
+                const user = await response.json();
+                console.log('✅ Login exitoso:', user);
 
-            // Validación simple con credenciales por defecto
-            if (email === defaultEmail && password === defaultPassword) {
-                console.log('✅ Login exitoso!')
-                this.$emit('login') // Emite evento al componente padre
-            } else {
-                console.log('❌ Credenciales incorrectas')
-                alert('Credenciales incorrectas.\nUsa:\nEmail: admin\nPassword: 1')
+                // 👇 aquí ya puedes marcar sesión activa
+                this.$emit('login', user);
+
+            } catch (err) {
+                console.error('❌ Error en login:', err);
+                alert('Credenciales incorrectas o error en el servidor');
             }
         }
     }
 }
 </script>
 
-
-
 <template>
     <div class="login">
-        <div class="Background"> </div>
-
-
+        <div class="Background"></div>
         <div class="Plantilla">
             <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Mi logo" />
             <h1>Bienvenido a Penguin Path</h1>
             <p>La mejor plataforma para aprender linux paso a paso.</p><br>
+
             <div class="form-group">
-                <label class=label-left>Correo electrónico</label>
-                <input type="email" placeholder="ejemplo@correo.com" />
+                <label class="label-left">Apodo</label>
+                <input type="input" placeholder="ingresa tu apodo" />
             </div>
 
             <div class="form-group">
@@ -53,12 +61,15 @@ export default {
 
             <div class="links">
                 <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
-                <p class="register-text">¿No tienes cuenta? <a href="#" class="register-link">Regístrate</a></p>
+                <p class="register-text">
+                    ¿No tienes cuenta?
+                    <a href="#" class="register-link" @click.prevent="handleRegistro">Regístrate</a>
+                </p>
             </div>
-
         </div>
     </div>
 </template>
+
 
 <style scoped>
 * {

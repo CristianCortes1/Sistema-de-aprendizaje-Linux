@@ -2,20 +2,20 @@
 import Login from './components/Login.vue'
 import Dashboard from './components/Dashboard.vue'
 import Biblioteca from './components/Biblioteca.vue'
+import Registro from './components/Registro.vue'
 
 export default {
   name: 'AppContainer',
-  components: { Login, Dashboard, Biblioteca },
+  components: { Login, Dashboard, Biblioteca, Registro },
   data() {
     return {
       currentPage: window.location.hash.replace('#', '') || 'login',
-      isAuthenticated: false // 👈 nuevo estado de sesión
+      isAuthenticated: false
     }
   },
   methods: {
     setPage(page) {
-      // 👇 Seguridad: si intenta ir al dashboard/biblioteca sin login, redirige a login
-      if (!this.isAuthenticated && page !== 'login') {
+      if (!this.isAuthenticated && page !== 'login' && page !== 'registro') {
         console.warn('⛔ Acceso denegado, vuelve a login')
         this.currentPage = 'login'
         window.location.hash = 'login'
@@ -25,9 +25,11 @@ export default {
       window.location.hash = page
     },
     handleUserLogin() {
-      // 🔑 aquí deberías validar credenciales reales
       this.isAuthenticated = true
       this.setPage('dashboard')
+    },
+    handleRegister() {
+      this.setPage('registro')
     },
     handleUserLogout() {
       this.isAuthenticated = false
@@ -37,8 +39,7 @@ export default {
   mounted() {
     window.addEventListener('hashchange', () => {
       const page = window.location.hash.replace('#', '') || 'login'
-      // 👇 aplica validación al navegar con flechitas
-      if (!this.isAuthenticated && page !== 'login') {
+      if (!this.isAuthenticated && page !== 'login' && page !== 'registro') {
         console.warn('⛔ Intento de entrar sin login')
         this.setPage('login')
       } else {
@@ -54,7 +55,14 @@ export default {
     <!-- Login -->
     <Login 
       v-if="currentPage === 'login'" 
-      @login="handleUserLogin" 
+      @login="handleUserLogin"
+      @registro="handleRegister"
+    />
+
+    <!-- Registro -->
+    <Registro 
+      v-else-if="currentPage === 'registro'" 
+      @goLogin="setPage('login')" 
     />
 
     <!-- Dashboard -->
@@ -72,3 +80,4 @@ export default {
     />
   </div>
 </template>
+
