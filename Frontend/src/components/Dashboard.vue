@@ -1,7 +1,9 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
 import AuthService from '../services/AuthService'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 export default defineComponent({
     setup() {
         const user = ref({
@@ -38,7 +40,11 @@ export default defineComponent({
             window.location.href = '/'
         }
 
-        return { user, modules, logout }
+        const goBiblioteca = () => {
+            router.push('/biblioteca')
+        }
+
+        return { user, modules, logout, goBiblioteca }
     }
 })
 </script>
@@ -98,7 +104,7 @@ export default defineComponent({
                 <button type="button"><img src="/Assets/Inicio.svg">Inicio</button>
             </div>
             <div class="barra">
-                <button @click="$emit('goBiblioteca')">
+                <button @click="goBiblioteca">
                     <img src="/Assets/Biblioteca.svg" alt="Biblioteca">
                     Biblioteca
                 </button>
