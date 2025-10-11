@@ -1,1 +1,4 @@
-export class CreateCommandDto {}
+export class CreateCommandDto {
+	comando: string;
+	retoId: number;
+}
