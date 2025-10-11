@@ -44,7 +44,7 @@ export class AuthService {
                 username,
                 correo,
                 contraseña: hashed,
-                avatar: 0, // or another appropriate number value for default avatar
+                avatar: DEFAULT_AVATAR, // or another appropriate number value for default avatar
             },
         });
     }
