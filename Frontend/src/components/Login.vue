@@ -16,7 +16,11 @@ async function handleLogin() {
 
     loading.value = true
     try {
+<<<<<<< HEAD
         const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/auth/login', {
+=======
+        const response = await fetch('http://localhost:3000/auth/login', {
+>>>>>>> Backend
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -28,18 +32,17 @@ async function handleLogin() {
         if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
 
         const data = await response.json()
-        console.log('✅ Login exitoso:', data)
 
         // Guardar token y datos del usuario en localStorage
         AuthService.setToken(data.token)
         localStorage.setItem('token', data.token)
         localStorage.setItem('user', JSON.stringify({
-            id: data.id,
-            username: data.username,
-            correo: data.correo,
-            racha: data.racha,
-            experiencia: data.experiencia,
-            avatar: data.avatar
+            id: data.user.id_Usuario,
+            username: data.user.username,
+            correo: data.user.correo,
+            avatar: data.user.avatar,
+            racha: data.user.racha,
+            experiencia: data.user.experiencia
         }))
 
         router.push('/dashboard') // redirigir al dashboard
