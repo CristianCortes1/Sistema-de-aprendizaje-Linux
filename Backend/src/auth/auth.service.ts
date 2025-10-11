@@ -33,7 +33,7 @@ export class AuthService {
 
         // 🖼️ Lee el archivo del avatar por defecto
         const base64 = await fs.readFile(
-            '../imagen.txt', // 👉 ajusta la ruta según tu proyecto
+            'imagen.txt', // 👉 ajusta la ruta según tu proyecto
             'utf-8'
         );
 
