@@ -25,11 +25,11 @@ export default defineComponent({
             const storedUser = localStorage.getItem('user')
             if (storedUser) {
                 const parsed = JSON.parse(storedUser)
-                user.value.username = parsed.username
-                user.value.racha = parsed.racha
-                user.value.experiencia = parsed.experiencia
-                user.value.avatar = parsed.avatar
-                user.value.correo = parsed.correo
+                user.user.username = parsed.username
+                user.user.racha = parsed.racha
+                user.user.experiencia = parsed.experiencia
+                user.user.avatar = parsed.avatar
+                user.user.correo = parsed.correo
             }
         })
 
