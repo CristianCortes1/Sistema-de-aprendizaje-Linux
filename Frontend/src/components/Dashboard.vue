@@ -69,7 +69,7 @@ export default defineComponent({
                     <span>{{ user.experiencia }} XP</span>
                 </div>
                 <div class="perfil">
-                    <img :src="`/Assets/Avatar${user.avatar}.svg`" alt="Perfil" />
+                    <img :src="user.avatar" alt="Perfil" />
                     <span>{{ user.username }}</span>
                     <!-- Botón Cerrar sesión dentro del header, al lado del perfil -->
                     <button class="logout-btn" @click="logout"><svg xmlns="http://www.w3.org/2000/svg" width="24"
