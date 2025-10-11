@@ -19,6 +19,12 @@ export class UsersService {
     });
   }
 
+  findAllForExperience() {
+    return this.prisma.usuarios.findMany({
+      orderBy: { experiencia: 'desc' },
+    });
+  }
+
   findAll() {
     return this.prisma.usuarios.findMany();
   }
