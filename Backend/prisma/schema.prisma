@@ -15,6 +15,7 @@ datasource db {
 }
 
 model Usuarios {
+<<<<<<< HEAD
   id_Usuario       Int         @id @default(autoincrement())
   username         String      @db.VarChar(25)
   correo           String      @db.VarChar(60)
@@ -32,10 +33,31 @@ model Progresos {
   usuario          Usuarios  @relation(fields: [Usuarios_id_Usuario], references: [id_Usuario])
   Usuarios_id_Usuario Int
   leccion          Lecciones @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
+=======
+  id_Usuario  Int         @id @default(autoincrement())
+  username    String      @db.VarChar(25)
+  correo      String      @db.VarChar(60)
+  contraseña  String      @db.VarChar(200)
+  avatar      String?     @db.Text
+  racha       Int         @default(0)
+  experiencia Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  progresos   Progresos[]
+}
+
+model Progresos {
+  id                   Int       @id @default(autoincrement())
+  progreso             Int
+  usuario              Usuarios  @relation(fields: [Usuarios_id_Usuario], references: [id_Usuario])
+  Usuarios_id_Usuario  Int
+  leccion              Lecciones @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
+>>>>>>> Backend
   Lecciones_id_Leccion Int
 }
 
 model Lecciones {
+<<<<<<< HEAD
   id_Leccion      Int        @id @default(autoincrement())
   Titulo          String     @db.VarChar(45)
   progresos       Progresos[]
@@ -47,14 +69,35 @@ model Retos {
   descripcion          String      @db.VarChar(300)
   Retroalimentacion    String?     @db.VarChar(100)
   leccion              Lecciones   @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
+=======
+  id_Leccion Int         @id @default(autoincrement())
+  Titulo     String      @db.VarChar(45)
+  progresos  Progresos[]
+  retos      Retos[]
+}
+
+model Retos {
+  id_Reto              Int        @id @default(autoincrement())
+  descripcion          String     @db.VarChar(300)
+  Retroalimentacion    String?    @db.VarChar(100)
+  leccion              Lecciones  @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
+>>>>>>> Backend
   Lecciones_id_Leccion Int
   comandos             Comandos[]
 }
 
 model Comandos {
+<<<<<<< HEAD
   id_Comando               Int      @id @default(autoincrement())
   comando                  String   @db.VarChar(45)
   reto                     Retos    @relation(fields: [Retos_id_Reto], references: [id_Reto])
   Retos_id_Reto            Int
 }
 
+=======
+  id_Comando    Int    @id @default(autoincrement())
+  comando       String @db.VarChar(45)
+  reto          Retos  @relation(fields: [Retos_id_Reto], references: [id_Reto])
+  Retos_id_Reto Int
+}
+>>>>>>> Backend

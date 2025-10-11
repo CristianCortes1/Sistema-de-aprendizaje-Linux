@@ -3,6 +3,7 @@ import AuthService from '../services/AuthService'
 import Login from '@/components/Login.vue'
 import Dashboard from '@/components/Dashboard.vue'
 import Registro from '@/components/Registro.vue'
+import Biblioteca from '../components/Biblioteca.vue'
 
 const routes: Array<RouteRecordRaw> = [
     {
@@ -22,7 +23,9 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Dashboard',
         component: Dashboard,
         meta: { requiresAuth: true }
-    }
+    },
+
+    { path: '/biblioteca', name: 'Biblioteca', component: Biblioteca, meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({
