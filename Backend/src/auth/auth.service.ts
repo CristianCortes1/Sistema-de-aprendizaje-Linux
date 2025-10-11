@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { promises as fs } from 'fs';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -27,14 +28,23 @@ export class AuthService {
             access_token: this.jwtService.sign(payload),
         };
     }
-
     async register(username: string, correo: string, password: string) {
         const hashed = await bcrypt.hash(password, 10);
+
+        // 🖼️ Lee el archivo del avatar por defecto
+        const base64 = await fs.readFile(
+            '../imagen.txt', // 👉 ajusta la ruta según tu proyecto
+            'utf-8'
+        );
+
+        const DEFAULT_AVATAR = `data:image/svg+xml;base64,${base64.trim()}`;
+
         return this.prisma.usuarios.create({
             data: {
                 username,
                 correo,
                 contraseña: hashed,
+                avatar: 0, // or another appropriate number value for default avatar
             },
         });
     }
