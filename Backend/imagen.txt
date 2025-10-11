@@ -1,25 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-model Usuarios {
-  id_Usuario  Int         @id @default(autoincrement())
-  username    String      @db.VarChar(25)
-  correo      String      @db.VarChar(60)
-  contraseña  String      @db.VarChar(200)
-  avatar      String?     @default("data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmll
+PHN2ZyB2ZXJzaW9uPSIxLjIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmll
 d0JveD0iMCAwIDEwMjQgMTAyNCIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiPg0KCTx0aXRsZT5B
 dmF0YXIxPC90aXRsZT4NCgk8ZGVmcz4NCgkJPGltYWdlICB3aWR0aD0iOTgzIiBoZWlnaHQ9Ijk3
 MSIgaWQ9ImltZzEiIGhyZWY9ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFO
@@ -23739,42 +23718,3 @@ ZHBGYjJjdmVuSkQzUlhXcFo4TFlQOHk3QUZUNzh1M2pHdFI1OTg4RnZIRXVMZEVPc3AzK0QzTXZt
 eVVPcStpNEFBQUFBRWxGVGtTdVFtQ0MiLz4NCgk8L2RlZnM+DQoJPHN0eWxlPg0KCTwvc3R5bGU+
 DQoJPHVzZSBpZD0iQmFja2dyb3VuZCIgaHJlZj0iI2ltZzEiIHg9IjIwIiB5PSIyMCIvPg0KPC9z
 dmc+
-")
-  racha       Int         @default(0)
-  experiencia Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  progresos   Progresos[]
-}
-
-model Progresos {
-  id                   Int       @id @default(autoincrement())
-  progreso             Int
-  usuario              Usuarios  @relation(fields: [Usuarios_id_Usuario], references: [id_Usuario])
-  Usuarios_id_Usuario  Int
-  leccion              Lecciones @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
-  Lecciones_id_Leccion Int
-}
-
-model Lecciones {
-  id_Leccion Int         @id @default(autoincrement())
-  Titulo     String      @db.VarChar(45)
-  progresos  Progresos[]
-  retos      Retos[]
-}
-
-model Retos {
-  id_Reto              Int        @id @default(autoincrement())
-  descripcion          String     @db.VarChar(300)
-  Retroalimentacion    String?    @db.VarChar(100)
-  leccion              Lecciones  @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
-  Lecciones_id_Leccion Int
-  comandos             Comandos[]
-}
-
-model Comandos {
-  id_Comando    Int    @id @default(autoincrement())
-  comando       String @db.VarChar(45)
-  reto          Retos  @relation(fields: [Retos_id_Reto], references: [id_Reto])
-  Retos_id_Reto Int
-}
