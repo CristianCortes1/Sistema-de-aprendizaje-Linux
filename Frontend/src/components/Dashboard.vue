@@ -11,7 +11,7 @@ export default defineComponent({
             correo: '',
             racha: 0,
             experiencia: 0,
-            avatar: 1
+            avatar: ""
         })
 
         const modules = ref([
