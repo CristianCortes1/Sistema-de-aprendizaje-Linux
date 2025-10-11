@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuarios {
+  id_Usuario  Int         @id @default(autoincrement())
+  username    String      @db.VarChar(25)
+  correo      String      @db.VarChar(60)
+  contraseña  String      @db.VarChar(200)
+  avatar      String?     @db.Text
+  racha       Int         @default(0)
+  experiencia Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  progresos   Progresos[]
+}
+
+model Progresos {
+  id                   Int       @id @default(autoincrement())
+  progreso             Int
+  usuario              Usuarios  @relation(fields: [Usuarios_id_Usuario], references: [id_Usuario])
+  Usuarios_id_Usuario  Int
+  leccion              Lecciones @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
+  Lecciones_id_Leccion Int
+}
+
+model Lecciones {
+  id_Leccion Int         @id @default(autoincrement())
+  Titulo     String      @db.VarChar(45)
+  progresos  Progresos[]
+  retos      Retos[]
+}
+
+model Retos {
+  id_Reto              Int        @id @default(autoincrement())
+  descripcion          String     @db.VarChar(300)
+  Retroalimentacion    String?    @db.VarChar(100)
+  leccion              Lecciones  @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
+  Lecciones_id_Leccion Int
+  comandos             Comandos[]
+}
+
+model Comandos {
+  id_Comando    Int    @id @default(autoincrement())
+  comando       String @db.VarChar(45)
+  reto          Retos  @relation(fields: [Retos_id_Reto], references: [id_Reto])
+  Retos_id_Reto Int
+}
