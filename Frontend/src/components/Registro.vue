@@ -19,11 +19,7 @@ export default defineComponent({
 
             loading.value = true
             try {
-<<<<<<< HEAD
                 const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/auth/registro', {
-=======
-                const response = await fetch('http://localhost:3000/auth/register', {
->>>>>>> Backend
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

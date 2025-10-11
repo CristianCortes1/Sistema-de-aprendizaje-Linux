@@ -16,11 +16,7 @@ async function handleLogin() {
 
     loading.value = true
     try {
-<<<<<<< HEAD
         const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/auth/login', {
-=======
-        const response = await fetch('http://localhost:3000/auth/login', {
->>>>>>> Backend
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
