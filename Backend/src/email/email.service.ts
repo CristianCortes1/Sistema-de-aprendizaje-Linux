@@ -1,80 +1,78 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
-export class EmailService {
-  private transporter!: nodemailer.Transporter;
-  private ready = false;
+export class EmailService implements OnModuleInit {
+    private transporter!: nodemailer.Transporter;
+    private ready = false;
 
-  constructor() {
-    void this.init();
-  }
-
-  private async init() {
-    try {
-      const useProd =
-        process.env.NODE_ENV === 'production' ||
-        !!process.env.SMTP_HOST ||
-        !!process.env.SMTP_USER ||
-        !!process.env.SMTP_PASS;
-
-      if (useProd) {
-        // Producción: SendGrid SMTP (o cualquier SMTP real)
-        this.transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
-          port: Number(process.env.SMTP_PORT ?? 587),
-          secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465,
-          auth: {
-            user: process.env.SMTP_USER, // para SendGrid es "apikey"
-            pass: process.env.SMTP_PASS, // tu API Key de SendGrid
-          },
-        });
-      } else {
-        // Desarrollo: Ethereal auto-generado
-        try {
-          const testAccount = await nodemailer.createTestAccount();
-          this.transporter = nodemailer.createTransport({
-            host: testAccount.smtp.host,
-            port: testAccount.smtp.port,
-            secure: testAccount.smtp.secure,
-            auth: { user: testAccount.user, pass: testAccount.pass },
-          });
-          console.log('✅ Ethereal account:', testAccount.user);
-        } catch (e: any) {
-          console.warn('⚠️ Ethereal no disponible, usando stream transport:', e.message);
-          this.transporter = nodemailer.createTransport({
-            streamTransport: true,
-            newline: 'unix',
-            buffer: true,
-          });
-        }
-      }
-
-      await this.transporter.verify();
-      this.ready = true;
-      console.log('✅ Email transporter listo');
-    } catch (err: any) {
-      console.error('❌ Error inicializando email transporter:', err?.message);
+    async onModuleInit() {
+        await this.init();
     }
-  }
 
-  private ensureReady() {
-    if (!this.ready) throw new Error('Email transporter not initialized yet');
-  }
+    private async init() {
+        try {
+            const useProd = process.env.NODE_ENV === 'production';
 
-  async sendConfirmationEmail(email: string, confirmationToken: string, username: string) {
-    this.ensureReady();
+            if (useProd) {
+                // 🚀 Producción (Railway) → SendGrid SMTP
+                this.transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
+                    port: Number(process.env.SMTP_PORT ?? 587),
+                    secure: false, // 587 no usa SSL directo
+                    requireTLS: true, // importante para Railway
+                    connectionTimeout: 15000, // 15 segundos
+                    auth: {
+                        user: process.env.SMTP_USER,
+                        pass: process.env.SMTP_PASS,
+                    },
+                });
+            } else {
+                // 🧪 Desarrollo → Ethereal
+                try {
+                    const testAccount = await nodemailer.createTestAccount();
+                    this.transporter = nodemailer.createTransport({
+                        host: testAccount.smtp.host,
+                        port: testAccount.smtp.port,
+                        secure: testAccount.smtp.secure,
+                        auth: { user: testAccount.user, pass: testAccount.pass },
+                    });
+                    console.log('✅ Ethereal account:', testAccount.user);
+                } catch (e: any) {
+                    console.warn('⚠️ Ethereal no disponible, usando stream transport:', e.message);
+                    this.transporter = nodemailer.createTransport({
+                        streamTransport: true,
+                        newline: 'unix',
+                        buffer: true,
+                    });
+                }
+            }
 
-    const confirmationUrl = `${process.env.FRONTEND_URL}/confirm-email?token=${confirmationToken}`;
-    const from =
-      process.env.EMAIL_FROM ||
-      '"Penguin Path 🐧" <noreply@penguinpath.app>'; // fallback seguro
+            await this.transporter.verify();
+            this.ready = true;
+            console.log('✅ Email transporter listo');
+        } catch (err: any) {
+            console.error('❌ Error inicializando email transporter:', err?.message);
+        }
+    }
 
-    const result = await this.transporter.sendMail({
-      from,
-      to: email,
-      subject: 'Confirma tu cuenta - Penguin Path',
-      html: `
+    private ensureReady() {
+        if (!this.ready) throw new Error('Email transporter not initialized yet');
+    }
+
+    async sendConfirmationEmail(email: string, confirmationToken: string, username: string) {
+        this.ensureReady();
+
+        const confirmationUrl = `${process.env.FRONTEND_URL}/confirm-email?token=${confirmationToken}`;
+        const from =
+            process.env.EMAIL_FROM ||
+            '"Penguin Path 🐧" <noreply@penguinpath.app>';
+
+        const result = await this.transporter.sendMail({
+            from,
+            to: email,
+            subject: 'Confirma tu cuenta - Penguin Path',
+            html: `
         <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
           <div style="background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%); padding: 20px; text-align: center;">
             <h1 style="color: white; margin: 0;">🐧 Penguin Path</h1>
@@ -101,11 +99,11 @@ export class EmailService {
           </div>
         </div>
       `,
-    });
+        });
 
-    const preview = nodemailer.getTestMessageUrl(result);
-    if (preview) console.log(`🔍 Preview email: ${preview}`);
+        const preview = nodemailer.getTestMessageUrl(result);
+        if (preview) console.log(`🔍 Preview email: ${preview}`);
 
-    return result;
-  }
+        return result;
+    }
 }
