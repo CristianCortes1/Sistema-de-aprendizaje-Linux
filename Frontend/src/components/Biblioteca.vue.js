@@ -1,4 +1,52 @@
-export default (await import('vue')).defineComponent({
+debugger; /* PartiallyEnd: #3632/script.vue */
+const __VLS_export = (await import('vue')).defineComponent({
+    name: 'Biblioteca',
+    emits: ['goInicio'],
+    data() {
+        return {
+            descripciones: {
+                ls: "Muestra el contenido de un directorio.",
+                pwd: "Muestra el directorio actual del archivo.",
+                cd: "Cambia el directorio de trabajo.",
+                echo: "Muestra un mensaje o valor de variable.",
+                clear: "Limpia la pantalla del terminal.",
+                touch: "Crea un archivo vacío.",
+                mkdir: "Crea un nuevo directorio.",
+                rm: "Elimina archivos.",
+                rmdir: "Elimina directorios vacíos.",
+                cp: "Copia archivos o directorios.",
+                mv: "Mueve o renombra archivos o directorios.",
+                cat: "Muestra el contenido de un archivo.",
+                nano: "Editor de texto en línea de comandos.",
+                grep: "Busca texto dentro de archivos.",
+                sudo: "Ejecuta comandos con privilegios de superusuario.",
+                chmod: "Cambia los permisos de archivos o directorios."
+            }
+        };
+    },
+    methods: {
+        toggleDescripcion(comando, event) {
+            const row = event.target.closest('tr');
+            const table = event.target.closest('table');
+            // Si ya existe una descripción justo después, la eliminamos (cerrar)
+            if (row.nextElementSibling && row.nextElementSibling.classList.contains('descripcion')) {
+                row.nextElementSibling.remove();
+                return;
+            }
+            // Remover cualquier otra descripción abierta
+            table.querySelectorAll('.descripcion').forEach(r => r.remove());
+            // Crear nueva descripción
+            const descRow = document.createElement('tr');
+            descRow.className = 'descripcion';
+            const descCell = document.createElement('td');
+            descCell.colSpan = 1; // Una sola columna ahora
+            descCell.textContent = this.descripciones[comando] || 'Descripción no disponible.';
+            descRow.appendChild(descCell);
+            row.insertAdjacentElement('afterend', descRow);
+        }
+    }
+});
+const __VLS_self = (await import('vue')).defineComponent({
     name: 'Biblioteca',
     emits: ['goInicio'],
     data() {
@@ -73,8 +121,6 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['barra-inicio']} */ ;
-// CSS variable injection 
-// CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "biblioteca" },
 });
@@ -85,7 +131,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "logo" },
 });
 __VLS_asFunctionalElement(__VLS_elements.img)({
-    src: "@/Assets/Biblioteca.svg",
+    src: "/Assets/Biblioteca.svg",
     alt: "Libro",
     ...{ class: "logo" },
 });
@@ -275,7 +321,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         } },
 });
 __VLS_asFunctionalElement(__VLS_elements.img)({
-    src: "@/Assets/Inicio.svg",
+    src: "/Assets/Inicio.svg",
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "barra" },
@@ -284,7 +330,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
     type: "button",
 });
 __VLS_asFunctionalElement(__VLS_elements.img)({
-    src: "@/Assets/Biblioteca.svg",
+    src: "/Assets/Biblioteca.svg",
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "barra" },
@@ -293,7 +339,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
     type: "button",
 });
 __VLS_asFunctionalElement(__VLS_elements.img)({
-    src: "@/Assets/Ranking.svg",
+    src: "/Assets/Ranking.svg",
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "barra" },
@@ -302,7 +348,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
     type: "button",
 });
 __VLS_asFunctionalElement(__VLS_elements.img)({
-    src: "@/Assets/Configuración.svg",
+    src: "/Assets/Configuración.svg",
 });
 /** @type {__VLS_StyleScopedClasses['biblioteca']} */ ;
 /** @type {__VLS_StyleScopedClasses['header']} */ ;
@@ -325,5 +371,4 @@ __VLS_asFunctionalElement(__VLS_elements.img)({
 /** @type {__VLS_StyleScopedClasses['barra']} */ ;
 /** @type {__VLS_StyleScopedClasses['barra']} */ ;
 /** @type {__VLS_StyleScopedClasses['barra']} */ ;
-var __VLS_dollars;
-let __VLS_self;
+export default {};
