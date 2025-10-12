@@ -2,9 +2,15 @@
 import { defineComponent, onMounted, ref } from 'vue'
 import AuthService from '../services/AuthService'
 import { useRouter } from 'vue-router'
+import Header from './Header.vue'
+import Footer from './Footer.vue'
 
 export default defineComponent({
   name: 'Ranking',
+  components: {
+    Header,
+    Footer
+  },
   setup() {
     const router = useRouter()
     const ranking = ref<Array<{ username: string; experiencia: number }>>([])
@@ -43,18 +49,19 @@ export default defineComponent({
 
 <template>
   <div class="page">
-    <header class="header">
+    <Header />
+    <div class="content">
       <button class="back" @click="goBack">← Volver</button>
       <h1>Ranking</h1>
-    </header>
-
-    <ul class="list">
-      <li v-for="(u, i) in ranking" :key="u.username" class="item">
-        <span class="pos">#{{ i + 1 }}</span>
-        <span class="name">{{ u.username }}</span>
-        <span class="xp">{{ u.experiencia }} XP</span>
-      </li>
-    </ul>
+      <ul class="list">
+        <li v-for="(u, i) in ranking" :key="u.username" class="item">
+          <span class="pos">#{{ i + 1 }}</span>
+          <span class="name">{{ u.username }}</span>
+          <span class="xp">{{ u.experiencia }} XP</span>
+        </li>
+      </ul>
+    </div>
+    <Footer :goInicio="goBack" :goBiblioteca="() => $router.push('/biblioteca')" :goRanking="() => $router.push('/ranking')" :goConfig="() => $router.push('/configuracion')" />
   </div>
 </template>
 
@@ -65,11 +72,16 @@ export default defineComponent({
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 20px; 
+  padding: 0; 
   color: #fff; 
   background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-y: auto;
+}
+.content {
+  padding: 20px;
+  padding-top: 100px;
+  padding-bottom: 100px;
 }
 .header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
 .back { 

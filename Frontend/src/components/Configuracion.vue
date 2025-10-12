@@ -1,9 +1,15 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import Header from './Header.vue'
+import Footer from './Footer.vue'
 
 export default defineComponent({
   name: 'Configuracion',
+  components: {
+    Header,
+    Footer
+  },
   setup() {
     const router = useRouter()
     const prefs = ref({
@@ -31,23 +37,24 @@ export default defineComponent({
 
 <template>
   <div class="page">
-    <header class="header">
+    <Header />
+    <div style="margin-top: 80px;">
       <button class="back" @click="goBack">← Volver</button>
       <h1>Configuración</h1>
-    </header>
-
-    <div class="form">
-      <label><input type="checkbox" v-model="prefs.temaOscuro" /> Tema oscuro</label>
-      <label><input type="checkbox" v-model="prefs.notificaciones" /> Notificaciones</label>
-      <label>
-        Idioma
-        <select v-model="prefs.idioma">
-          <option value="es">Español</option>
-          <option value="en">English</option>
-        </select>
-      </label>
-      <button class="save" @click="save">Guardar</button>
+      <div class="form">
+        <label><input type="checkbox" v-model="prefs.temaOscuro" /> Tema oscuro</label>
+        <label><input type="checkbox" v-model="prefs.notificaciones" /> Notificaciones</label>
+        <label>
+          Idioma
+          <select v-model="prefs.idioma">
+            <option value="es">Español</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <button class="save" @click="save">Guardar</button>
+      </div>
     </div>
+    <Footer :goInicio="goBack" :goBiblioteca="() => $router.push('/biblioteca')" :goRanking="() => $router.push('/ranking')" :goConfig="() => $router.push('/configuracion')" />
   </div>
 </template>
 
@@ -58,7 +65,7 @@ export default defineComponent({
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 20px; 
+  padding: 0; 
   color: #fff; 
   background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

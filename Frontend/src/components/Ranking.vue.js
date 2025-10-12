@@ -77,8 +77,21 @@ let __VLS_directives;
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "page" },
 });
-__VLS_asFunctionalElement(__VLS_elements.header, __VLS_elements.header)({
-    ...{ class: "header" },
+const __VLS_0 = {}.Header;
+/** @type {[typeof __VLS_components.Header, ]} */ ;
+// @ts-ignore
+Header;
+// @ts-ignore
+const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({
+    user: ({ username: '', correo: '', racha: 0, experiencia: 0, avatar: '' }),
+    logout: (() => { }),
+}));
+const __VLS_2 = __VLS_1({
+    user: ({ username: '', correo: '', racha: 0, experiencia: 0, avatar: '' }),
+    logout: (() => { }),
+}, ...__VLS_functionalComponentArgsRest(__VLS_1));
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ style: {} },
 });
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
     ...{ onClick: (__VLS_ctx.goBack) },
@@ -110,8 +123,26 @@ for (const [u, i] of __VLS_getVForSourceType((__VLS_ctx.ranking))) {
     });
     (u.experiencia);
 }
+const __VLS_5 = {}.Footer;
+/** @type {[typeof __VLS_components.Footer, ]} */ ;
+// @ts-ignore
+Footer;
+// @ts-ignore
+const __VLS_6 = __VLS_asFunctionalComponent(__VLS_5, new __VLS_5({
+    goInicio: (__VLS_ctx.goBack),
+    goBiblioteca: (() => __VLS_ctx.$router.push('/biblioteca')),
+    goRanking: (() => __VLS_ctx.$router.push('/ranking')),
+    goConfig: (() => __VLS_ctx.$router.push('/configuracion')),
+}));
+const __VLS_7 = __VLS_6({
+    goInicio: (__VLS_ctx.goBack),
+    goBiblioteca: (() => __VLS_ctx.$router.push('/biblioteca')),
+    goRanking: (() => __VLS_ctx.$router.push('/ranking')),
+    goConfig: (() => __VLS_ctx.$router.push('/configuracion')),
+}, ...__VLS_functionalComponentArgsRest(__VLS_6));
+// @ts-ignore
+[goBack, $router, $router, $router,];
 /** @type {__VLS_StyleScopedClasses['page']} */ ;
-/** @type {__VLS_StyleScopedClasses['header']} */ ;
 /** @type {__VLS_StyleScopedClasses['back']} */ ;
 /** @type {__VLS_StyleScopedClasses['list']} */ ;
 /** @type {__VLS_StyleScopedClasses['item']} */ ;

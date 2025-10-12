@@ -2,6 +2,8 @@
 import { defineComponent, ref, onMounted } from 'vue'
 import AuthService from '../services/AuthService'
 import { useRouter } from 'vue-router'
+import Header from './Header.vue'
+import Footer from './Footer.vue'
 
 export default defineComponent({
     setup() {
@@ -46,44 +48,17 @@ export default defineComponent({
         const goConfig = () => router.push('/configuracion')
 
         return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig }
+    },
+    components: {
+        Header,
+        Footer
     }
 })
 </script>
 
 <template>
     <div class="dashboard">
-
-        <!-- HEADER -->
-        <header class="header">
-            <div class="logo">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Penguin" class="logo" />
-                <span class="brand">Penguin Path</span>
-            </div>
-
-            <div class="status">
-                <div class="streak">
-                    <img src="/Assets/Racha.svg" alt="Racha" />
-                    <span>Racha: {{ user.racha }} días</span>
-                </div>
-                <div class="xp">
-                    <img src="/Assets/xp.svg" alt="XP" />
-                    <span>{{ user.experiencia }} XP</span>
-                </div>
-                <div class="perfil">
-                    <img :src="user.avatar" alt="Perfil" />
-                    <span>{{ user.username }}</span>
-                    <!-- Botón Cerrar sesión dentro del header, al lado del perfil -->
-                    <button class="logout-btn" @click="logout"><svg xmlns="http://www.w3.org/2000/svg" width="24"
-                            height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" class="feather feather-log-out">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                            <polyline points="16 17 21 12 16 7" />
-                            <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </header>
+        <Header :user="user" :logout="logout" />
 
         <!-- PROGRESO -->
         <h1 class="titulo">Tu progreso en Linux</h1>
@@ -99,25 +74,7 @@ export default defineComponent({
             </div>
         </div>
 
-        <!-- FOOTER -->
-        <footer class="footer">
-            <div class="barra-inicio">
-                <button type="button" @click="goInicio"><img src="/Assets/Inicio.svg" alt="Inicio">Inicio</button>
-            </div>
-            <div class="barra">
-                <button @click="goBiblioteca">
-                    <img src="/Assets/Biblioteca.svg" alt="Biblioteca">
-                    Biblioteca
-                </button>
-            </div>
-            <div class="barra">
-                <button type="button" @click="goRanking"><img src="/Assets/Ranking.svg" alt="Ranking">Ranking</button>
-            </div>
-            <div class="barra">
-                <button type="button" @click="goConfig"><img src="/Assets/Configuración.svg" alt="Configuración">Configuración</button>
-            </div>
-        </footer>
-
+        <Footer :goInicio="goInicio" :goBiblioteca="goBiblioteca" :goRanking="goRanking" :goConfig="goConfig" />
     </div>
 </template>
 

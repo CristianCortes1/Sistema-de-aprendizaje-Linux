@@ -1,8 +1,14 @@
 <script>
 import { useRouter } from 'vue-router'
+import Header from './Header.vue'
+import Footer from './Footer.vue'
 
 export default {
     name: 'Biblioteca',
+    components: {
+        Header,
+        Footer
+    },
     setup() {
         const router = useRouter()
         
@@ -69,12 +75,7 @@ export default {
 
 <template>
     <div class="biblioteca">
-        <div class="header">
-            <div class="logo">
-                <img src="/Assets/Biblioteca.svg" alt="Libro" class="logo" />
-                <span class="brand">Biblioteca</span>
-            </div>
-        </div>
+        <Header />
 
         <div class="modulos">
             <div class="tablas-container">
