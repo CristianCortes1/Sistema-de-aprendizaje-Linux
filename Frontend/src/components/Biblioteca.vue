@@ -1,7 +1,23 @@
 <script>
+import { useRouter } from 'vue-router'
+
 export default {
     name: 'Biblioteca',
-    emits: ['goInicio'],
+    setup() {
+        const router = useRouter()
+        
+        const goInicio = () => router.push('/dashboard')
+        const goBiblioteca = () => router.push('/biblioteca') 
+        const goRanking = () => router.push('/ranking')
+        const goConfig = () => router.push('/configuracion')
+
+        return {
+            goInicio,
+            goBiblioteca, 
+            goRanking,
+            goConfig
+        }
+    },
     data() {
         return {
             descripciones: {
@@ -147,20 +163,20 @@ export default {
 
         <footer class="footer">
             <div class="barra-inicio">
-                <button @click="$emit('goInicio')">
-                    <img src="/Assets/Inicio.svg" />Inicio</button>
+                <button @click="goInicio">
+                    <img src="/Assets/Inicio.svg" alt="Inicio" />Inicio</button>
             </div>
             <div class="barra">
-                <button type="button">
-                    <img src="/Assets/Biblioteca.svg" />Biblioteca</button>
+                <button @click="goBiblioteca">
+                    <img src="/Assets/Biblioteca.svg" alt="Biblioteca" />Biblioteca</button>
             </div>
             <div class="barra">
-                <button type="button">
-                    <img src="/Assets/Ranking.svg" />Ranking</button>
+                <button @click="goRanking">
+                    <img src="/Assets/Ranking.svg" alt="Ranking" />Ranking</button>
             </div>
             <div class="barra">
-                <button type="button">
-                    <img src="/Assets/Configuración.svg" />Configuracion</button>
+                <button @click="goConfig">
+                    <img src="/Assets/Configuración.svg" alt="Configuración" />Configuración</button>
             </div>
         </footer>
     </div>

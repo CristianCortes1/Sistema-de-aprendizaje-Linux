@@ -1,10 +1,10 @@
 import { defineComponent, ref, onMounted } from 'vue';
 import AuthService from '../services/AuthService';
 import { useRouter } from 'vue-router';
-const router = useRouter();
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = defineComponent({
     setup() {
+        const router = useRouter();
         const user = ref({
             username: '',
             correo: '',
@@ -35,14 +35,16 @@ const __VLS_export = defineComponent({
             localStorage.removeItem('user');
             window.location.href = '/';
         };
-        const goBiblioteca = () => {
-            router.push('/biblioteca');
-        };
-        return { user, modules, logout, goBiblioteca };
+        const goInicio = () => router.push('/dashboard');
+        const goBiblioteca = () => router.push('/biblioteca');
+        const goRanking = () => router.push('/ranking');
+        const goConfig = () => router.push('/configuracion');
+        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig };
     }
 });
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {
+        const router = useRouter();
         const user = ref({
             username: '',
             correo: '',
@@ -73,10 +75,11 @@ const __VLS_self = (await import('vue')).defineComponent({
             localStorage.removeItem('user');
             window.location.href = '/';
         };
-        const goBiblioteca = () => {
-            router.push('/biblioteca');
-        };
-        return { user, modules, logout, goBiblioteca };
+        const goInicio = () => router.push('/dashboard');
+        const goBiblioteca = () => router.push('/biblioteca');
+        const goRanking = () => router.push('/ranking');
+        const goConfig = () => router.push('/configuracion');
+        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig };
     }
 });
 const __VLS_ctx = {};
@@ -240,10 +243,14 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "barra-inicio" },
 });
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.goInicio) },
     type: "button",
 });
+// @ts-ignore
+[goInicio,];
 __VLS_asFunctionalElement(__VLS_elements.img)({
     src: "/Assets/Inicio.svg",
+    alt: "Inicio",
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "barra" },
@@ -261,19 +268,27 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "barra" },
 });
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.goRanking) },
     type: "button",
 });
+// @ts-ignore
+[goRanking,];
 __VLS_asFunctionalElement(__VLS_elements.img)({
     src: "/Assets/Ranking.svg",
+    alt: "Ranking",
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "barra" },
 });
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.goConfig) },
     type: "button",
 });
+// @ts-ignore
+[goConfig,];
 __VLS_asFunctionalElement(__VLS_elements.img)({
     src: "/Assets/Configuración.svg",
+    alt: "Configuración",
 });
 /** @type {__VLS_StyleScopedClasses['dashboard']} */ ;
 /** @type {__VLS_StyleScopedClasses['header']} */ ;

@@ -3,9 +3,9 @@ import { defineComponent, ref, onMounted } from 'vue'
 import AuthService from '../services/AuthService'
 import { useRouter } from 'vue-router'
 
-const router = useRouter()
 export default defineComponent({
     setup() {
+        const router = useRouter()
         const user = ref({
             username: '',
             correo: '',
@@ -40,11 +40,12 @@ export default defineComponent({
             window.location.href = '/'
         }
 
-        const goBiblioteca = () => {
-            router.push('/biblioteca')
-        }
+        const goInicio = () => router.push('/dashboard')
+        const goBiblioteca = () => router.push('/biblioteca')
+        const goRanking = () => router.push('/ranking')
+        const goConfig = () => router.push('/configuracion')
 
-        return { user, modules, logout, goBiblioteca }
+        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig }
     }
 })
 </script>
@@ -101,7 +102,7 @@ export default defineComponent({
         <!-- FOOTER -->
         <footer class="footer">
             <div class="barra-inicio">
-                <button type="button"><img src="/Assets/Inicio.svg">Inicio</button>
+                <button type="button" @click="goInicio"><img src="/Assets/Inicio.svg" alt="Inicio">Inicio</button>
             </div>
             <div class="barra">
                 <button @click="goBiblioteca">
@@ -110,10 +111,10 @@ export default defineComponent({
                 </button>
             </div>
             <div class="barra">
-                <button type="button"><img src="/Assets/Ranking.svg">Ranking</button>
+                <button type="button" @click="goRanking"><img src="/Assets/Ranking.svg" alt="Ranking">Ranking</button>
             </div>
             <div class="barra">
-                <button type="button"><img src="/Assets/Configuración.svg">Configuración</button>
+                <button type="button" @click="goConfig"><img src="/Assets/Configuración.svg" alt="Configuración">Configuración</button>
             </div>
         </footer>
 

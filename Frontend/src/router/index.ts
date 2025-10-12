@@ -1,12 +1,13 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router';
 import AuthService from '../services/AuthService';
 import Login from '@/components/Login.vue';
 import Dashboard from '@/components/Dashboard.vue';
 import Registro from '@/components/Registro.vue';
 import Biblioteca from '../components/Biblioteca.vue';
 import ConfirmEmail from '../components/ConfirmEmail.vue';
-
-const routes: Array<RouteRecordRaw> = [
+import Ranking from '../components/Ranking.vue';
+import Configuracion from '../components/Configuracion.vue';
+const routes = [
     {
         path: '/',
         name: 'Login',
@@ -31,32 +32,42 @@ const routes: Array<RouteRecordRaw> = [
         component: Dashboard,
         meta: { requiresAuth: true }
     },
-    { 
-        path: '/biblioteca', 
-        name: 'Biblioteca', 
-        component: Biblioteca, 
-        meta: { requiresAuth: true } 
+    {
+        path: '/biblioteca',
+        name: 'Biblioteca',
+        component: Biblioteca,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/ranking',
+        name: 'Ranking',
+        component: Ranking,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/configuracion',
+        name: 'Configuracion',
+        component: Configuracion,
+        meta: { requiresAuth: true }
     }
 ];
-
 const router = createRouter({
     history: createWebHistory(),
     routes
 });
-
 // Guard global
 router.beforeEach((to, from, next) => {
-    const isAuth: boolean = AuthService.isAuthenticated();
-
+    const isAuth = AuthService.isAuthenticated();
     if (to.meta.requiresAuth && !isAuth) {
         // Si no está logueado y quiere ir a página protegida
         next({ path: '/' });
-    } else if (to.meta.guestOnly && isAuth) {
+    }
+    else if (to.meta.guestOnly && isAuth) {
         // Si está logueado y quiere ir al login
         next({ path: '/dashboard' });
-    } else {
+    }
+    else {
         next();
     }
 });
-
 export default router;

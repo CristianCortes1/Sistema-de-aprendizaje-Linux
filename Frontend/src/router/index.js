@@ -5,6 +5,8 @@ import Dashboard from '@/components/Dashboard.vue';
 import Registro from '@/components/Registro.vue';
 import Biblioteca from '../components/Biblioteca.vue';
 import ConfirmEmail from '../components/ConfirmEmail.vue';
+import Ranking from '../components/Ranking.vue';
+import Configuracion from '../components/Configuracion.vue';
 const routes = [
     {
         path: '/',
@@ -34,6 +36,18 @@ const routes = [
         path: '/biblioteca',
         name: 'Biblioteca',
         component: Biblioteca,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/ranking',
+        name: 'Ranking',
+        component: Ranking,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/configuracion',
+        name: 'Configuracion',
+        component: Configuracion,
         meta: { requiresAuth: true }
     }
 ];
