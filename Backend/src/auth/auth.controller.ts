@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Get, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -18,5 +18,24 @@ export class AuthController {
     ) {
         const user = await this.authService.validateUser(body.username, body.password);
         return this.authService.login(user);
+    }
+
+    @Get('confirm-email')
+    async confirmEmail(@Query('token') token: string) {
+        const user = await this.authService.confirmEmail(token);
+        return {
+            message: 'Email confirmed successfully',
+            user,
+        };
+    }
+
+    @Get('test-email')
+    async testEmail() {
+        try {
+            await this.authService.testEmailService();
+            return { message: 'Test email sent successfully' };
+        } catch (error) {
+            return { error: error.message, details: error };
+        }
     }
 }
