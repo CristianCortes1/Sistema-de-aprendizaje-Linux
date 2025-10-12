@@ -41,7 +41,8 @@ const __VLS_export = defineComponent({
         const goBiblioteca = () => router.push('/biblioteca');
         const goRanking = () => router.push('/ranking');
         const goConfig = () => router.push('/configuracion');
-        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig };
+        const goLeccion = (id) => router.push(`/leccion/${id}`);
+        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion };
     },
     components: {
         Header,
@@ -85,7 +86,8 @@ const __VLS_self = (await import('vue')).defineComponent({
         const goBiblioteca = () => router.push('/biblioteca');
         const goRanking = () => router.push('/ranking');
         const goConfig = () => router.push('/configuracion');
-        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig };
+        const goLeccion = (id) => router.push(`/leccion/${id}`);
+        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion };
     },
     components: {
         Header,
@@ -122,10 +124,6 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['logout-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['footer']} */ ;
-/** @type {__VLS_StyleScopedClasses['footer']} */ ;
-/** @type {__VLS_StyleScopedClasses['footer']} */ ;
-/** @type {__VLS_StyleScopedClasses['header']} */ ;
 /** @type {__VLS_StyleScopedClasses['header']} */ ;
 /** @type {__VLS_StyleScopedClasses['logo']} */ ;
 /** @type {__VLS_StyleScopedClasses['brand']} */ ;
@@ -134,7 +132,6 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['footer']} */ ;
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "dashboard" },
 });
@@ -162,7 +159,7 @@ __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "form-group" },
 });
-for (const [module] of __VLS_getVForSourceType((__VLS_ctx.modules))) {
+for (const [module, index] of __VLS_getVForSourceType((__VLS_ctx.modules))) {
     // @ts-ignore
     [modules,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -170,7 +167,13 @@ for (const [module] of __VLS_getVForSourceType((__VLS_ctx.modules))) {
         key: (module.name),
     });
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+        ...{ onClick: (...[$event]) => {
+                index === 0 ? __VLS_ctx.goLeccion(1) : null;
+                // @ts-ignore
+                [goLeccion,];
+            } },
         type: "button",
+        disabled: (index > 1),
     });
     if (module.icon) {
         __VLS_asFunctionalElement(__VLS_elements.img)({

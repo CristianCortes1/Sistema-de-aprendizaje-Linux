@@ -1,27 +1,105 @@
-import { defineComponent } from 'vue';
+import { defineComponent, computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import AuthService from '../services/AuthService';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = defineComponent({
     props: {
         user: {
             type: Object,
-            required: true
+            required: false,
+            default: () => ({})
         },
         logout: {
             type: Function,
-            required: true
+            required: false
         }
+    },
+    setup(props) {
+        const router = useRouter();
+        const localUser = ref({
+            username: '',
+            correo: '',
+            racha: 0,
+            experiencia: 0,
+            avatar: ""
+        });
+        onMounted(() => {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                const parsed = JSON.parse(storedUser);
+                localUser.value.username = parsed.username;
+                localUser.value.racha = parsed.racha;
+                localUser.value.experiencia = parsed.experiencia;
+                localUser.value.avatar = parsed.avatar;
+                localUser.value.correo = parsed.correo;
+            }
+        });
+        const displayUser = computed(() => {
+            // Si se pasa un user prop con datos, usarlo; si no, usar localUser
+            return Object.keys(props.user || {}).length > 0 ? props.user : localUser.value;
+        });
+        const handleLogout = () => {
+            if (props.logout) {
+                props.logout({});
+            }
+            else {
+                AuthService.logout();
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                router.push('/');
+            }
+        };
+        return { displayUser, handleLogout };
     }
 });
 const __VLS_self = (await import('vue')).defineComponent({
     props: {
         user: {
             type: Object,
-            required: true
+            required: false,
+            default: () => ({})
         },
         logout: {
             type: Function,
-            required: true
+            required: false
         }
+    },
+    setup(props) {
+        const router = useRouter();
+        const localUser = ref({
+            username: '',
+            correo: '',
+            racha: 0,
+            experiencia: 0,
+            avatar: ""
+        });
+        onMounted(() => {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                const parsed = JSON.parse(storedUser);
+                localUser.value.username = parsed.username;
+                localUser.value.racha = parsed.racha;
+                localUser.value.experiencia = parsed.experiencia;
+                localUser.value.avatar = parsed.avatar;
+                localUser.value.correo = parsed.correo;
+            }
+        });
+        const displayUser = computed(() => {
+            // Si se pasa un user prop con datos, usarlo; si no, usar localUser
+            return Object.keys(props.user || {}).length > 0 ? props.user : localUser.value;
+        });
+        const handleLogout = () => {
+            if (props.logout) {
+                props.logout({});
+            }
+            else {
+                AuthService.logout();
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                router.push('/');
+            }
+        };
+        return { displayUser, handleLogout };
     }
 });
 const __VLS_ctx = {};
@@ -64,9 +142,9 @@ __VLS_asFunctionalElement(__VLS_elements.img)({
     alt: "Racha",
 });
 __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
-(__VLS_ctx.user.racha);
+(__VLS_ctx.displayUser.racha);
 // @ts-ignore
-[user,];
+[displayUser,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "xp" },
 });
@@ -75,28 +153,28 @@ __VLS_asFunctionalElement(__VLS_elements.img)({
     alt: "XP",
 });
 __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
-(__VLS_ctx.user.experiencia);
+(__VLS_ctx.displayUser.experiencia);
 // @ts-ignore
-[user,];
+[displayUser,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "perfil" },
 });
 __VLS_asFunctionalElement(__VLS_elements.img)({
-    src: (__VLS_ctx.user.avatar),
+    src: (__VLS_ctx.displayUser.avatar),
     alt: "Perfil",
 });
 // @ts-ignore
-[user,];
+[displayUser,];
 __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
-(__VLS_ctx.user.username);
+(__VLS_ctx.displayUser.username);
 // @ts-ignore
-[user,];
+[displayUser,];
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.logout) },
+    ...{ onClick: (__VLS_ctx.handleLogout) },
     ...{ class: "logout-btn" },
 });
 // @ts-ignore
-[logout,];
+[handleLogout,];
 __VLS_asFunctionalElement(__VLS_elements.svg, __VLS_elements.svg)({
     xmlns: "http://www.w3.org/2000/svg",
     width: "24",

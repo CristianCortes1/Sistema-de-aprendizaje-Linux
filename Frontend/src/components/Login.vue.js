@@ -24,17 +24,26 @@ async function handleLogin() {
             throw new Error(`Error HTTP: ${response.status}`);
         const data = await response.json();
         // Guardar token y datos del usuario en localStorage
-        AuthService.setToken(data.token);
-        localStorage.setItem('token', data.token);
+        // La API de Nest devuelve access_token; mantenemos compat con token
+        const token = data.token || data.access_token;
+        AuthService.setToken(token);
+        localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify({
             id: data.user.id_Usuario,
             username: data.user.username,
             correo: data.user.correo,
             avatar: data.user.avatar,
             racha: data.user.racha,
-            experiencia: data.user.experiencia
+            experiencia: data.user.experiencia,
+            rol: data.user.rol
         }));
-        router.push('/dashboard'); // redirigir al dashboard
+        // Redirección por rol
+        if (data.user.rol === 'admin') {
+            router.push('/admin');
+        }
+        else {
+            router.push('/dashboard');
+        }
     }
     catch (err) {
         console.error('❌ Error en login:', err);

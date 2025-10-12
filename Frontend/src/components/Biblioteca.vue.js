@@ -144,7 +144,6 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['biblioteca']} */ ;
-/** @type {__VLS_StyleScopedClasses['header']} */ ;
 /** @type {__VLS_StyleScopedClasses['logo']} */ ;
 /** @type {__VLS_StyleScopedClasses['brand']} */ ;
 /** @type {__VLS_StyleScopedClasses['modulos']} */ ;
@@ -168,14 +167,8 @@ const __VLS_0 = {}.Header;
 // @ts-ignore
 Header;
 // @ts-ignore
-const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({
-    user: ({ username: '', correo: '', racha: 0, experiencia: 0, avatar: '' }),
-    logout: (() => { }),
-}));
-const __VLS_2 = __VLS_1({
-    user: ({ username: '', correo: '', racha: 0, experiencia: 0, avatar: '' }),
-    logout: (() => { }),
-}, ...__VLS_functionalComponentArgsRest(__VLS_1));
+const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({}));
+const __VLS_2 = __VLS_1({}, ...__VLS_functionalComponentArgsRest(__VLS_1));
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "modulos" },
 });
@@ -188,16 +181,148 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.table, __VLS_elements.table)({});
 __VLS_asFunctionalElement(__VLS_elements.thead, __VLS_elements.thead)({});
 __VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.th, __VLS_elements.th)({
+    ...{ class: "titulo" },
+});
 __VLS_asFunctionalElement(__VLS_elements.tbody, __VLS_elements.tbody)({});
 __VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('ls', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
 __VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('pwd', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
 __VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('cd', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('echo', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('clear', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('cat', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('nano', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('grep', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('sudo', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('chmod', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "archivos-y-directorios" },
 });
 __VLS_asFunctionalElement(__VLS_elements.table, __VLS_elements.table)({});
 __VLS_asFunctionalElement(__VLS_elements.thead, __VLS_elements.thead)({});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.th, __VLS_elements.th)({
+    ...{ class: "titulo" },
+});
 __VLS_asFunctionalElement(__VLS_elements.tbody, __VLS_elements.tbody)({});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('touch', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('mkdir', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('rm', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('rmdir', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('cp', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
+__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.toggleDescripcion('mv', $event);
+            // @ts-ignore
+            [toggleDescripcion,];
+        } },
+});
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "bloqueados" },
 });
@@ -213,33 +338,72 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
     ...{ class: "proceso" },
 });
-const __VLS_5 = {}.Footer;
-/** @type {[typeof __VLS_components.Footer, ]} */ ;
+__VLS_asFunctionalElement(__VLS_elements.footer, __VLS_elements.footer)({
+    ...{ class: "footer" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "barra-inicio" },
+});
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.goInicio) },
+});
 // @ts-ignore
-Footer;
+[goInicio,];
+__VLS_asFunctionalElement(__VLS_elements.img)({
+    src: "/Assets/Inicio.svg",
+    alt: "Inicio",
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "barra" },
+});
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.goBiblioteca) },
+});
 // @ts-ignore
-const __VLS_6 = __VLS_asFunctionalComponent(__VLS_5, new __VLS_5({
-    goInicio: (__VLS_ctx.goInicio),
-    goBiblioteca: (__VLS_ctx.goBiblioteca),
-    goRanking: (__VLS_ctx.goRanking),
-    goConfig: (__VLS_ctx.goConfig),
-}));
-const __VLS_7 = __VLS_6({
-    goInicio: (__VLS_ctx.goInicio),
-    goBiblioteca: (__VLS_ctx.goBiblioteca),
-    goRanking: (__VLS_ctx.goRanking),
-    goConfig: (__VLS_ctx.goConfig),
-}, ...__VLS_functionalComponentArgsRest(__VLS_6));
+[goBiblioteca,];
+__VLS_asFunctionalElement(__VLS_elements.img)({
+    src: "/Assets/Biblioteca.svg",
+    alt: "Biblioteca",
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "barra" },
+});
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.goRanking) },
+});
 // @ts-ignore
-[goInicio, goBiblioteca, goRanking, goConfig,];
+[goRanking,];
+__VLS_asFunctionalElement(__VLS_elements.img)({
+    src: "/Assets/Ranking.svg",
+    alt: "Ranking",
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "barra" },
+});
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.goConfig) },
+});
+// @ts-ignore
+[goConfig,];
+__VLS_asFunctionalElement(__VLS_elements.img)({
+    src: "/Assets/Configuración.svg",
+    alt: "Configuración",
+});
 /** @type {__VLS_StyleScopedClasses['biblioteca']} */ ;
 /** @type {__VLS_StyleScopedClasses['modulos']} */ ;
 /** @type {__VLS_StyleScopedClasses['tablas-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['comandos-basicos']} */ ;
+/** @type {__VLS_StyleScopedClasses['titulo']} */ ;
 /** @type {__VLS_StyleScopedClasses['archivos-y-directorios']} */ ;
+/** @type {__VLS_StyleScopedClasses['titulo']} */ ;
 /** @type {__VLS_StyleScopedClasses['bloqueados']} */ ;
 /** @type {__VLS_StyleScopedClasses['permisos']} */ ;
 /** @type {__VLS_StyleScopedClasses['permiso']} */ ;
 /** @type {__VLS_StyleScopedClasses['procesos']} */ ;
 /** @type {__VLS_StyleScopedClasses['proceso']} */ ;
+/** @type {__VLS_StyleScopedClasses['footer']} */ ;
+/** @type {__VLS_StyleScopedClasses['barra-inicio']} */ ;
+/** @type {__VLS_StyleScopedClasses['barra']} */ ;
+/** @type {__VLS_StyleScopedClasses['barra']} */ ;
+/** @type {__VLS_StyleScopedClasses['barra']} */ ;
 export default {};

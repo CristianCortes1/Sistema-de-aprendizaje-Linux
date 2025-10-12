@@ -1,8 +1,14 @@
 import { defineComponent, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import Header from './Header.vue';
+import Footer from './Footer.vue';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = defineComponent({
     name: 'Configuracion',
+    components: {
+        Header,
+        Footer
+    },
     setup() {
         const router = useRouter();
         const prefs = ref({
@@ -25,6 +31,10 @@ const __VLS_export = defineComponent({
 });
 const __VLS_self = (await import('vue')).defineComponent({
     name: 'Configuracion',
+    components: {
+        Header,
+        Footer
+    },
     setup() {
         const router = useRouter();
         const prefs = ref({
@@ -47,6 +57,10 @@ const __VLS_self = (await import('vue')).defineComponent({
 });
 const __VLS_ctx = {};
 let __VLS_elements;
+const __VLS_componentsOption = {
+    Header,
+    Footer
+};
 let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['back']} */ ;
@@ -62,14 +76,8 @@ const __VLS_0 = {}.Header;
 // @ts-ignore
 Header;
 // @ts-ignore
-const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({
-    user: ({ username: '', correo: '', racha: 0, experiencia: 0, avatar: '' }),
-    logout: (() => { }),
-}));
-const __VLS_2 = __VLS_1({
-    user: ({ username: '', correo: '', racha: 0, experiencia: 0, avatar: '' }),
-    logout: (() => { }),
-}, ...__VLS_functionalComponentArgsRest(__VLS_1));
+const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({}));
+const __VLS_2 = __VLS_1({}, ...__VLS_functionalComponentArgsRest(__VLS_1));
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ style: {} },
 });

@@ -1,9 +1,15 @@
 import { defineComponent, onMounted, ref } from 'vue';
 import AuthService from '../services/AuthService';
 import { useRouter } from 'vue-router';
+import Header from './Header.vue';
+import Footer from './Footer.vue';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = defineComponent({
     name: 'Ranking',
+    components: {
+        Header,
+        Footer
+    },
     setup() {
         const router = useRouter();
         const ranking = ref([]);
@@ -37,6 +43,10 @@ const __VLS_export = defineComponent({
 });
 const __VLS_self = (await import('vue')).defineComponent({
     name: 'Ranking',
+    components: {
+        Header,
+        Footer
+    },
     setup() {
         const router = useRouter();
         const ranking = ref([]);
@@ -70,6 +80,10 @@ const __VLS_self = (await import('vue')).defineComponent({
 });
 const __VLS_ctx = {};
 let __VLS_elements;
+const __VLS_componentsOption = {
+    Header,
+    Footer
+};
 let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['back']} */ ;
@@ -82,16 +96,10 @@ const __VLS_0 = {}.Header;
 // @ts-ignore
 Header;
 // @ts-ignore
-const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({
-    user: ({ username: '', correo: '', racha: 0, experiencia: 0, avatar: '' }),
-    logout: (() => { }),
-}));
-const __VLS_2 = __VLS_1({
-    user: ({ username: '', correo: '', racha: 0, experiencia: 0, avatar: '' }),
-    logout: (() => { }),
-}, ...__VLS_functionalComponentArgsRest(__VLS_1));
+const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({}));
+const __VLS_2 = __VLS_1({}, ...__VLS_functionalComponentArgsRest(__VLS_1));
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ style: {} },
+    ...{ class: "content" },
 });
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
     ...{ onClick: (__VLS_ctx.goBack) },
@@ -143,6 +151,7 @@ const __VLS_7 = __VLS_6({
 // @ts-ignore
 [goBack, $router, $router, $router,];
 /** @type {__VLS_StyleScopedClasses['page']} */ ;
+/** @type {__VLS_StyleScopedClasses['content']} */ ;
 /** @type {__VLS_StyleScopedClasses['back']} */ ;
 /** @type {__VLS_StyleScopedClasses['list']} */ ;
 /** @type {__VLS_StyleScopedClasses['item']} */ ;
