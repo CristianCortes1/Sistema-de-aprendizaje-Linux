@@ -203,16 +203,6 @@ export default {
     overflow-y: auto;
 }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    background: linear-gradient(135deg, #ca672d 0%, #411a56 100%);
-    min-height: 80px;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
 
 .logo {
     display: flex;

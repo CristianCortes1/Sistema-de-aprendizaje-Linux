@@ -46,8 +46,9 @@ export default defineComponent({
         const goBiblioteca = () => router.push('/biblioteca')
         const goRanking = () => router.push('/ranking')
         const goConfig = () => router.push('/configuracion')
+        const goLeccion = (id: number) => router.push(`/leccion/${id}`)
 
-        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig }
+        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion }
     },
     components: {
         Header,
@@ -65,8 +66,8 @@ export default defineComponent({
         <p class="subtitulo">Domina la línea de comandos paso a paso</p>
 
         <div class="form-group">
-            <div class="card" v-for="module in modules" :key="module.name">
-                <button type="button">
+            <div class="card" v-for="(module, index) in modules" :key="module.name">
+                <button type="button" @click="index === 0 ? goLeccion(1) : null" :disabled="index > 1">
                     <img v-if="module.icon" :src="module.icon" :alt="module.name" />
                     <span v-else>>_</span>
                     <span>{{ module.name }}</span>
@@ -98,20 +99,6 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    /* background: linear-gradient(135deg, #ca672d 0%, #411a56 100%); */
-    background: linear-gradient(135deg, #ca672d 0%, #411a56 100%);
-    /* background: rgba(0, 0, 0, 0.2); */
-    min-height: 80px;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    /*border-bottom: 1px solid #dee2e6;*/
 }
 
 .logo {
@@ -330,54 +317,6 @@ export default defineComponent({
 .logout-btn:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
-}
-
-.footer {
-    /* display: flex;
-    justify-content: space-around;
-    align-items: center;
-    background: linear-gradient(to right, #1f1f3a, #2c003e);
-    padding: 15px;
-    position: fixed;
-    bottom: 0;
-    width: 100%; */
-
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 15px 20px;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(15px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-}
-
-.footer button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 14px;
-    text-align: center;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    gap: 6px;
-}
-
-.footer button img {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
-}
-
-.footer .barra-inicio button img {
-    width: 45px;
-    height: 45px;
-    object-fit: contain;
 }
 
 @media (max-width: 768px) {

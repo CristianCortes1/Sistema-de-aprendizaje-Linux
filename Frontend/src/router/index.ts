@@ -7,6 +7,7 @@ import Biblioteca from '../components/Biblioteca.vue';
 import ConfirmEmail from '../components/ConfirmEmail.vue';
 import Ranking from '../components/Ranking.vue';
 import Configuracion from '../components/Configuracion.vue';
+import Leccion from '../components/Leccion.vue';
 const routes = [
     {
         path: '/',
@@ -48,6 +49,12 @@ const routes = [
         path: '/configuracion',
         name: 'Configuracion',
         component: Configuracion,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/leccion/:id',
+        name: 'Leccion',
+        component: Leccion,
         meta: { requiresAuth: true }
     }
 ];
