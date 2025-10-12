@@ -66,6 +66,7 @@ export class UsersService {
         correo: updateUserDto.email,
         contraseña: updateUserDto.password,
         avatar: updateUserDto.avatar,
+        rol: updateUserDto.rol,
       },
     });
   }

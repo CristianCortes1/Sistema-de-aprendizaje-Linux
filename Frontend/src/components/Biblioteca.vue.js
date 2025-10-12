@@ -1,7 +1,26 @@
+import { useRouter } from 'vue-router';
+import Header from './Header.vue';
+import Footer from './Footer.vue';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = (await import('vue')).defineComponent({
     name: 'Biblioteca',
-    emits: ['goInicio'],
+    components: {
+        Header,
+        Footer
+    },
+    setup() {
+        const router = useRouter();
+        const goInicio = () => router.push('/dashboard');
+        const goBiblioteca = () => router.push('/biblioteca');
+        const goRanking = () => router.push('/ranking');
+        const goConfig = () => router.push('/configuracion');
+        return {
+            goInicio,
+            goBiblioteca,
+            goRanking,
+            goConfig
+        };
+    },
     data() {
         return {
             descripciones: {
@@ -48,7 +67,23 @@ const __VLS_export = (await import('vue')).defineComponent({
 });
 const __VLS_self = (await import('vue')).defineComponent({
     name: 'Biblioteca',
-    emits: ['goInicio'],
+    components: {
+        Header,
+        Footer
+    },
+    setup() {
+        const router = useRouter();
+        const goInicio = () => router.push('/dashboard');
+        const goBiblioteca = () => router.push('/biblioteca');
+        const goRanking = () => router.push('/ranking');
+        const goConfig = () => router.push('/configuracion');
+        return {
+            goInicio,
+            goBiblioteca,
+            goRanking,
+            goConfig
+        };
+    },
     data() {
         return {
             descripciones: {
@@ -95,6 +130,10 @@ const __VLS_self = (await import('vue')).defineComponent({
 });
 const __VLS_ctx = {};
 let __VLS_elements;
+const __VLS_componentsOption = {
+    Header,
+    Footer
+};
 let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['logo']} */ ;
@@ -105,7 +144,6 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['biblioteca']} */ ;
-/** @type {__VLS_StyleScopedClasses['header']} */ ;
 /** @type {__VLS_StyleScopedClasses['logo']} */ ;
 /** @type {__VLS_StyleScopedClasses['brand']} */ ;
 /** @type {__VLS_StyleScopedClasses['modulos']} */ ;
@@ -124,20 +162,13 @@ let __VLS_directives;
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "biblioteca" },
 });
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "header" },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "logo" },
-});
-__VLS_asFunctionalElement(__VLS_elements.img)({
-    src: "/Assets/Biblioteca.svg",
-    alt: "Libro",
-    ...{ class: "logo" },
-});
-__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-    ...{ class: "brand" },
-});
+const __VLS_0 = {}.Header;
+/** @type {[typeof __VLS_components.Header, ]} */ ;
+// @ts-ignore
+Header;
+// @ts-ignore
+const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({}));
+const __VLS_2 = __VLS_1({}, ...__VLS_functionalComponentArgsRest(__VLS_1));
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "modulos" },
 });
@@ -314,47 +345,51 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "barra-inicio" },
 });
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.$emit('goInicio');
-            // @ts-ignore
-            [$emit,];
-        } },
+    ...{ onClick: (__VLS_ctx.goInicio) },
 });
+// @ts-ignore
+[goInicio,];
 __VLS_asFunctionalElement(__VLS_elements.img)({
     src: "/Assets/Inicio.svg",
+    alt: "Inicio",
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "barra" },
 });
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    type: "button",
+    ...{ onClick: (__VLS_ctx.goBiblioteca) },
 });
+// @ts-ignore
+[goBiblioteca,];
 __VLS_asFunctionalElement(__VLS_elements.img)({
     src: "/Assets/Biblioteca.svg",
+    alt: "Biblioteca",
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "barra" },
 });
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    type: "button",
+    ...{ onClick: (__VLS_ctx.goRanking) },
 });
+// @ts-ignore
+[goRanking,];
 __VLS_asFunctionalElement(__VLS_elements.img)({
     src: "/Assets/Ranking.svg",
+    alt: "Ranking",
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "barra" },
 });
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    type: "button",
+    ...{ onClick: (__VLS_ctx.goConfig) },
 });
+// @ts-ignore
+[goConfig,];
 __VLS_asFunctionalElement(__VLS_elements.img)({
     src: "/Assets/Configuración.svg",
+    alt: "Configuración",
 });
 /** @type {__VLS_StyleScopedClasses['biblioteca']} */ ;
-/** @type {__VLS_StyleScopedClasses['header']} */ ;
-/** @type {__VLS_StyleScopedClasses['logo']} */ ;
-/** @type {__VLS_StyleScopedClasses['logo']} */ ;
-/** @type {__VLS_StyleScopedClasses['brand']} */ ;
 /** @type {__VLS_StyleScopedClasses['modulos']} */ ;
 /** @type {__VLS_StyleScopedClasses['tablas-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['comandos-basicos']} */ ;

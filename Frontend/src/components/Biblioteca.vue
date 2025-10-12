@@ -1,7 +1,29 @@
 <script>
+import { useRouter } from 'vue-router'
+import Header from './Header.vue'
+import Footer from './Footer.vue'
+
 export default {
     name: 'Biblioteca',
-    emits: ['goInicio'],
+    components: {
+        Header,
+        Footer
+    },
+    setup() {
+        const router = useRouter()
+        
+        const goInicio = () => router.push('/dashboard')
+        const goBiblioteca = () => router.push('/biblioteca') 
+        const goRanking = () => router.push('/ranking')
+        const goConfig = () => router.push('/configuracion')
+
+        return {
+            goInicio,
+            goBiblioteca, 
+            goRanking,
+            goConfig
+        }
+    },
     data() {
         return {
             descripciones: {
@@ -53,12 +75,7 @@ export default {
 
 <template>
     <div class="biblioteca">
-        <div class="header">
-            <div class="logo">
-                <img src="/Assets/Biblioteca.svg" alt="Libro" class="logo" />
-                <span class="brand">Biblioteca</span>
-            </div>
-        </div>
+        <Header />
 
         <div class="modulos">
             <div class="tablas-container">
@@ -147,20 +164,20 @@ export default {
 
         <footer class="footer">
             <div class="barra-inicio">
-                <button @click="$emit('goInicio')">
-                    <img src="/Assets/Inicio.svg" />Inicio</button>
+                <button @click="goInicio">
+                    <img src="/Assets/Inicio.svg" alt="Inicio" />Inicio</button>
             </div>
             <div class="barra">
-                <button type="button">
-                    <img src="/Assets/Biblioteca.svg" />Biblioteca</button>
+                <button @click="goBiblioteca">
+                    <img src="/Assets/Biblioteca.svg" alt="Biblioteca" />Biblioteca</button>
             </div>
             <div class="barra">
-                <button type="button">
-                    <img src="/Assets/Ranking.svg" />Ranking</button>
+                <button @click="goRanking">
+                    <img src="/Assets/Ranking.svg" alt="Ranking" />Ranking</button>
             </div>
             <div class="barra">
-                <button type="button">
-                    <img src="/Assets/Configuración.svg" />Configuracion</button>
+                <button @click="goConfig">
+                    <img src="/Assets/Configuración.svg" alt="Configuración" />Configuración</button>
             </div>
         </footer>
     </div>
@@ -186,16 +203,6 @@ export default {
     overflow-y: auto;
 }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    background: linear-gradient(135deg, #ca672d 0%, #411a56 100%);
-    min-height: 80px;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
 
 .logo {
     display: flex;

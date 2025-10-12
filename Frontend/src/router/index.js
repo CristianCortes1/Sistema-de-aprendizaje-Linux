@@ -5,6 +5,10 @@ import Dashboard from '@/components/Dashboard.vue';
 import Registro from '@/components/Registro.vue';
 import Biblioteca from '../components/Biblioteca.vue';
 import ConfirmEmail from '../components/ConfirmEmail.vue';
+import Ranking from '../components/Ranking.vue';
+import Configuracion from '../components/Configuracion.vue';
+import Leccion from '../components/Leccion.vue';
+import AdminDashboard from '../components/AdminDashboard.vue';
 const routes = [
     {
         path: '/',
@@ -31,9 +35,33 @@ const routes = [
         meta: { requiresAuth: true }
     },
     {
+        path: '/admin',
+        name: 'AdminDashboard',
+        component: AdminDashboard,
+        meta: { requiresAuth: true, requiresRole: 'admin' }
+    },
+    {
         path: '/biblioteca',
         name: 'Biblioteca',
         component: Biblioteca,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/ranking',
+        name: 'Ranking',
+        component: Ranking,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/configuracion',
+        name: 'Configuracion',
+        component: Configuracion,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/leccion/:id',
+        name: 'Leccion',
+        component: Leccion,
         meta: { requiresAuth: true }
     }
 ];
@@ -44,16 +72,33 @@ const router = createRouter({
 // Guard global
 router.beforeEach((to, from, next) => {
     const isAuth = AuthService.isAuthenticated();
+    const userRaw = localStorage.getItem('user');
+    const role = userRaw ? (JSON.parse(userRaw).rol || JSON.parse(userRaw).role) : undefined;
     if (to.meta.requiresAuth && !isAuth) {
         // Si no está logueado y quiere ir a página protegida
         next({ path: '/' });
+        return;
     }
-    else if (to.meta.guestOnly && isAuth) {
+    // Restricción de rol
+    if (to.meta && to.meta.requiresRole) {
+        const required = to.meta.requiresRole;
+        if (required && role !== required) {
+            // Usuario autenticado pero sin permisos
+            next({ path: '/dashboard' });
+            return;
+        }
+    }
+    if (to.meta.guestOnly && isAuth) {
         // Si está logueado y quiere ir al login
-        next({ path: '/dashboard' });
+        // Redirige a admin si corresponde
+        if (role === 'admin') {
+            next({ path: '/admin' });
+        }
+        else {
+            next({ path: '/dashboard' });
+        }
+        return;
     }
-    else {
-        next();
-    }
+    next();
 });
 export default router;

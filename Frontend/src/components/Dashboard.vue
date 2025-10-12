@@ -2,10 +2,12 @@
 import { defineComponent, ref, onMounted } from 'vue'
 import AuthService from '../services/AuthService'
 import { useRouter } from 'vue-router'
+import Header from './Header.vue'
+import Footer from './Footer.vue'
 
-const router = useRouter()
 export default defineComponent({
     setup() {
+        const router = useRouter()
         const user = ref({
             username: '',
             correo: '',
@@ -40,57 +42,32 @@ export default defineComponent({
             window.location.href = '/'
         }
 
-        const goBiblioteca = () => {
-            router.push('/biblioteca')
-        }
+        const goInicio = () => router.push('/dashboard')
+        const goBiblioteca = () => router.push('/biblioteca')
+        const goRanking = () => router.push('/ranking')
+        const goConfig = () => router.push('/configuracion')
+        const goLeccion = (id: number) => router.push(`/leccion/${id}`)
 
-        return { user, modules, logout, goBiblioteca }
+        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion }
+    },
+    components: {
+        Header,
+        Footer
     }
 })
 </script>
 
 <template>
     <div class="dashboard">
-
-        <!-- HEADER -->
-        <header class="header">
-            <div class="logo">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Penguin" class="logo" />
-                <span class="brand">Penguin Path</span>
-            </div>
-
-            <div class="status">
-                <div class="streak">
-                    <img src="/Assets/Racha.svg" alt="Racha" />
-                    <span>Racha: {{ user.racha }} días</span>
-                </div>
-                <div class="xp">
-                    <img src="/Assets/xp.svg" alt="XP" />
-                    <span>{{ user.experiencia }} XP</span>
-                </div>
-                <div class="perfil">
-                    <img :src="user.avatar" alt="Perfil" />
-                    <span>{{ user.username }}</span>
-                    <!-- Botón Cerrar sesión dentro del header, al lado del perfil -->
-                    <button class="logout-btn" @click="logout"><svg xmlns="http://www.w3.org/2000/svg" width="24"
-                            height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" class="feather feather-log-out">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                            <polyline points="16 17 21 12 16 7" />
-                            <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </header>
+        <Header :user="user" :logout="logout" />
 
         <!-- PROGRESO -->
         <h1 class="titulo">Tu progreso en Linux</h1>
         <p class="subtitulo">Domina la línea de comandos paso a paso</p>
 
         <div class="form-group">
-            <div class="card" v-for="module in modules" :key="module.name">
-                <button type="button">
+            <div class="card" v-for="(module, index) in modules" :key="module.name">
+                <button type="button" @click="index === 0 ? goLeccion(1) : null" :disabled="index > 1">
                     <img v-if="module.icon" :src="module.icon" :alt="module.name" />
                     <span v-else>>_</span>
                     <span>{{ module.name }}</span>
@@ -98,25 +75,7 @@ export default defineComponent({
             </div>
         </div>
 
-        <!-- FOOTER -->
-        <footer class="footer">
-            <div class="barra-inicio">
-                <button type="button"><img src="/Assets/Inicio.svg">Inicio</button>
-            </div>
-            <div class="barra">
-                <button @click="goBiblioteca">
-                    <img src="/Assets/Biblioteca.svg" alt="Biblioteca">
-                    Biblioteca
-                </button>
-            </div>
-            <div class="barra">
-                <button type="button"><img src="/Assets/Ranking.svg">Ranking</button>
-            </div>
-            <div class="barra">
-                <button type="button"><img src="/Assets/Configuración.svg">Configuración</button>
-            </div>
-        </footer>
-
+        <Footer :goInicio="goInicio" :goBiblioteca="goBiblioteca" :goRanking="goRanking" :goConfig="goConfig" />
     </div>
 </template>
 
@@ -140,20 +99,6 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    /* background: linear-gradient(135deg, #ca672d 0%, #411a56 100%); */
-    background: linear-gradient(135deg, #ca672d 0%, #411a56 100%);
-    /* background: rgba(0, 0, 0, 0.2); */
-    min-height: 80px;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    /*border-bottom: 1px solid #dee2e6;*/
 }
 
 .logo {
@@ -372,54 +317,6 @@ export default defineComponent({
 .logout-btn:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
-}
-
-.footer {
-    /* display: flex;
-    justify-content: space-around;
-    align-items: center;
-    background: linear-gradient(to right, #1f1f3a, #2c003e);
-    padding: 15px;
-    position: fixed;
-    bottom: 0;
-    width: 100%; */
-
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 15px 20px;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(15px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-}
-
-.footer button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 14px;
-    text-align: center;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    gap: 6px;
-}
-
-.footer button img {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
-}
-
-.footer .barra-inicio button img {
-    width: 45px;
-    height: 45px;
-    object-fit: contain;
 }
 
 @media (max-width: 768px) {
