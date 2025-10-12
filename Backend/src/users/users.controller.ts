@@ -12,6 +12,15 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
+<<<<<<< HEAD
+=======
+  //obtener users ordenados por experiencia
+  @Get('ranking')
+  getRanking() {
+    return this.usersService.findAllForExperience();
+  }
+
+>>>>>>> Backend
   @Get()
   findAll() {
     return this.usersService.findAll();

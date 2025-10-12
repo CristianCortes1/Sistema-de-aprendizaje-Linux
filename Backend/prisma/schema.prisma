@@ -16,6 +16,7 @@ datasource db {
 
 model Usuarios {
 <<<<<<< HEAD
+<<<<<<< HEAD
   id_Usuario       Int         @id @default(autoincrement())
   username         String      @db.VarChar(25)
   correo           String      @db.VarChar(60)
@@ -44,6 +45,21 @@ model Progresos {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   progresos   Progresos[]
+=======
+  id_Usuario         Int         @id @default(autoincrement())
+  username           String      @db.VarChar(25)
+  correo             String      @db.VarChar(60)
+  contraseña         String      @db.VarChar(200)
+  rol                String      @default("usuario")
+  activo             Boolean     @default(false)
+  confirmationToken  String?     @db.VarChar(100)
+  avatar             String?     @db.Text
+  racha              Int         @default(0)
+  experiencia        Int         @default(0)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  progresos          Progresos[]
+>>>>>>> Backend
 }
 
 model Progresos {
