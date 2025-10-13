@@ -26,6 +26,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/generated ./generated
+COPY --from=builder /app/imagen.txt ./imagen.txt
 
 # Ensure runtime has OpenSSL available for Prisma native library
 RUN apt-get update && \
