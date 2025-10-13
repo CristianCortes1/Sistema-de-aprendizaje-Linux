@@ -1,6 +1,8 @@
 <script lang="ts">
-import { defineComponent, ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { defineComponent, ref, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { io } from 'socket.io-client'
+import { AnsiUp } from 'ansi_up'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
 
@@ -11,16 +13,16 @@ export default defineComponent({
         const router = useRouter()
         const route = useRoute()
 
-        // Terminal state
-        const logs = ref('')
+        // Terminal
+        const socket = io('http://localhost:3000')
         const command = ref('')
+        const output = ref('')
         const outputRef = ref<HTMLElement | null>(null)
-        let socket: WebSocket | null = null
+        const ansi_up = new AnsiUp()
 
+        // UI state (lesson, hints, progress)
         const showHint = ref(false)
         const progress = ref(30)
-
-        // Datos de la lección
         const lesson = ref({
             title: 'Lesson 1: Basic Navigation',
             challenge: {
@@ -32,64 +34,29 @@ export default defineComponent({
             }
         })
 
-        function appendLog(data: string) {
-            logs.value += data
-            // scroll to bottom
-            nextTick(() => {
+        onMounted(() => {
+            socket.on('output', async (data: string) => {
+                const html = ansi_up.ansi_to_html(data)
+                output.value += html
+                await nextTick()
                 if (outputRef.value) {
                     outputRef.value.scrollTop = outputRef.value.scrollHeight
                 }
             })
-        }
-
-        onMounted(() => {
-            // Connect to backend WebSocket terminal server
-            socket = new WebSocket('ws://localhost:3000')
-            socket.addEventListener('open', () => {
-                appendLog('[connected to remote shell]\n')
-            })
-            socket.addEventListener('message', (ev) => {
-                try {
-                    const msg = JSON.parse(ev.data as string)
-                    if (msg.type === 'output') {
-                        appendLog(msg.data)
-                    } else if (msg.type === 'error') {
-                        appendLog('\n[error] ' + msg.data + '\n')
-                    } else if (msg.type === 'exit') {
-                        appendLog('\n[process exited]\n')
-                    }
-                } catch (e) {
-                    // fallback: append raw
-                    appendLog(ev.data as string)
-                }
-            })
-            socket.addEventListener('close', () => {
-                appendLog('\n[disconnected]\n')
-            })
         })
 
-        onBeforeUnmount(() => {
-            if (socket) {
-                socket.close()
-                socket = null
-            }
-        })
-
-        function sendCommand() {
+        const sendCommand = () => {
             if (!command.value.trim()) return
-            const toSend = command.value + '\n'
-            // Echo locally
-            appendLog(lesson.value.challenge.directory + ' ' + command.value + '\n')
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ type: 'input', data: toSend }))
-            } else {
-                appendLog('[not connected]\n')
-            }
+            socket.emit('input', command.value)
+            output.value += `<span class='prompt'>penguin@earth:~$</span> ${command.value}<br>`
             command.value = ''
         }
 
-        const toggleHint = () => (showHint.value = !showHint.value)
+        const toggleHint = () => {
+            showHint.value = !showHint.value
+        }
 
+        // Navegación
         const goBack = () => router.push('/dashboard')
         const goInicio = () => router.push('/dashboard')
         const goBiblioteca = () => router.push('/biblioteca')
@@ -97,23 +64,24 @@ export default defineComponent({
         const goConfig = () => router.push('/configuracion')
 
         return {
-            logs,
             command,
+            output,
             outputRef,
+            sendCommand,
             showHint,
+            toggleHint,
             progress,
             lesson,
-            sendCommand,
-            toggleHint,
             goBack,
             goInicio,
             goBiblioteca,
             goRanking,
             goConfig,
         }
-    }
+    },
 })
 </script>
+
 
 <template>
     <div class="leccion">
@@ -136,24 +104,17 @@ export default defineComponent({
                                 <span class="control yellow"></span>
                                 <span class="control green"></span>
                             </div>
-                            <div class="terminal-title">{{ lesson.challenge.directory }}</div>
+                            <div class="terminal-title">penguin@earth:~$</div>
                         </div>
                         <div class="terminal-body">
-                            <!-- Replaced with simple logs + input terminal connected to ws://localhost:8022 -->
-                            <div class="terminal-container">
-                                <div class="terminal-output" ref="outputRef">
-                                    <pre>{{ logs }}</pre>
-                                </div>
-                                <input
-                                    v-model="command"
-                                    @keyup.enter="sendCommand"
-                                    placeholder="Type a command and press Enter..."
-                                    class="terminal-input"
-                                />
+                            <div class="terminal-output" ref="outputRef" v-html="output"></div>
+                            <div class="terminal-input">
+                                <span class="prompt">$</span>
+                                <input v-model="command" @keyup.enter="sendCommand" type="text" class="command-input"
+                                    placeholder="Enter a command..." />
                             </div>
                         </div>
                     </div>
-                    <button class="execute-btn" @click="sendCommand">Ejecutar ▶</button>
                 </div>
 
                 <!-- Challenge Panel -->
@@ -200,9 +161,25 @@ export default defineComponent({
     overflow-y: auto;
 }
 
+.prompt {
+    color: #00ff88;
+    font-weight: bold;
+}
+
+.terminal-output {
+    color: #dcddde;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-y: auto;
+    min-height: 250px;
+    max-height: 400px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+}
+
 .content {
     padding: 20px;
-    padding-top:20px;
+    padding-top: 20px;
     padding-bottom: 120px;
     max-width: 1400px;
     margin: 0 auto;
@@ -301,43 +278,6 @@ export default defineComponent({
     padding: 20px;
     min-height: 300px;
     font-family: 'Courier New', monospace;
-}
-
-/* Embedded simple terminal styles (logs + input) */
-.terminal-container {
-    display: flex;
-    flex-direction: column;
-    height: 300px; /* keep within the lesson layout */
-    background: #000;
-    color: #00ff6a;
-    font-family: monospace;
-    padding: 10px;
-    border-radius: 8px;
-}
-
-.terminal-output {
-    flex: 1;
-    overflow-y: auto;
-    background: #111;
-    border: 1px solid #333;
-    padding: 10px;
-    margin-bottom: 10px;
-    color: #00ff6a;
-}
-
-.terminal-input {
-    background: #111;
-    color: #00ff6a;
-    border: 1px solid #333;
-    padding: 8px;
-    font-family: monospace;
-    font-size: 1rem;
-    outline: none;
-    width: 100%;
-    box-sizing: border-box;
-}
-.terminal-input:focus {
-    border-color: #00ff6a;
 }
 
 .terminal-output {

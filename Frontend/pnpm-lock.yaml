@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      ansi_up:
+        specifier: ^6.0.6
+        version: 6.0.6
       socket.io-client:
         specifier: ^4.8.1
         version: 4.8.1
@@ -595,6 +598,9 @@ packages:
   ansi-styles@6.2.3:
     resolution: {integrity: sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg==}
     engines: {node: '>=12'}
+
+  ansi_up@6.0.6:
+    resolution: {integrity: sha512-yIa1x3Ecf8jWP4UWEunNjqNX6gzE4vg2gGz+xqRGY+TBSucnYp6RRdPV4brmtg6bQ1ljD48mZ5iGSEj7QEpRKA==}
 
   ansis@4.2.0:
     resolution: {integrity: sha512-HqZ5rWlFjGiV0tDm3UxxgNRqsOTniqoKZu0pIAfh7TZQMGuZK+hH0drySty0si0QXj1ieop4+SkSfPZBPPkHig==}
@@ -1630,6 +1636,8 @@ snapshots:
   alien-signals@3.0.0: {}
 
   ansi-styles@6.2.3: {}
+
+  ansi_up@6.0.6: {}
 
   ansis@4.2.0: {}
 
