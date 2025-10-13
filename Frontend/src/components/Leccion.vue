@@ -1,25 +1,28 @@
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue'
+import { defineComponent, ref, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { io } from 'socket.io-client'
+import { AnsiUp } from 'ansi_up'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
 
 export default defineComponent({
     name: 'Leccion',
-    components: {
-        Header,
-        Footer
-    },
+    components: { Header, Footer },
     setup() {
         const router = useRouter()
         const route = useRoute()
+
+        // Terminal
+        const socket = io('http://localhost:3000')
         const command = ref('')
         const output = ref('')
+        const outputRef = ref<HTMLElement | null>(null)
+        const ansi_up = new AnsiUp()
+
+        // UI state (lesson, hints, progress)
         const showHint = ref(false)
         const progress = ref(30)
-        const currentChallenge = ref(1)
-
-        // Datos de la lección
         const lesson = ref({
             title: 'Lesson 1: Basic Navigation',
             challenge: {
@@ -31,20 +34,29 @@ export default defineComponent({
             }
         })
 
-        const executeCommand = () => {
-            if (command.value.trim().toLowerCase() === lesson.value.challenge.correctCommand) {
-                output.value = `${lesson.value.challenge.directory} ${command.value}\npenguin@earth:~/documents$ `
-                progress.value = Math.min(progress.value + 20, 100)
-                // Aquí podrías avanzar al siguiente desafío
-            } else {
-                output.value = `${lesson.value.challenge.directory} ${command.value}\nbash: ${command.value}: command not found`
-            }
+        onMounted(() => {
+            socket.on('output', async (data: string) => {
+                const html = ansi_up.ansi_to_html(data)
+                output.value += html
+                await nextTick()
+                if (outputRef.value) {
+                    outputRef.value.scrollTop = outputRef.value.scrollHeight
+                }
+            })
+        })
+
+        const sendCommand = () => {
+            if (!command.value.trim()) return
+            socket.emit('input', command.value)
+            output.value += `<span class='prompt'>penguin@earth:~$</span> ${command.value}<br>`
+            command.value = ''
         }
 
         const toggleHint = () => {
             showHint.value = !showHint.value
         }
 
+        // Navegación
         const goBack = () => router.push('/dashboard')
         const goInicio = () => router.push('/dashboard')
         const goBiblioteca = () => router.push('/biblioteca')
@@ -54,20 +66,22 @@ export default defineComponent({
         return {
             command,
             output,
+            outputRef,
+            sendCommand,
             showHint,
+            toggleHint,
             progress,
             lesson,
-            executeCommand,
-            toggleHint,
             goBack,
             goInicio,
             goBiblioteca,
             goRanking,
-            goConfig
+            goConfig,
         }
-    }
+    },
 })
 </script>
+
 
 <template>
     <div class="leccion">
@@ -90,18 +104,17 @@ export default defineComponent({
                                 <span class="control yellow"></span>
                                 <span class="control green"></span>
                             </div>
-                            <div class="terminal-title">{{ lesson.challenge.directory }}</div>
+                            <div class="terminal-title">penguin@earth:~$</div>
                         </div>
                         <div class="terminal-body">
-                            <div class="terminal-output" v-if="output">{{ output }}</div>
+                            <div class="terminal-output" ref="outputRef" v-html="output"></div>
                             <div class="terminal-input">
-                                <span class="prompt">$ </span>
-                                <input v-model="command" type="text" placeholder="Enter your command here"
-                                    @keyup.enter="executeCommand" class="command-input" />
+                                <span class="prompt">$</span>
+                                <input v-model="command" @keyup.enter="sendCommand" type="text" class="command-input"
+                                    placeholder="Enter a command..." />
                             </div>
                         </div>
                     </div>
-                    <button class="execute-btn" @click="executeCommand">Ejecutar ▶</button>
                 </div>
 
                 <!-- Challenge Panel -->
@@ -148,9 +161,25 @@ export default defineComponent({
     overflow-y: auto;
 }
 
+.prompt {
+    color: #00ff88;
+    font-weight: bold;
+}
+
+.terminal-output {
+    color: #dcddde;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-y: auto;
+    min-height: 250px;
+    max-height: 400px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+}
+
 .content {
     padding: 20px;
-    padding-top:20px;
+    padding-top: 20px;
     padding-bottom: 120px;
     max-width: 1400px;
     margin: 0 auto;
