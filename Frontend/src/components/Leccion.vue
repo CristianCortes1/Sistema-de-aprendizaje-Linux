@@ -14,7 +14,7 @@ export default defineComponent({
         const route = useRoute()
 
         // Terminal
-        const socket = io('http://localhost:3000')
+        const socket = io('https://sistema-de-aprendizaje-linux-production.up.railway.app')
         const command = ref('')
         const output = ref('')
         const outputRef = ref<HTMLElement | null>(null)
