@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  ubuntu-service:
+    image: ubuntu:22.04
+    container_name: ubuntu-service
+    command: >
+      bash -c "
+        apt update &&
+        apt install -y openssh-server sudo curl vim bash &&
+        useradd -m devuser && echo 'devuser:1234' | chpasswd &&
+        mkdir -p /var/run/sshd &&
+        service ssh start &&
+        tail -f /dev/null
+      "
+    networks:
+      - penguin-network
+
+  backend:
+    build: ./backend
+    container_name: nest-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - TARGET_HOST=ubuntu-service
+      - TARGET_USER=devuser
+      - TARGET_PASS=1234
+    depends_on:
+      - ubuntu-service
+    networks:
+      - penguin-network
+
+networks:
+  penguin-network:
+    driver: bridge

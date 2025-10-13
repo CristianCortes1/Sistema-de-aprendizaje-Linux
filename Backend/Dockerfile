@@ -1,13 +1,31 @@
-FROM ubuntu:22.04
+# -------------------------------
+# 1️⃣ Build stage
+# -------------------------------
+FROM node:20 AS builder
 
-RUN apt update && apt install -y openssh-server sudo
-RUN useradd -m devuser && echo "devuser:1234" | chpasswd
-RUN mkdir /var/run/sshd
+WORKDIR /app
 
-# Permitir login por contraseña (importante)
-RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
-    sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
-    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+COPY package*.json ./
+RUN npm install
 
-EXPOSE 22
-CMD ["/usr/sbin/sshd", "-D"]
+COPY . .
+RUN npm run build
+
+# -------------------------------
+# 2️⃣ Production stage
+# -------------------------------
+FROM node:20-slim AS runner
+
+WORKDIR /app
+
+# Copiar solo lo necesario para producción
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+
+# Ejecutar prisma generate (si lo usas)
+RUN npx prisma generate
+
+EXPOSE 3000
+CMD ["node", "dist/main.js"]
