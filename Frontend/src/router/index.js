@@ -9,6 +9,7 @@ import Ranking from '../components/Ranking.vue';
 import Configuracion from '../components/Configuracion.vue';
 import Leccion from '../components/Leccion.vue';
 import AdminDashboard from '../components/AdminDashboard.vue';
+import Terminal from '../components/Terminal.vue';
 const routes = [
     {
         path: '/',
@@ -62,6 +63,12 @@ const routes = [
         path: '/leccion/:id',
         name: 'Leccion',
         component: Leccion,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/terminal',
+        name: 'Terminal',
+        component: Terminal,
         meta: { requiresAuth: true }
     }
 ];
