@@ -1,23 +1,25 @@
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, onMounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { io } from 'socket.io-client';
+import { AnsiUp } from 'ansi_up';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = defineComponent({
     name: 'Leccion',
-    components: {
-        Header,
-        Footer
-    },
+    components: { Header, Footer },
     setup() {
         const router = useRouter();
         const route = useRoute();
+        // Terminal
+        const socket = io('http://localhost:3000');
         const command = ref('');
         const output = ref('');
+        const outputRef = ref(null);
+        const ansi_up = new AnsiUp();
+        // UI state (lesson, hints, progress)
         const showHint = ref(false);
         const progress = ref(30);
-        const currentChallenge = ref(1);
-        // Datos de la lección
         const lesson = ref({
             title: 'Lesson 1: Basic Navigation',
             challenge: {
@@ -28,19 +30,27 @@ const __VLS_export = defineComponent({
                 directory: 'penguin@earth:~$'
             }
         });
-        const executeCommand = () => {
-            if (command.value.trim().toLowerCase() === lesson.value.challenge.correctCommand) {
-                output.value = `${lesson.value.challenge.directory} ${command.value}\npenguin@earth:~/documents$ `;
-                progress.value = Math.min(progress.value + 20, 100);
-                // Aquí podrías avanzar al siguiente desafío
-            }
-            else {
-                output.value = `${lesson.value.challenge.directory} ${command.value}\nbash: ${command.value}: command not found`;
-            }
+        onMounted(() => {
+            socket.on('output', async (data) => {
+                const html = ansi_up.ansi_to_html(data);
+                output.value += html;
+                await nextTick();
+                if (outputRef.value) {
+                    outputRef.value.scrollTop = outputRef.value.scrollHeight;
+                }
+            });
+        });
+        const sendCommand = () => {
+            if (!command.value.trim())
+                return;
+            socket.emit('input', command.value);
+            output.value += `<span class='prompt'>penguin@earth:~$</span> ${command.value}<br>`;
+            command.value = '';
         };
         const toggleHint = () => {
             showHint.value = !showHint.value;
         };
+        // Navegación
         const goBack = () => router.push('/dashboard');
         const goInicio = () => router.push('/dashboard');
         const goBiblioteca = () => router.push('/biblioteca');
@@ -49,34 +59,35 @@ const __VLS_export = defineComponent({
         return {
             command,
             output,
+            outputRef,
+            sendCommand,
             showHint,
+            toggleHint,
             progress,
             lesson,
-            executeCommand,
-            toggleHint,
             goBack,
             goInicio,
             goBiblioteca,
             goRanking,
-            goConfig
+            goConfig,
         };
-    }
+    },
 });
 const __VLS_self = (await import('vue')).defineComponent({
     name: 'Leccion',
-    components: {
-        Header,
-        Footer
-    },
+    components: { Header, Footer },
     setup() {
         const router = useRouter();
         const route = useRoute();
+        // Terminal
+        const socket = io('http://localhost:3000');
         const command = ref('');
         const output = ref('');
+        const outputRef = ref(null);
+        const ansi_up = new AnsiUp();
+        // UI state (lesson, hints, progress)
         const showHint = ref(false);
         const progress = ref(30);
-        const currentChallenge = ref(1);
-        // Datos de la lección
         const lesson = ref({
             title: 'Lesson 1: Basic Navigation',
             challenge: {
@@ -87,19 +98,27 @@ const __VLS_self = (await import('vue')).defineComponent({
                 directory: 'penguin@earth:~$'
             }
         });
-        const executeCommand = () => {
-            if (command.value.trim().toLowerCase() === lesson.value.challenge.correctCommand) {
-                output.value = `${lesson.value.challenge.directory} ${command.value}\npenguin@earth:~/documents$ `;
-                progress.value = Math.min(progress.value + 20, 100);
-                // Aquí podrías avanzar al siguiente desafío
-            }
-            else {
-                output.value = `${lesson.value.challenge.directory} ${command.value}\nbash: ${command.value}: command not found`;
-            }
+        onMounted(() => {
+            socket.on('output', async (data) => {
+                const html = ansi_up.ansi_to_html(data);
+                output.value += html;
+                await nextTick();
+                if (outputRef.value) {
+                    outputRef.value.scrollTop = outputRef.value.scrollHeight;
+                }
+            });
+        });
+        const sendCommand = () => {
+            if (!command.value.trim())
+                return;
+            socket.emit('input', command.value);
+            output.value += `<span class='prompt'>penguin@earth:~$</span> ${command.value}<br>`;
+            command.value = '';
         };
         const toggleHint = () => {
             showHint.value = !showHint.value;
         };
+        // Navegación
         const goBack = () => router.push('/dashboard');
         const goInicio = () => router.push('/dashboard');
         const goBiblioteca = () => router.push('/biblioteca');
@@ -108,31 +127,31 @@ const __VLS_self = (await import('vue')).defineComponent({
         return {
             command,
             output,
+            outputRef,
+            sendCommand,
             showHint,
+            toggleHint,
             progress,
             lesson,
-            executeCommand,
-            toggleHint,
             goBack,
             goInicio,
             goBiblioteca,
             goRanking,
-            goConfig
+            goConfig,
         };
-    }
+    },
 });
 const __VLS_ctx = {};
 let __VLS_elements;
-const __VLS_componentsOption = {
-    Header,
-    Footer
-};
+const __VLS_componentsOption = { Header, Footer };
 let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['back-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['control']} */ ;
 /** @type {__VLS_StyleScopedClasses['control']} */ ;
 /** @type {__VLS_StyleScopedClasses['control']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-output']} */ ;
+/** @type {__VLS_StyleScopedClasses['prompt']} */ ;
 /** @type {__VLS_StyleScopedClasses['command-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['execute-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['hint-btn']} */ ;
@@ -196,22 +215,17 @@ __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "terminal-title" },
 });
-(__VLS_ctx.lesson.challenge.directory);
-// @ts-ignore
-[lesson,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "terminal-body" },
 });
-if (__VLS_ctx.output) {
-    // @ts-ignore
-    [output,];
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "terminal-output" },
-    });
-    (__VLS_ctx.output);
-    // @ts-ignore
-    [output,];
-}
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "terminal-output" },
+    ref: "outputRef",
+});
+__VLS_asFunctionalDirective(__VLS_directives.vHtml)(null, { ...__VLS_directiveBindingRestFields, value: (__VLS_ctx.output) }, null, null);
+/** @type {typeof __VLS_ctx.outputRef} */ ;
+// @ts-ignore
+[output, outputRef,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "terminal-input" },
 });
@@ -219,20 +233,14 @@ __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
     ...{ class: "prompt" },
 });
 __VLS_asFunctionalElement(__VLS_elements.input)({
-    ...{ onKeyup: (__VLS_ctx.executeCommand) },
+    ...{ onKeyup: (__VLS_ctx.sendCommand) },
     value: (__VLS_ctx.command),
     type: "text",
-    placeholder: "Enter your command here",
     ...{ class: "command-input" },
+    placeholder: "Enter a command...",
 });
 // @ts-ignore
-[executeCommand, command,];
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.executeCommand) },
-    ...{ class: "execute-btn" },
-});
-// @ts-ignore
-[executeCommand,];
+[sendCommand, command,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "challenge-section" },
 });
@@ -336,7 +344,6 @@ const __VLS_7 = __VLS_6({
 /** @type {__VLS_StyleScopedClasses['terminal-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['prompt']} */ ;
 /** @type {__VLS_StyleScopedClasses['command-input']} */ ;
-/** @type {__VLS_StyleScopedClasses['execute-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-panel']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-title']} */ ;
