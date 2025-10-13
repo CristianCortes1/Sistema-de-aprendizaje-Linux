@@ -14,7 +14,7 @@ export default defineComponent({
         const route = useRoute()
 
         // Terminal
-        const socket = io('http://localhost:3000')
+        const socket = io('https://sistema-de-aprendizaje-linux-production.up.railway.app')
         const command = ref('')
         const output = ref('')
         const outputRef = ref<HTMLElement | null>(null)
@@ -90,7 +90,6 @@ export default defineComponent({
         <div class="content">
             <!-- Título de la lección -->
             <div class="lesson-header">
-                <button class="back-btn" @click="goBack">← Volver</button>
                 <h1 class="lesson-title">{{ lesson.title }}</h1>
             </div>
 
@@ -190,22 +189,6 @@ export default defineComponent({
     align-items: center;
     gap: 20px;
     margin-bottom: 30px;
-}
-
-.back-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    padding: 10px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 14px;
-}
-
-.back-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
 }
 
 .lesson-title {
