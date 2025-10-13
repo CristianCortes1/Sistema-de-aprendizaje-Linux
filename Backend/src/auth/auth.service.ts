@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { promises as fs } from 'fs';
+import * as path from 'path';
 import { PrismaService } from '../prisma.service';
 import { EmailService } from '../email/email.service';
 
@@ -39,13 +40,18 @@ export class AuthService {
         const hashed = await bcrypt.hash(password, 10);
         const confirmationToken = crypto.randomBytes(32).toString('hex');
 
-        // 🖼️ Lee el archivo del avatar por defecto
-        const base64 = await fs.readFile(
-            'imagen.txt', // 👉 ajusta la ruta según tu proyecto
-            'utf-8'
-        );
+        // 🖼️ Lee el archivo del avatar por defecto (ruta resuelta y fallback)
+        const imagenPath = path.resolve(process.cwd(), 'imagen.txt')
+        let base64 = ''
+        try {
+            base64 = (await fs.readFile(imagenPath, 'utf-8')).trim()
+        } catch (err) {
+            // Si no existe el archivo, usar un avatar SVG muy pequeño en base64
+            const fallbackSvg = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" fill="#4caf50"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="28" fill="#fff">🐧</text></svg>`
+            base64 = Buffer.from(fallbackSvg).toString('base64')
+        }
 
-        const DEFAULT_AVATAR = `data:image/svg+xml;base64,${base64.trim()}`;
+        const DEFAULT_AVATAR = `data:image/svg+xml;base64,${base64}`;
 
         const user = await this.prisma.usuarios.create({
             data: {

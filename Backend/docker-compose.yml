@@ -1,17 +1,55 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16
-    restart: always
+  ubuntu-service:
+    image: ubuntu:22.04
+    container_name: ubuntu-service
+    command: >
+      bash -c "
+        apt update &&
+        apt install -y openssh-server sudo curl vim bash &&
+        useradd -m devuser && echo 'devuser:1234' | chpasswd &&
+        mkdir -p /var/run/sshd &&
+        service ssh start &&
+        tail -f /dev/null
+      "
+    networks:
+      - penguin-network
+
+  backend:
+    build: .
+    container_name: nest-backend
+    ports:
+      - "3000:3000"
     environment:
-      POSTGRES_USER: cris
-      POSTGRES_PASSWORD: 123
-      POSTGRES_DB: PENGUINPATHDB
+      - TARGET_HOST=ubuntu-service
+      - TARGET_USER=devuser
+      - TARGET_PASS=1234
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sistema
+    depends_on:
+      - ubuntu-service
+      - postgres
+    networks:
+      - penguin-network
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sistema
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - penguin-network
+
+networks:
+  penguin-network:
+    driver: bridge
 
 volumes:
-  postgres_data:
+  pgdata:
+    driver: local
