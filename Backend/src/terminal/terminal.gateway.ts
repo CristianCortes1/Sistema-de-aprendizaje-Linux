@@ -12,16 +12,15 @@ import { Client } from 'ssh2';
 @WebSocketGateway({ cors: { origin: '*' } })
 export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer() server: Server;
-
-    private sshClient: Client | null = null;
-    private sshStream: any;
+    // Map socket.id -> { sshClient: Client, sshStream: stream }
+    private sessions: Map<string, { sshClient: Client; sshStream?: any }> = new Map();
 
     async handleConnection(client: Socket) {
         console.log('🖥️ Client connected:', client.id);
 
-        // create a fresh SSH client for this websocket client
-        const ssh = new Client();
-        this.sshClient = ssh;
+    // create a fresh SSH client for this websocket client
+    const ssh = new Client();
+    this.sessions.set(client.id, { sshClient: ssh });
 
         // handle errors from the ssh client to avoid unhandled exceptions
         ssh.on('error', (err) => {
@@ -39,13 +38,17 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
                         }
 
                         // bind this stream specifically for this client
-                        this.sshStream = stream;
+                        const session = this.sessions.get(client.id);
+                        if (session) session.sshStream = stream;
 
                         stream.on('data', (data: Buffer) => {
                             const clean = removeAnsiCodes(data.toString());
                             client.emit('output', clean);
                         });
 
+                        stream.on('close', () => {
+                            client.emit('output', 'SSH stream closed.');
+                        });
 
                         client.emit('output', 'Connected to SSH server.\n');
                     });
@@ -100,6 +103,8 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
                         client.emit('output', `SSH connect failed: ${msg}\n`)
                         // end the SSH client to cleanup
                         try { ssh.end() } catch {}
+                        // remove session entry
+                        this.sessions.delete(client.id)
                     }
                 }
             }
@@ -111,15 +116,29 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     @SubscribeMessage('input')
     handleInput(client: Socket, data: string) {
-        if (this.sshStream) {
-            this.sshStream.write(data + '\n');
+        const session = this.sessions.get(client.id)
+        if (session && session.sshStream) {
+            try {
+                session.sshStream.write(data + '\n');
+            } catch (err) {
+                console.error('Error writing to ssh stream for client', client.id, err)
+                client.emit('output', 'Error sending command to SSH session')
+            }
+        } else {
+            client.emit('output', 'No SSH session available yet. Please wait for connection.')
         }
     }
 
     handleDisconnect(client: Socket) {
         console.log('❌ Client disconnected:', client.id);
-        if (this.sshClient) {
-            this.sshClient.end();
+        const session = this.sessions.get(client.id)
+        if (session) {
+            try {
+                session.sshClient.end()
+            } catch {}
+            // ensure stream is closed
+            try { if (session.sshStream && session.sshStream.close) session.sshStream.close() } catch {}
+            this.sessions.delete(client.id)
         }
     }
 }

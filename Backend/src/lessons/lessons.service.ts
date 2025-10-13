@@ -34,12 +34,23 @@ export class LessonsService {
   }
 
   findAll() {
-    return this.prisma.lecciones.findMany();
+    return this.prisma.lecciones.findMany({
+      include: {
+        retos: {
+          include: { comandos: true },
+        },
+      },
+    });
   }
 
   findOne(id: number) {
     return this.prisma.lecciones.findUnique({
       where: { id_Leccion: id },
+      include: {
+        retos: {
+          include: { comandos: true },
+        },
+      },
     });
   }
 
