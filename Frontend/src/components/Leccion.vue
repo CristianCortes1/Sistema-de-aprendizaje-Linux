@@ -24,7 +24,7 @@ export default defineComponent({
         const showHint = ref(false)
         const progress = ref(30)
         const lesson = ref({
-            title: 'Lesson 1: Basic Navigation',
+            title: 'Leccion 1: comandos basicos',
             challenge: {
                 title: 'Challenge 1: Change Directory',
                 description: 'Use the cd command to navigate to the "documents" directory. Type your command in the terminal and press "Run" to check your answer.',

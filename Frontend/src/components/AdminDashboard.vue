@@ -20,7 +20,6 @@ const user = ref({
 const usuarios = ref<any[]>([])
 const isLoadingUsers = ref(false)
 
-// Mock data lecciones
 const lecciones = ref([
     { id: 1, titulo: 'Introduction to Linux', descripcion: 'Learn the basics of Linux operating system.' },
     { id: 2, titulo: 'File Management', descripcion: 'Master file manipulation in Linux.' },
@@ -79,25 +78,25 @@ const fetchUsers = async () => {
         if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
 
         const data = await response.json()
-        usuarios.value = data.map((u: any, index: number) => ({
-            id: index + 1,
+        console.log('Datos recibidos de la API:', data) // Para debug
+        
+        usuarios.value = data.map((u: any) => ({
+            id: u.id_Usuario,
             nombre: u.username,
             username: u.username,
-            email: u.correo || `${u.username}@example.com`,
-            correo: u.correo || `${u.username}@example.com`,
-            rol: 'Estudiante',
+            email: u.correo,
+            correo: u.correo,
+            rol: u.rol === 'usuario' ? 'Estudiante' : (u.rol === 'admin' ? 'Administrador' : u.rol),
             experiencia: u.experiencia || 0,
             racha: u.racha || 0,
             avatar: u.avatar || getDefaultAvatar(u.username),
-            estado: u.experiencia > 0 ? 'Activo' : 'Inactivo'
+            estado: u.activo ? 'Activo' : 'Inactivo'
         }))
+        
+        console.log('Usuarios mapeados:', usuarios.value) // Para debug
     } catch (error) {
         console.error('Error fetching users:', error)
-        usuarios.value = [
-            { id: 1, nombre: 'Isabella Rodríguez', username: 'Isabella', email: 'isabella.rodriguez@example.com', correo: 'isabella.rodriguez@example.com', rol: 'Estudiante', estado: 'Activo', experiencia: 1200, racha: 5, avatar: getDefaultAvatar('Isabella') },
-            { id: 2, nombre: 'Mateo Vargas', username: 'Mateo', email: 'mateo.vargas@example.com', correo: 'mateo.vargas@example.com', rol: 'Estudiante', estado: 'Activo', experiencia: 800, racha: 3, avatar: getDefaultAvatar('Mateo') },
-            { id: 3, nombre: 'Sofía Herrera', username: 'Sofia', email: 'sofia.herrera@example.com', correo: 'sofia.herrera@example.com', rol: 'Estudiante', estado: 'Inactivo', experiencia: 200, racha: 0, avatar: getDefaultAvatar('Sofia') },
-        ]
+        usuarios.value = [] // Vacío si hay error
     } finally {
         isLoadingUsers.value = false
     }
