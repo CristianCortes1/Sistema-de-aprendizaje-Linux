@@ -20,6 +20,12 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
         console.log('🖥️ Client connected:', client.id);
 
         this.sshClient = new Client();
+        // handle errors from the ssh client to avoid unhandled exceptions
+        this.sshClient.on('error', (err) => {
+            console.error('SSH client error:', err.message || err);
+            client.emit('output', `SSH error: ${err.message || err}`);
+        });
+
         this.sshClient
             .on('ready', () => {
                 console.log('✅ SSH ready');
@@ -43,12 +49,21 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
                     });
                 }
             })
-            .connect({
-                host: 'ubuntu-service', // o 'localhost' si no usas docker-compose
-                port: 22,           // o 2222 si lo expones así
-                username: 'devuser',
-                password: '1234',
-            });
+            ;
+
+        // Use environment variables with sensible defaults
+        const host = process.env.TARGET_HOST || 'localhost'
+        const port = Number(process.env.TARGET_PORT || 22)
+        const username = process.env.TARGET_USER || 'devuser'
+        const password = process.env.TARGET_PASS || '1234'
+
+        // Attempt to connect and handle immediate errors
+        try {
+            this.sshClient.connect({ host, port, username, password });
+        } catch (err: any) {
+            console.error('SSH connect threw:', err?.message || err)
+            client.emit('output', `SSH connect error: ${err?.message || String(err)}`)
+        }
     }
 
     @SubscribeMessage('input')
