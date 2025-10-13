@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthService from '../services/AuthService'
+import LessonService from '../services/LessonService'
 
 const router = useRouter()
 
@@ -24,14 +25,12 @@ const lecciones = ref([
     { id: 1, titulo: 'Introduction to Linux', descripcion: 'Learn the basics of Linux operating system.' },
     { id: 2, titulo: 'File Management', descripcion: 'Master file manipulation in Linux.' },
     { id: 3, titulo: 'User Management', descripcion: 'Manage users and permissions effectively.' },
-    { id: 4, titulo: 'System Administration', descripcion: 'Administer your Linux system like a pro.' },
-    { id: 5, titulo: 'Networking in Linux', descripcion: 'Configure and troubleshoot network settings.' },
 ])
 
 const showAddLesson = ref(false)
 const showAddUser = ref(false)
 
-const newLesson = ref({
+const newLesson = ref<any>({
     title: '',
     description: '',
     challenges: [{ title: '', command: '', feedback: '' }]
@@ -60,7 +59,7 @@ onMounted(async () => {
         user.value.experiencia = parsed.experiencia || 0
         user.value.avatar = parsed.avatar
     }
-    
+
     await fetchUsers()
 })
 
@@ -78,8 +77,6 @@ const fetchUsers = async () => {
         if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
 
         const data = await response.json()
-        console.log('Datos recibidos de la API:', data) // Para debug
-        
         usuarios.value = data.map((u: any) => ({
             id: u.id_Usuario,
             nombre: u.username,
@@ -92,11 +89,9 @@ const fetchUsers = async () => {
             avatar: u.avatar || getDefaultAvatar(u.username),
             estado: u.activo ? 'Activo' : 'Inactivo'
         }))
-        
-        console.log('Usuarios mapeados:', usuarios.value) // Para debug
     } catch (error) {
         console.error('Error fetching users:', error)
-        usuarios.value = [] // Vacío si hay error
+        usuarios.value = []
     } finally {
         isLoadingUsers.value = false
     }
@@ -117,6 +112,22 @@ const logout = () => {
 
 const addChallenge = () => {
     newLesson.value.challenges.push({ title: '', command: '', feedback: '' })
+}
+
+const addCommand = (challengeIndex: number) => {
+    const ch = newLesson.value.challenges[challengeIndex]
+    if (!ch.commands) ch.commands = []
+    ch.commands.push({ comando: '' })
+}
+
+const removeCommand = (challengeIndex: number, cmdIndex: number) => {
+    const ch = newLesson.value.challenges[challengeIndex]
+    if (!ch || !ch.commands) return
+    ch.commands.splice(cmdIndex, 1)
+}
+
+const removeChallenge = (index: number) => {
+    newLesson.value.challenges.splice(index, 1)
 }
 
 const deleteLesson = (id: number) => {
@@ -143,10 +154,44 @@ const saveUser = () => {
     newUser.value = { name: '', email: '', role: 'User' }
 }
 
-const saveLesson = () => {
-    console.log('Guardando lección:', newLesson.value)
-    showAddLesson.value = false
-    newLesson.value = { title: '', description: '', challenges: [{ title: '', command: '', feedback: '' }] }
+const isSaving = ref(false)
+const saveError = ref('')
+const saveSuccess = ref('')
+
+const toRequestPayload = () => {
+    return {
+        titulo: newLesson.value.title,
+        retos: newLesson.value.challenges.map((c: any) => ({
+            descripcion: c.title,
+            Retroalimentacion: c.feedback || null,
+            comandos: (c.commands || (c.command ? [{ comando: c.command }] : [])).map((cmd: any) => ({ comando: cmd.comando ?? cmd.command }))
+        }))
+    }
+}
+
+const saveLesson = async () => {
+    saveError.value = ''
+    saveSuccess.value = ''
+    // basic validation
+    if (!newLesson.value.title || newLesson.value.challenges.length === 0) {
+        saveError.value = 'El título y al menos un reto son obligatorios.'
+        return
+    }
+
+    isSaving.value = true
+    try {
+        const payload = toRequestPayload()
+        await LessonService.create(payload)
+        saveSuccess.value = 'Lección creada correctamente.'
+        // reset form
+        newLesson.value = { title: '', description: '', challenges: [{ title: '', command: '', feedback: '' }] }
+        showAddLesson.value = false
+    } catch (err: any) {
+        console.error('Error creating lesson:', err)
+        saveError.value = err.message || 'Error al crear la lección.'
+    } finally {
+        isSaving.value = false
+    }
 }
 </script>
 
@@ -168,19 +213,11 @@ const saveLesson = () => {
 
         <aside class="sidebar">
             <nav>
-                <button 
-                    :class="{ active: activeTab === 'users' }" 
-                    @click="activeTab = 'users'"
-                    class="nav-btn"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <button :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'" class="nav-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                     <span>Usuarios</span>
                 </button>
-                <button 
-                    :class="{ active: activeTab === 'lessons' }" 
-                    @click="activeTab = 'lessons'"
-                    class="nav-btn"
-                >
+                <button :class="{ active: activeTab === 'lessons' }" @click="activeTab = 'lessons'" class="nav-btn">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                     <span>Lecciones</span>
                 </button>
@@ -200,20 +237,12 @@ const saveLesson = () => {
             <section v-if="activeTab === 'users'" class="users-section">
                 <div class="section-header">
                     <h2>Usuarios</h2>
-                    <button class="btn-add" @click="showAddUser = true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Agregar usuario
-                    </button>
+                    <button class="btn-add" @click="showAddUser = true">Agregar usuario</button>
                 </div>
 
                 <div class="search-container">
                     <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                    <input 
-                        type="text" 
-                        v-model="searchTerm"
-                        placeholder="Buscar usuarios por nombre, correo..."
-                        class="search-input"
-                    />
+                    <input type="text" v-model="searchTerm" placeholder="Buscar usuarios por nombre, correo..." class="search-input" />
                 </div>
 
                 <div class="table-container">
@@ -233,9 +262,7 @@ const saveLesson = () => {
                                 <td class="email-col">{{ usuario.email }}</td>
                                 <td>{{ usuario.rol }}</td>
                                 <td>
-                                    <span :class="['badge', usuario.estado === 'Activo' ? 'badge-active' : 'badge-inactive']">
-                                        {{ usuario.estado }}
-                                    </span>
+                                    <span :class="['badge', usuario.estado === 'Activo' ? 'badge-active' : 'badge-inactive']">{{ usuario.estado }}</span>
                                 </td>
                                 <td class="actions-col">
                                     <button class="btn-action btn-edit">Editar</button>
@@ -251,10 +278,7 @@ const saveLesson = () => {
             <section v-else class="lessons-section">
                 <div class="section-header">
                     <h2>Manage Lessons</h2>
-                    <button class="btn-add" @click="showAddLesson = true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Add New Lesson
-                    </button>
+                    <button class="btn-add" @click="showAddLesson = true">Add New Lesson</button>
                 </div>
 
                 <div class="lessons-list">
@@ -269,35 +293,23 @@ const saveLesson = () => {
             </section>
         </main>
 
-        <!-- Modal para agregar usuario -->
+        <!-- Modal: Add User -->
         <div v-if="showAddUser" class="modal-overlay" @click="showAddUser = false">
             <div class="modal-content modal-user" @click.stop>
                 <div class="modal-header">
                     <h3>Add New User</h3>
-                    <button class="btn-close" @click="showAddUser = false">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
+                    <button class="btn-close" @click="showAddUser = false">×</button>
                 </div>
 
                 <div class="modal-body">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Name</label>
-                            <input 
-                                type="text" 
-                                v-model="newUser.name"
-                                placeholder="Enter user name"
-                                class="form-input"
-                            />
+                            <input type="text" v-model="newUser.name" placeholder="Enter user name" class="form-input" />
                         </div>
                         <div class="form-group">
                             <label>Email</label>
-                            <input 
-                                type="email" 
-                                v-model="newUser.email"
-                                placeholder="Enter user email"
-                                class="form-input"
-                            />
+                            <input type="email" v-model="newUser.email" placeholder="Enter user email" class="form-input" />
                         </div>
                     </div>
 
@@ -318,71 +330,63 @@ const saveLesson = () => {
             </div>
         </div>
 
-        <!-- Modal para agregar lección -->
+        <!-- Modal: Add Lesson -->
         <div v-if="showAddLesson" class="modal-overlay" @click="showAddLesson = false">
             <div class="modal-content" @click.stop>
                 <div class="modal-header">
                     <h3>Add New Lesson</h3>
-                    <button class="btn-close" @click="showAddLesson = false">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
+                    <button class="btn-close" @click="showAddLesson = false">×</button>
                 </div>
 
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Lesson Title</label>
-                        <input 
-                            type="text" 
-                            v-model="newLesson.title"
-                            placeholder="e.g., Mastering the Command Line"
-                            class="form-input"
-                        />
+                        <input type="text" v-model="newLesson.title" placeholder="e.g., Mastering the Command Line" class="form-input" />
                     </div>
 
                     <div class="form-group">
                         <label>Lesson Description</label>
-                        <textarea 
-                            v-model="newLesson.description"
-                            placeholder="A short summary of what the lesson covers."
-                            rows="4"
-                            class="form-textarea"
-                        ></textarea>
+                        <textarea v-model="newLesson.description" placeholder="A short summary of what the lesson covers." rows="4" class="form-textarea"></textarea>
                     </div>
 
                     <div class="form-group">
-                        <div class="challenges-header">
-                            <label>Challenges</label>
-                            <button class="btn-add-challenge" @click="addChallenge">Add Challenge</button>
+                        <div class="challenges-header" style="display:flex; justify-content:space-between; align-items:center;">
+                            <label style="color:white">Challenges</label>
+                            <button class="btn-add-challenge btn-add" @click="addChallenge">Add Challenge</button>
                         </div>
 
                         <div class="challenges-list">
-                            <div v-for="(challenge, index) in newLesson.challenges" :key="index" class="challenge-item">
-                                <input 
-                                    type="text" 
-                                    v-model="challenge.title"
-                                    placeholder="e.g., Create a Directory"
-                                    class="challenge-input"
-                                />
-                                <input 
-                                    type="text" 
-                                    v-model="challenge.command"
-                                    placeholder="e.g., mkdir my_folder"
-                                    class="challenge-input mono"
-                                />
-                                <input 
-                                    type="text" 
-                                    v-model="challenge.feedback"
-                                    placeholder="e.g., Great! You've created a new directory."
-                                    class="challenge-input"
-                                />
+                            <div v-for="(challenge, index) in newLesson.challenges" :key="index" class="challenge-item" style="margin-top:12px;">
+                                <div style="display:flex; gap:8px;">
+                                    <input type="text" v-model="challenge.title" placeholder="e.g., Create a Directory" class="challenge-input form-input" />
+                                    <input type="text" v-model="challenge.command" placeholder="e.g., mkdir my_folder" class="challenge-input form-input mono" />
+                                </div>
+                                <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+                                    <textarea v-model="challenge.feedback" placeholder="Feedback message" class="form-textarea" style="flex:1"></textarea>
+                                </div>
+                                <div style="margin-top:8px; display:flex; gap:8px;">
+                                    <button class="btn-add" @click.prevent="addCommand(index)">Add command</button>
+                                    <button class="btn-delete" @click.prevent="removeChallenge(index)">Remove challenge</button>
+                                </div>
+
+                                <div v-if="challenge.commands && challenge.commands.length" style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+                                    <div v-for="(cmd, ci) in challenge.commands" :key="ci" style="display:flex; gap:8px; align-items:center;">
+                                        <input v-model="cmd.comando" placeholder="Command" class="form-input" />
+                                        <button class="btn-delete" @click.prevent="removeCommand(index, ci)">Remove</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="modal-footer">
-                    <button class="btn-cancel" @click="showAddLesson = false">Cancel</button>
-                    <button class="btn-save" @click="saveLesson">Save Lesson</button>
+                    <div style="margin-top:12px;">
+                        <div v-if="saveError" style="color: #ffbdbd; margin-bottom:8px">{{ saveError }}</div>
+                        <div v-if="saveSuccess" style="color: #bdf5bd; margin-bottom:8px">{{ saveSuccess }}</div>
+                        <div style="display:flex; gap:8px; justify-content:flex-end;">
+                            <button class="btn-cancel" @click="showAddLesson = false">Cancel</button>
+                            <button class="btn-save" @click="saveLesson" :disabled="isSaving">{{ isSaving ? 'Saving...' : 'Save Lesson' }}</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
