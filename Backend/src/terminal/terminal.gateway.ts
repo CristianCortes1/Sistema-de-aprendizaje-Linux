@@ -19,18 +19,26 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
     async handleConnection(client: Socket) {
         console.log('🖥️ Client connected:', client.id);
 
-        this.sshClient = new Client();
-        this.sshClient
-            .on('ready', () => {
-                console.log('✅ SSH ready');
+        // create a fresh SSH client for this websocket client
+        const ssh = new Client();
+        this.sshClient = ssh;
 
-                if (this.sshClient) {
-                    this.sshClient.shell((err, stream) => {
+        // handle errors from the ssh client to avoid unhandled exceptions
+        ssh.on('error', (err) => {
+            console.error('SSH client error:', err && err.message ? err.message : err);
+            client.emit('output', `SSH error: ${err && err.message ? err.message : String(err)}`);
+        });
+
+        ssh.on('ready', () => {
+                console.log('✅ SSH ready');
+                if (ssh) {
+                    ssh.shell((err, stream) => {
                         if (err) {
                             client.emit('output', 'Error opening shell: ' + err.message);
                             return;
                         }
 
+                        // bind this stream specifically for this client
                         this.sshStream = stream;
 
                         stream.on('data', (data: Buffer) => {
@@ -43,12 +51,62 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
                     });
                 }
             })
-            .connect({
-                host: 'ubuntu-ssh', // o 'localhost' si no usas docker-compose
-                port: 22,           // o 2222 si lo expones así
-                username: 'devuser',
-                password: '1234',
-            });
+            ;
+
+        // Use environment variables with sensible defaults
+        const host = process.env.TARGET_HOST || 'localhost'
+        const port = Number(process.env.TARGET_PORT || 22)
+        const username = process.env.TARGET_USER || 'devuser'
+        const password = process.env.TARGET_PASS || '1234'
+
+        // Attempt to connect with retries and exponential backoff
+        const maxAttempts = Number(process.env.SSH_CONNECT_RETRIES || 5)
+        const baseDelay = Number(process.env.SSH_CONNECT_BACKOFF_MS || 500)
+
+        const connectWithRetry = async () => {
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                    await new Promise<void>((resolve, reject) => {
+                        let settled = false
+                        ssh.once('ready', () => {
+                            settled = true
+                            resolve()
+                        })
+                        ssh.once('error', (e) => {
+                            if (!settled) {
+                                settled = true
+                                reject(e)
+                            }
+                        })
+                        // initiate connection
+                        try {
+                            ssh.connect({ host, port, username, password })
+                        } catch (err) {
+                            if (!settled) reject(err)
+                        }
+                    })
+                    // success
+                    return
+                } catch (err: any) {
+                    const msg = err && err.message ? err.message : String(err)
+                    console.warn(`SSH connect attempt ${attempt} failed: ${msg}`)
+                    client.emit('output', `SSH connect attempt ${attempt} failed: ${msg}\n`)
+                    if (attempt < maxAttempts) {
+                        const delay = baseDelay * 2 ** (attempt - 1)
+                        await new Promise((r) => setTimeout(r, delay))
+                    } else {
+                        // final failure
+                        console.error('SSH connect failed after attempts:', err)
+                        client.emit('output', `SSH connect failed: ${msg}\n`)
+                        // end the SSH client to cleanup
+                        try { ssh.end() } catch {}
+                    }
+                }
+            }
+        }
+
+        // start the connection attempts (do not await to avoid blocking other clients)
+        void connectWithRetry()
     }
 
     @SubscribeMessage('input')
