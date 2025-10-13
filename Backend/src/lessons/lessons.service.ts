@@ -9,9 +9,26 @@ export class LessonsService {
   constructor(private prisma: PrismaService) {}
 
   create(createLessonDto: CreateLessonDto) {
+    // Build nested create data for retos and comandos
+    const retosData = createLessonDto.retos.map((reto) => ({
+      descripcion: reto.descripcion,
+      Retroalimentacion: reto.Retroalimentacion ?? null,
+      comandos: {
+        create: reto.comandos.map((c) => ({ comando: c.comando })),
+      },
+    }));
+
     return this.prisma.lecciones.create({
       data: {
         Titulo: createLessonDto.titulo,
+        retos: {
+          create: retosData,
+        },
+      },
+      include: {
+        retos: {
+          include: { comandos: true },
+        },
       },
     });
   }
