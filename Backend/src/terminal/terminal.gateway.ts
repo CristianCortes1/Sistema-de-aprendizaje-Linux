@@ -44,7 +44,7 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
                 }
             })
             .connect({
-                host: 'ubuntu-ssh', // o 'localhost' si no usas docker-compose
+                host: 'ubuntu-service', // o 'localhost' si no usas docker-compose
                 port: 22,           // o 2222 si lo expones así
                 username: 'devuser',
                 password: '1234',
