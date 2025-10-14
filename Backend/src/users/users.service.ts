@@ -15,6 +15,8 @@ export class UsersService {
         correo: createUserDto.email,
         contraseña: createUserDto.password,
         avatar: createUserDto.avatar,
+        rol: createUserDto.rol,
+        activo: createUserDto.activo,
       },
     });
   }
@@ -44,6 +46,7 @@ export class UsersService {
         contraseña: updateUserDto.password,
         avatar: updateUserDto.avatar,
         rol: updateUserDto.rol,
+        activo: updateUserDto.activo,
       },
     });
   }

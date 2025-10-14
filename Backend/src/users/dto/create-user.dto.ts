@@ -4,4 +4,5 @@ export class CreateUserDto {
     password: string;
     avatar?: string;
     rol?: string;
+    activo?: boolean;
 }
