@@ -48,10 +48,8 @@ const filteredUsuarios = computed(() => {
 const fetchUsers = async () => {
     isLoadingUsers.value = true
     try {
-        const token = AuthService.getToken()
         const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users', {
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         })
@@ -82,10 +80,8 @@ const fetchUsers = async () => {
 const fetchLessons = async () => {
     isLoadingLessons.value = true
     try {
-        const token = AuthService.getToken()
         const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons', {
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         })
@@ -221,25 +217,23 @@ const cerrarModal = () => {
 }
 
 const guardarCambios = async (data: any) => {
-    try {
-        const token = AuthService.getToken()
+        try {
         
         if (currentContext === 'usuarios') {
             const url = currentItemId 
                 ? `https://sistema-de-aprendizaje-linux-production.up.railway.app/users/${currentItemId}`
                 : 'https://sistema-de-aprendizaje-linux-production.up.railway.app/users'
             
-            const method = currentItemId ? 'PUT' : 'POST'
+            const method = currentItemId ? 'PATCH' : 'POST'
             
             const response = await fetch(url, {
                 method,
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     username: data.nombre,
-                    correo: data.correo,
+                    email: data.correo,
                     rol: data.rol,
                     activo: data.estado === 'activo'
                 })
@@ -259,7 +253,6 @@ const guardarCambios = async (data: any) => {
             const response = await fetch(url, {
                 method,
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -281,15 +274,13 @@ const guardarCambios = async (data: any) => {
 }
 
 const confirmarEliminacion = async () => {
-    try {
-        const token = AuthService.getToken()
+        try {
         const endpoint = currentContext === 'usuarios'
             ? `https://sistema-de-aprendizaje-linux-production.up.railway.app/users/${currentItemId}`
             : `https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons/${currentItemId}`
 
         const response = await fetch(endpoint, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+            method: 'DELETE'
         })
 
         if (!response.ok) throw new Error('Error al eliminar')
