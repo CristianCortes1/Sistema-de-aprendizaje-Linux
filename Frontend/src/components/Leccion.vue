@@ -1,8 +1,11 @@
 <script lang="ts">
-import { defineComponent, ref, onMounted, nextTick } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { io } from 'socket.io-client'
-import { AnsiUp } from 'ansi_up'
+import { Terminal } from 'xterm'
+import { FitAddon } from 'xterm-addon-fit'
+import { WebLinksAddon } from 'xterm-addon-web-links'
+import 'xterm/css/xterm.css'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
 
@@ -15,10 +18,13 @@ export default defineComponent({
 
         // Terminal
         const socket = io('https://sistema-de-aprendizaje-linux-production.up.railway.app')
-        const command = ref('')
-        const output = ref('')
-        const outputRef = ref<HTMLElement | null>(null)
-        const ansi_up = new AnsiUp()
+        const terminalContainer = ref<HTMLElement | null>(null)
+        let terminal: Terminal | null = null
+        let fitAddon: FitAddon | null = null
+        
+        // Estado de la terminal
+        const isConnected = ref(false)
+        const terminalTitle = ref('Conectando...')
 
         // UI state (lesson, hints, progress)
         const showHint = ref(false)
@@ -30,30 +36,116 @@ export default defineComponent({
                 description: 'Use the cd command to navigate to the "documents" directory. Type your command in the terminal and press "Run" to check your answer.',
                 hint: 'The command is cd documents',
                 correctCommand: 'cd documents',
-                directory: 'penguin@earth:~$'
+                directory: '~'
             }
         })
 
-        onMounted(() => {
-            socket.on('output', async (data: string) => {
-                const html = ansi_up.ansi_to_html(data)
-                output.value += html
-                await nextTick()
-                if (outputRef.value) {
-                    outputRef.value.scrollTop = outputRef.value.scrollHeight
+        onMounted(async () => {
+            await nextTick()
+            
+            if (!terminalContainer.value) return
+
+            // Crear instancia de xterm
+            terminal = new Terminal({
+                cursorBlink: true,
+                cursorStyle: 'block',
+                fontFamily: '"Ubuntu Mono", "Courier New", monospace',
+                fontSize: 15,
+                lineHeight: 1.4,
+                theme: {
+                    background: '#300a24',
+                    foreground: '#d3d7cf',
+                    cursor: '#d3d7cf',
+                    cursorAccent: '#300a24',
+                    black: '#2e3436',
+                    red: '#cc0000',
+                    green: '#4e9a06',
+                    yellow: '#c4a000',
+                    blue: '#3465a4',
+                    magenta: '#75507b',
+                    cyan: '#06989a',
+                    white: '#d3d7cf',
+                    brightBlack: '#555753',
+                    brightRed: '#ef2929',
+                    brightGreen: '#8ae234',
+                    brightYellow: '#fce94f',
+                    brightBlue: '#729fcf',
+                    brightMagenta: '#ad7fa8',
+                    brightCyan: '#34e2e2',
+                    brightWhite: '#eeeeec'
+                },
+                allowProposedApi: true,
+            })
+
+            // Addons
+            fitAddon = new FitAddon()
+            terminal.loadAddon(fitAddon)
+            terminal.loadAddon(new WebLinksAddon())
+
+            // Montar terminal en el DOM
+            terminal.open(terminalContainer.value)
+            fitAddon.fit()
+
+            // Manejar input del usuario
+            terminal.onData((data) => {
+                socket.emit('input', data)
+            })
+
+            // Conexión establecida
+            socket.on('connect', () => {
+                isConnected.value = true
+                terminalTitle.value = 'Terminal SSH'
+                terminal?.writeln('\x1b[1;32m✓ Conectado al servidor SSH\x1b[0m')
+            })
+
+            // Desconexión
+            socket.on('disconnect', () => {
+                isConnected.value = false
+                terminalTitle.value = 'Desconectado'
+                terminal?.writeln('\x1b[1;31m✗ Desconectado del servidor\x1b[0m')
+            })
+
+            // Recibir output del servidor
+            socket.on('output', (data: string) => {
+                terminal?.write(data)
+            })
+
+            // Redimensionar terminal cuando cambia el tamaño de la ventana
+            const handleResize = () => {
+                if (fitAddon && terminal) {
+                    fitAddon.fit()
+                    // Enviar nuevo tamaño al servidor
+                    socket.emit('resize', {
+                        cols: terminal.cols,
+                        rows: terminal.rows
+                    })
                 }
+            }
+
+            window.addEventListener('resize', handleResize)
+
+            // Enviar tamaño inicial al servidor
+            if (terminal) {
+                socket.emit('resize', {
+                    cols: terminal.cols,
+                    rows: terminal.rows
+                })
+            }
+
+            // Cleanup
+            onUnmounted(() => {
+                window.removeEventListener('resize', handleResize)
+                terminal?.dispose()
+                socket.disconnect()
             })
         })
 
-        const sendCommand = () => {
-            if (!command.value.trim()) return
-            socket.emit('input', command.value)
-            output.value += `<span class='prompt'>penguin@earth:~$</span> ${command.value}<br>`
-            command.value = ''
-        }
-
         const toggleHint = () => {
             showHint.value = !showHint.value
+        }
+
+        const clearTerminal = () => {
+            terminal?.clear()
         }
 
         // Navegación
@@ -64,10 +156,7 @@ export default defineComponent({
         const goConfig = () => router.push('/configuracion')
 
         return {
-            command,
-            output,
-            outputRef,
-            sendCommand,
+            terminalContainer,
             showHint,
             toggleHint,
             progress,
@@ -77,6 +166,9 @@ export default defineComponent({
             goBiblioteca,
             goRanking,
             goConfig,
+            isConnected,
+            terminalTitle,
+            clearTerminal,
         }
     },
 })
@@ -96,23 +188,22 @@ export default defineComponent({
             <div class="lesson-content">
                 <!-- Terminal -->
                 <div class="terminal-section">
-                    <div class="terminal">
+                    <div class="terminal-wrapper">
                         <div class="terminal-header">
                             <div class="terminal-controls">
                                 <span class="control red"></span>
                                 <span class="control yellow"></span>
                                 <span class="control green"></span>
                             </div>
-                            <div class="terminal-title">penguin@earth:~$</div>
-                        </div>
-                        <div class="terminal-body">
-                            <div class="terminal-output" ref="outputRef" v-html="output"></div>
-                            <div class="terminal-input">
-                                <span class="prompt">$</span>
-                                <input v-model="command" @keyup.enter="sendCommand" type="text" class="command-input"
-                                    placeholder="Enter a command..." />
+                            <div class="terminal-title">{{ terminalTitle }}</div>
+                            <div class="connection-status">
+                                <span class="status-indicator" :class="{ connected: isConnected }"></span>
                             </div>
                         </div>
+                        <div ref="terminalContainer" class="terminal-container"></div>
+                    </div>
+                    <div class="terminal-help">
+                        <span class="help-item">Terminal real con soporte completo para nano, vim, htop y más</span>
                     </div>
                 </div>
 
@@ -160,22 +251,6 @@ export default defineComponent({
     overflow-y: auto;
 }
 
-.prompt {
-    color: #00ff88;
-    font-weight: bold;
-}
-
-.terminal-output {
-    color: #dcddde;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    overflow-y: auto;
-    min-height: 250px;
-    max-height: 400px;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-}
-
 .content {
     padding: 20px;
     padding-top: 20px;
@@ -208,24 +283,24 @@ export default defineComponent({
 .terminal-section {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
 }
 
-.terminal {
-    background: #1e2124;
-    border-radius: 12px;
+.terminal-wrapper {
+    background: #300a24;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .terminal-header {
-    background: #2f3136;
-    padding: 12px 16px;
+    background: #2c001e;
+    padding: 8px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
 }
 
 .terminal-controls {
@@ -252,65 +327,63 @@ export default defineComponent({
 }
 
 .terminal-title {
-    color: #8e9297;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
+    color: #d3d7cf;
+    font-family: 'Ubuntu Mono', 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: normal;
+    flex: 1;
+    text-align: center;
 }
 
-.terminal-body {
-    padding: 20px;
-    min-height: 300px;
-    font-family: 'Courier New', monospace;
-}
-
-.terminal-output {
-    color: #dcddde;
-    white-space: pre-wrap;
-    margin-bottom: 10px;
-    font-size: 14px;
-}
-
-.terminal-input {
+.connection-status {
     display: flex;
     align-items: center;
-    gap: 8px;
 }
 
-.prompt {
-    color: #00ff88;
-    font-weight: bold;
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff5f57;
+    transition: background 0.3s ease;
 }
 
-.command-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: #dcddde;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    outline: none;
+.status-indicator.connected {
+    background: #28ca42;
+    box-shadow: 0 0 8px rgba(40, 202, 66, 0.6);
 }
 
-.command-input::placeholder {
-    color: #72767d;
+.terminal-container {
+    padding: 10px;
+    min-height: 500px;
+    max-height: 600px;
+    overflow: hidden;
 }
 
-.execute-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+/* Estilos para xterm.js */
+.terminal-container :deep(.xterm) {
+    height: 100%;
 }
 
-.execute-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+.terminal-container :deep(.xterm-viewport) {
+    overflow-y: auto;
+}
+
+.terminal-help {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.help-item {
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .challenge-section {
@@ -431,9 +504,8 @@ export default defineComponent({
         font-size: 24px;
     }
 
-    .terminal-body {
-        padding: 15px;
-        min-height: 200px;
+    .terminal-container {
+        min-height: 400px;
     }
 }
 </style>
