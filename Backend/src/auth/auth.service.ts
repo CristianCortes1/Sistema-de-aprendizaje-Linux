@@ -30,11 +30,46 @@ export class AuthService {
     }
 
     async login(user: any) {
-        const payload = { username: user.username, sub: user.id_Usuario };
-        return {
-            access_token: this.jwtService.sign(payload),
-            user,
-        };
+        // On login, check if a day has passed since last update (updatedAt)
+        try {
+            const now = new Date();
+            const dbUser = await this.prisma.usuarios.findUnique({ where: { id_Usuario: user.id_Usuario } });
+            if (!dbUser) throw new UnauthorizedException('User not found');
+
+            let shouldIncrement = false;
+            const oneDayMs = 24 * 60 * 60 * 1000;
+            if (dbUser.ultimoLogin) {
+                const diffMs = now.getTime() - dbUser.ultimoLogin.getTime();
+                if (diffMs >= oneDayMs) shouldIncrement = true;
+            } else {
+                // No ultimoLogin recorded - treat as eligible
+                shouldIncrement = true;
+            }
+
+            let updated = dbUser;
+            if (shouldIncrement) {
+                updated = await this.prisma.usuarios.update({
+                    where: { id_Usuario: user.id_Usuario },
+                    data: { racha: { increment: 1 }, ultimoLogin: now },
+                });
+            } else {
+                // update ultimoLogin to now to mark the login action
+                updated = await this.prisma.usuarios.update({
+                    where: { id_Usuario: user.id_Usuario },
+                    data: { ultimoLogin: now },
+                });
+            }
+
+            const payload = { username: updated.username, sub: updated.id_Usuario };
+            const { contraseña, ...userSafe } = updated as any;
+            return {
+                access_token: this.jwtService.sign(payload),
+                user: userSafe,
+            };
+        } catch (err) {
+            // Re-throw as Unauthorized to avoid leaking details
+            throw new UnauthorizedException('Login error');
+        }
     }
     async register(username: string, correo: string, password: string) {
         const hashed = await bcrypt.hash(password, 10);

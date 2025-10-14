@@ -24,6 +24,7 @@ model Usuarios {
   confirmationToken  String?     @db.VarChar(100)
   avatar             String?     @db.Text
   racha              Int         @default(0)
+  ultimoLogin        DateTime?   
   experiencia        Int         @default(0)
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
