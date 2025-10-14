@@ -1,14 +1,9 @@
 # Arquitectura del proyecto: Sistema-de-aprendizaje-Linux
 
-> Documento generado para el repositorio: `CristianCortes1/Sistema-de-aprendizaje-Linux`.
->
-> Contiene el diagrama de alto nivel (Mermaid), descripción de componentes, decisiones arquitectónicas, estructura de carpetas recomendada, y checklist para CI/CD y despliegue.
-
 ---
 
 ## Diagrama de alto nivel (Mermaid)
 
-> Copia y pega este bloque en cualquier Markdown compatible (GitHub lo renderiza):
 
 ```mermaid
 flowchart LR
@@ -17,27 +12,27 @@ flowchart LR
     A -->|"Assets estáticos"| CDN
   end
 
-  subgraph BE ["Backend - Node.js / TypeScript"]
-    API[API Gateway / NestJS o Express] --> AuthService
+  subgraph BE ["Backend - NestJS"]
+    API[API Gateway] --> AuthService
     API --> CoursesService
     API --> LessonsService
     API --> FileService
     API --> NotificationService
   end
 
-  subgraph DB ["Persistencia"]
-    Postgres[(Postgres)]
-    Redis[(Redis - cache / sessions)]
+  subgraph DB ["Base de Datos / Cache"]
+    Postgres[(PostgreSQL)]
+    Redis[(Redis - Cache / Sesiones)]
   end
 
-  subgraph Storage ["Almacenamiento de archivos"]
-    S3[(S3 o MinIO)]
+  subgraph Storage ["Almacenamiento"]
+    S3[(S3 / MinIO)]
   end
 
   subgraph Infra ["Infra / CI-CD"]
     CI[GitHub Actions]
-    Docker[Docker / docker-compose]
-    Platform[Railway / Render / Heroku]
+    Docker[Docker / Compose]
+    Platform[Railway / Render]
     CDN[Netlify / Vercel / Cloudflare]
   end
 
@@ -49,6 +44,7 @@ flowchart LR
   BE --> CI
   CI --> Docker
   Docker --> Platform
+
 ```
 
 ---
