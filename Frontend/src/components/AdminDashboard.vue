@@ -452,8 +452,8 @@ const saveLesson = async () => {
             <!-- Lessons Tab -->
             <section v-else class="lessons-section">
                 <div class="section-header">
-                    <h2>Manage Lessons</h2>
-                    <button class="btn-add" @click="showAddLesson = true">Add New Lesson</button>
+                    <h2>Lecciones</h2>
+                    <button class="btn-add" @click="showAddLesson = true">Agregar Lección</button>
                 </div>
 
                 <div class="lessons-list">
@@ -464,7 +464,7 @@ const saveLesson = async () => {
                         </div>
                         <div style="display: flex; gap: 8px;">
                             <button class="btn-action btn-edit" @click="editLesson(leccion.id)" style="padding: 6px 16px; border-radius: 6px;">Editar</button>
-                            <button class="btn-delete-lesson" @click="confirmDeleteLesson(leccion.id)">Delete</button>
+                            <button class="btn-delete-lesson" @click="confirmDeleteLesson(leccion.id)">Borrar</button>
                         </div>
                     </div>
                 </div>
@@ -475,45 +475,45 @@ const saveLesson = async () => {
         <div v-if="showAddLesson" class="modal-overlay" @click="showAddLesson = false">
             <div class="modal-content" @click.stop>
                 <div class="modal-header">
-                    <h3>Add New Lesson</h3>
+                    <h3>Agregar Lección</h3>
                     <button class="btn-close" @click="showAddLesson = false">×</button>
                 </div>
 
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Lesson Title</label>
-                        <input type="text" v-model="newLesson.title" placeholder="e.g., Mastering the Command Line" class="form-input" />
+                        <label>Título</label>
+                        <input type="text" v-model="newLesson.title" placeholder="Dominando lineas de comando." class="form-input" />
                     </div>
 
                     <div class="form-group">
-                        <label>Lesson Description</label>
-                        <textarea v-model="newLesson.description" placeholder="A short summary of what the lesson covers." rows="4" class="form-textarea"></textarea>
+                        <label>Descripción</label>
+                        <textarea v-model="newLesson.description" placeholder="Un pequeño resumen de que cubre la lección." rows="4" class="form-textarea"></textarea>
                     </div>
 
                     <div class="form-group">
                         <div class="challenges-header" style="display:flex; justify-content:space-between; align-items:center;">
-                            <label style="color:white">Challenges</label>
-                            <button class="btn-add-challenge btn-add" @click="addChallenge">Add Challenge</button>
+                            <label style="color:white">Retos</label>
+                            <button class="btn-add-challenge btn-add" @click="addChallenge">Añade un reto</button>
                         </div>
 
                         <div class="challenges-list">
                             <div v-for="(challenge, index) in newLesson.challenges" :key="index" class="challenge-item" style="margin-top:12px;">
                                 <div style="display:flex; gap:8px;">
-                                    <input type="text" v-model="challenge.title" placeholder="e.g., Create a Directory" class="challenge-input form-input" />
-                                    <input type="text" v-model="challenge.command" placeholder="e.g., mkdir my_folder" class="challenge-input form-input mono" />
+                                    <input type="text" v-model="challenge.title" placeholder="Crea una carpeta" class="challenge-input form-input" />
+                                    <input type="text" v-model="challenge.command" placeholder="mkdir my_folder" class="challenge-input form-input mono" />
                                 </div>
                                 <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-                                    <textarea v-model="challenge.feedback" placeholder="Feedback message" class="form-textarea" style="flex:1"></textarea>
+                                    <textarea v-model="challenge.feedback" placeholder="Mensaje de retroalimentación." class="form-textarea" style="flex:1"></textarea>
                                 </div>
                                 <div style="margin-top:8px; display:flex; gap:8px;">
-                                    <button class="btn-add" @click.prevent="addCommand(index)">Add command</button>
-                                    <button class="btn-delete" @click.prevent="removeChallenge(index)">Remove challenge</button>
+                                    <button class="btn-add" @click.prevent="addCommand(index)">Añade un comando</button>
+                                    <button class="btn-delete" @click.prevent="removeChallenge(index)">Elimina un reto</button>
                                 </div>
 
                                 <div v-if="challenge.commands && challenge.commands.length" style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
                                     <div v-for="(cmd, ci) in challenge.commands" :key="ci" style="display:flex; gap:8px; align-items:center;">
-                                        <input v-model="cmd.comando" placeholder="Command" class="form-input" />
-                                        <button class="btn-delete" @click.prevent="removeCommand(index, ci)">Remove</button>
+                                        <input v-model="cmd.comando" placeholder="Comando" class="form-input" />
+                                        <button class="btn-delete" @click.prevent="removeCommand(index, ci)">Eliminar</button>
                                     </div>
                                 </div>
                             </div>
