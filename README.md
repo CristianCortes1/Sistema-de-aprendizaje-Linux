@@ -12,29 +12,29 @@
 
 ```mermaid
 flowchart LR
-  subgraph FE [Frontend (Vue.js)]
-    A[SPA Vue.js] -->|HTTP/REST o GraphQL| API
-    A -->|Assets estáticos| CDN
+  subgraph FE ["Frontend - Vue.js"]
+    A[SPA Vue.js] -->|"HTTP/REST o GraphQL"| API
+    A -->|"Assets estáticos"| CDN
   end
 
-  subgraph BE [Backend (Node.js / TypeScript)]
-    API[API Gateway / NestJS (o Express)] --> AuthService
+  subgraph BE ["Backend - Node.js / TypeScript"]
+    API[API Gateway / NestJS o Express] --> AuthService
     API --> CoursesService
     API --> LessonsService
     API --> FileService
     API --> NotificationService
   end
 
-  subgraph DB [Persistencia]
+  subgraph DB ["Persistencia"]
     Postgres[(Postgres)]
     Redis[(Redis - cache / sessions)]
   end
 
-  subgraph Storage [Almacenamiento de archivos]
-    S3[(S3 / MinIO)]
+  subgraph Storage ["Almacenamiento de archivos"]
+    S3[(S3 o MinIO)]
   end
 
-  subgraph Infra [Infra / CI-CD]
+  subgraph Infra ["Infra / CI-CD"]
     CI[GitHub Actions]
     Docker[Docker / docker-compose]
     Platform[Railway / Render / Heroku]
