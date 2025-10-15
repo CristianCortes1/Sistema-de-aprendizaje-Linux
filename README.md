@@ -29,7 +29,7 @@ flowchart LR
     S3[(S3 / MinIO)]
   end
 
-  subgraph Infra ["Infra / CI-CD"]
+  subgraph Infra ["Infraestructura / CI-CD"]
     CI[GitHub Actions]
     Docker[Docker / Compose]
     Platform[Railway / Render]
@@ -44,6 +44,7 @@ flowchart LR
   BE --> CI
   CI --> Docker
   Docker --> Platform
+
 
 ```
 
