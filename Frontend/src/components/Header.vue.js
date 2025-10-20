@@ -175,29 +175,6 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 });
 // @ts-ignore
 [handleLogout,];
-__VLS_asFunctionalElement(__VLS_elements.svg, __VLS_elements.svg)({
-    xmlns: "http://www.w3.org/2000/svg",
-    width: "24",
-    height: "24",
-    fill: "none",
-    stroke: "currentColor",
-    'stroke-width': "2",
-    'stroke-linecap': "round",
-    'stroke-linejoin': "round",
-    ...{ class: "feather feather-log-out" },
-});
-__VLS_asFunctionalElement(__VLS_elements.path)({
-    d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4",
-});
-__VLS_asFunctionalElement(__VLS_elements.polyline)({
-    points: "16 17 21 12 16 7",
-});
-__VLS_asFunctionalElement(__VLS_elements.line)({
-    x1: "21",
-    y1: "12",
-    x2: "9",
-    y2: "12",
-});
 /** @type {__VLS_StyleScopedClasses['header']} */ ;
 /** @type {__VLS_StyleScopedClasses['logo']} */ ;
 /** @type {__VLS_StyleScopedClasses['logo']} */ ;
@@ -207,6 +184,4 @@ __VLS_asFunctionalElement(__VLS_elements.line)({
 /** @type {__VLS_StyleScopedClasses['xp']} */ ;
 /** @type {__VLS_StyleScopedClasses['perfil']} */ ;
 /** @type {__VLS_StyleScopedClasses['logout-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['feather']} */ ;
-/** @type {__VLS_StyleScopedClasses['feather-log-out']} */ ;
 export default {};
