@@ -26,6 +26,8 @@ services:
       context: ./Backend
       dockerfile: Dockerfile
     container_name: penguinpath-backend
+    # Ejecutar como root para acceder a docker.sock (solo en desarrollo)
+    user: root
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/penguinpath?schema=public
       JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}

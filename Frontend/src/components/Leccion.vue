@@ -9,6 +9,45 @@ import 'xterm/css/xterm.css'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
 
+// Función inline para obtener o crear guestId
+function getOrCreateGuestId(): string {
+    let guestId = localStorage.getItem('guestId')
+    
+    if (!guestId) {
+        // Generar nuevo ID único para invitado
+        guestId = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+        localStorage.setItem('guestId', guestId)
+        console.log('✨ Created new guest ID:', guestId)
+    } else {
+        console.log('♻️ Using existing guest ID:', guestId)
+    }
+    
+    return guestId
+}
+
+// Función inline para obtener userId (de token o guestId)
+function getUserIdForTerminal(): string {
+    const token = localStorage.getItem('token')
+    
+    if (token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]))
+            if (payload && payload.sub) {
+                // Convertir a string por si el ID viene como número
+                const userId = String(payload.sub)
+                console.log('👤 Using logged-in user ID:', userId)
+                return userId
+            }
+        } catch (error) {
+            console.warn('⚠️ Error parsing token:', error)
+        }
+    }
+    
+    // Si no hay token o falló el parsing, usar guestId
+    const guestId = getOrCreateGuestId()
+    return guestId
+}
+
 export default defineComponent({
     name: 'Leccion',
     components: { Header, Footer },
@@ -16,8 +55,17 @@ export default defineComponent({
         const router = useRouter()
         const route = useRoute()
 
-        // Terminal
-        const socket = io('https://sistema-de-aprendizaje-linux-production.up.railway.app')
+        // Obtener userId del token (puede ser null si no está logueado)
+        // Si no hay usuario logueado, se genera un guestId persistente
+        const userId = getUserIdForTerminal()
+        console.log('🔌 User ID for terminal connection:', userId)
+
+        // Terminal - conectar con autenticación
+        const socket = io('http://localhost:3000', {
+            auth: {
+                userId: userId
+            }
+        })
         const terminalContainer = ref<HTMLElement | null>(null)
         let terminal: Terminal | null = null
         let fitAddon: FitAddon | null = null

@@ -14,10 +14,13 @@ RUN apt-get update && apt-get install -y \
     less \
     grep \
     sed \
-    awk \
+    gawk \
     findutils \
     procps \
     tree \
+    sudo \
+    iputils-ping \
+    net-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Configurar el prompt de bash

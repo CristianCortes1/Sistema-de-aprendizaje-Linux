@@ -6,10 +6,10 @@ import { LessonsModule } from './lessons/lessons.module';
 import { ChallengesModule } from './challenges/challenges.module';
 import { CommandsModule } from './commands/commands.module';
 import { ProgressModule } from './progress/progress.module';
-import { TerminalGateway } from './terminal/terminal.gateway';
+import { TerminalModule } from './terminal/terminal.module';
 
 @Module({
-    imports: [AuthModule, UsersModule, LessonsModule, ChallengesModule, CommandsModule, ProgressModule, TerminalGateway],
+    imports: [AuthModule, UsersModule, LessonsModule, ChallengesModule, CommandsModule, ProgressModule, TerminalModule],
     controllers: [],
     providers: [PrismaService],
 

@@ -1,6 +1,9 @@
 # Multi-stage build para optimizar el tamaño final
 FROM node:20-alpine AS builder
 
+# Instalar OpenSSL y dependencias necesarias para Prisma
+RUN apk add --no-cache openssl openssl-dev libc6-compat
+
 # Instalar pnpm
 RUN npm install -g pnpm
 
@@ -25,8 +28,12 @@ RUN pnpm run build
 # Etapa de producción
 FROM node:20-alpine
 
-# Instalar Docker CLI para poder crear contenedores
-RUN apk add --no-cache docker-cli
+# Instalar OpenSSL, Docker CLI y dependencias necesarias
+RUN apk add --no-cache \
+    openssl \
+    openssl-dev \
+    libc6-compat \
+    docker-cli
 
 # Instalar pnpm
 RUN npm install -g pnpm
@@ -41,12 +48,14 @@ RUN pnpm install --prod --frozen-lockfile
 
 # Copiar archivos compilados desde builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
 
 # Crear script de inicio que ejecute migraciones
 COPY docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
+
+# Crear directorio para Prisma Client y dar permisos al usuario node
+RUN mkdir -p /app/generated && chown -R node:node /app
 
 # Exponer puerto
 EXPOSE 3000
