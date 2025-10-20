@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: penguinpath-db-prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-penguinpath}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - penguinpath-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend NestJS
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: penguinpath-backend-prod
+    user: root  # Necesario para acceso a Docker socket
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-penguinpath}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+      NODE_ENV: production
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      DOCKER_HOST: unix:///var/run/docker.sock
+      INACTIVITY_TIMEOUT: ${INACTIVITY_TIMEOUT:-900000}  # 15 minutos
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - penguinpath-network
+    restart: unless-stopped
+
+  # Frontend Vue/Nginx
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: penguinpath-frontend-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    networks:
+      - penguinpath-network
+    restart: unless-stopped
+    volumes:
+      # Para SSL certificates (opcional, si usas Let's Encrypt)
+      - ./ssl:/etc/nginx/ssl:ro
+
+volumes:
+  postgres_data:
+
+networks:
+  penguinpath-network:
+    driver: bridge
