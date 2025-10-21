@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-export class CreateUserDto {}
-=======
 export class CreateUserDto {
     username: string;
     email: string;
@@ -9,4 +6,3 @@ export class CreateUserDto {
     rol?: string;
     activo?: boolean;
 }
->>>>>>> Backend

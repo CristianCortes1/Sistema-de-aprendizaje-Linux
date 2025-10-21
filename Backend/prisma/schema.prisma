@@ -40,24 +40,10 @@ model Progresos {
   usuario              User      @relation(fields: [Usuarios_id_Usuario], references: [id_Usuario])
   Usuarios_id_Usuario  Int
   leccion              Lecciones @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
->>>>>>> Backend
   Lecciones_id_Leccion Int
 }
 
 model Lecciones {
-<<<<<<< HEAD
-  id_Leccion      Int        @id @default(autoincrement())
-  Titulo          String     @db.VarChar(45)
-  progresos       Progresos[]
-  retos           Retos[]
-}
-
-model Retos {
-  id_Reto              Int         @id @default(autoincrement())
-  descripcion          String      @db.VarChar(300)
-  Retroalimentacion    String?     @db.VarChar(100)
-  leccion              Lecciones   @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
-=======
   id_Leccion Int         @id @default(autoincrement())
   Titulo     String      @db.VarChar(45)
   progresos  Progresos[]
@@ -69,23 +55,13 @@ model Retos {
   descripcion          String     @db.VarChar(300)
   Retroalimentacion    String?    @db.VarChar(100)
   leccion              Lecciones  @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
->>>>>>> Backend
   Lecciones_id_Leccion Int
   comandos             Comandos[]
 }
 
 model Comandos {
-<<<<<<< HEAD
-  id_Comando               Int      @id @default(autoincrement())
-  comando                  String   @db.VarChar(45)
-  reto                     Retos    @relation(fields: [Retos_id_Reto], references: [id_Reto])
-  Retos_id_Reto            Int
-}
-
-=======
   id_Comando    Int    @id @default(autoincrement())
   comando       String @db.VarChar(45)
   reto          Retos  @relation(fields: [Retos_id_Reto], references: [id_Reto])
   Retos_id_Reto Int
 }
->>>>>>> Backend
