@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthService from '../services/AuthService'
+import { API_URL } from '../config/api'
 
 const email = ref('')
 const password = ref('')
@@ -16,7 +17,7 @@ async function handleLogin() {
 
     loading.value = true
     try {
-        const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/auth/login', {
+        const response = await fetch(`${API_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

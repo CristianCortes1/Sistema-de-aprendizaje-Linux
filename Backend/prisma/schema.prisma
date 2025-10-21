@@ -5,8 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -14,38 +15,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Usuarios {
-<<<<<<< HEAD
-<<<<<<< HEAD
-  id_Usuario       Int         @id @default(autoincrement())
-  username         String      @db.VarChar(25)
-  correo           String      @db.VarChar(60)
-  contraseña       String      @db.VarChar(45)
-  avatar           Int?
-  racha            Int?
-  experiencia      Int?
-  ultima_conexion  DateTime?
-  progresos        Progresos[]
-}
-
-model Progresos {
-  id               Int       @id @default(autoincrement())
-  progreso         Int
-  usuario          Usuarios  @relation(fields: [Usuarios_id_Usuario], references: [id_Usuario])
-  Usuarios_id_Usuario Int
-  leccion          Lecciones @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
-=======
-  id_Usuario  Int         @id @default(autoincrement())
-  username    String      @db.VarChar(25)
-  correo      String      @db.VarChar(60)
-  contraseña  String      @db.VarChar(200)
-  avatar      String?     @db.Text
-  racha       Int         @default(0)
-  experiencia Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  progresos   Progresos[]
-=======
+model User {
   id_Usuario         Int         @id @default(autoincrement())
   username           String      @db.VarChar(25)
   correo             String      @db.VarChar(60)
@@ -55,17 +25,19 @@ model Progresos {
   confirmationToken  String?     @db.VarChar(100)
   avatar             String?     @db.Text
   racha              Int         @default(0)
+  ultimoLogin        DateTime?   
   experiencia        Int         @default(0)
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
   progresos          Progresos[]
->>>>>>> Backend
+
+  @@map("Usuarios")
 }
 
 model Progresos {
   id                   Int       @id @default(autoincrement())
   progreso             Int
-  usuario              Usuarios  @relation(fields: [Usuarios_id_Usuario], references: [id_Usuario])
+  usuario              User      @relation(fields: [Usuarios_id_Usuario], references: [id_Usuario])
   Usuarios_id_Usuario  Int
   leccion              Lecciones @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
 >>>>>>> Backend

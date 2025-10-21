@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: penguinpath-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: penguinpath
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - penguinpath-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend NestJS
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: penguinpath-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/penguinpath?schema=public
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      PORT: 3000
+      # Email config (opcional)
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      # Docker config para crear contenedores
+      DOCKER_HOST: unix:///var/run/docker.sock
+    volumes:
+      # Montar el socket de Docker para crear contenedores
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Para desarrollo (comentar en producción)
+      # - ./Backend/src:/app/src
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - penguinpath-network
+    restart: unless-stopped
+
+  # Frontend Vue
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: penguinpath-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - penguinpath-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  penguinpath-network:
+    driver: bridge

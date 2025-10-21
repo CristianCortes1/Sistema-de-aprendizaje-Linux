@@ -1,6 +1,7 @@
 <script lang="ts">
 import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_URL } from '../config/api'
 
 export default defineComponent({
     name: 'RegistroComponent',
@@ -19,7 +20,7 @@ export default defineComponent({
 
             loading.value = true
             try {
-                const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/auth/register', {
+                const response = await fetch(`${API_URL}/auth/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

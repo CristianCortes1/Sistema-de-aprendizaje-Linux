@@ -32,34 +32,36 @@ export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   create(createUserDto: CreateUserDto) {
-    return this.prisma.usuarios.create({
+    return this.prisma.user.create({
       data: {
         username: createUserDto.username,
         correo: createUserDto.email,
         contraseña: createUserDto.password,
         avatar: createUserDto.avatar,
+        rol: createUserDto.rol,
+        activo: createUserDto.activo,
       },
     });
   }
 
   findAllForExperience() {
-    return this.prisma.usuarios.findMany({
+    return this.prisma.user.findMany({
       orderBy: { experiencia: 'desc' },
     });
   }
 
   findAll() {
-    return this.prisma.usuarios.findMany();
+    return this.prisma.user.findMany();
   }
 
   findOne(id: number) {
-    return this.prisma.usuarios.findUnique({
+    return this.prisma.user.findUnique({
       where: { id_Usuario: id },
     });
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
-    return this.prisma.usuarios.update({
+    return this.prisma.user.update({
       where: { id_Usuario: id },
       data: {
         username: updateUserDto.username,
@@ -67,12 +69,13 @@ export class UsersService {
         contraseña: updateUserDto.password,
         avatar: updateUserDto.avatar,
         rol: updateUserDto.rol,
+        activo: updateUserDto.activo,
       },
     });
   }
 
   remove(id: number) {
-    return this.prisma.usuarios.delete({
+    return this.prisma.user.delete({
       where: { id_Usuario: id },
     });
 >>>>>>> Backend

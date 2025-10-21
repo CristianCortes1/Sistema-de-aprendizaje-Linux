@@ -15,12 +15,30 @@ export class EmailService implements OnModuleInit {
   private async init() {
         try {
       const useProd = process.env.NODE_ENV === 'production';
-      // Preferir SendGrid API en producción si existe API key (evita timeouts SMTP)
+      
+      // Opción 1: SendGrid API (si existe API key)
       if (useProd && process.env.SENDGRID_API_KEY) {
         sgMail.setApiKey(process.env.SENDGRID_API_KEY);
         this.useSendgrid = true;
         this.ready = true;
         console.log('✅ Email: SendGrid API listo');
+        return;
+      }
+      
+      // Opción 2: AWS SES SMTP (si existe configuración)
+      if (useProd && process.env.AWS_SES_SMTP_USER && process.env.AWS_SES_SMTP_PASSWORD) {
+        this.transporter = nodemailer.createTransport({
+          host: process.env.AWS_SES_SMTP_HOST || 'email-smtp.us-east-2.amazonaws.com',
+          port: 587,
+          secure: false, // true for 465, false for other ports
+          auth: {
+            user: process.env.AWS_SES_SMTP_USER,
+            pass: process.env.AWS_SES_SMTP_PASSWORD,
+          },
+        });
+        await this.transporter.verify();
+        this.ready = true;
+        console.log('✅ Email: AWS SES SMTP listo');
         return;
       }
 
@@ -84,9 +102,9 @@ export class EmailService implements OnModuleInit {
         this.ensureReady();
 
         const confirmationUrl = `${process.env.FRONTEND_URL}/confirm-email?token=${confirmationToken}`;
-        const from =
-            process.env.EMAIL_FROM ||
-            '"Penguin Path 🐧" <noreply@penguinpath.app>';
+        const from = process.env.AWS_SES_FROM_EMAIL || 
+                     process.env.EMAIL_FROM || 
+                     '"Penguin Path 🐧" <noreply@penguinpath.app>';
 
         const html = `
         <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
