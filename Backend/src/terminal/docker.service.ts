@@ -44,24 +44,17 @@ export class DockerService implements OnModuleDestroy {
     private async ensureImage() {
         try {
             await this.docker.getImage(this.IMAGE_NAME).inspect();
-            console.log(`✅ Docker image ${this.IMAGE_NAME} already exists`);
         } catch (error) {
-            console.log(`📥 Image ${this.IMAGE_NAME} not found. Falling back to ubuntu:22.04...`);
-            console.log(`⚠️  For better experience, build the custom image with: npm run build:ubuntu-image`);
-            
             // Intentar con ubuntu:22.04 como fallback
             try {
                 await this.docker.getImage('ubuntu:22.04').inspect();
-                console.log(`✅ Using ubuntu:22.04 as fallback`);
             } catch {
-                console.log(`📥 Pulling ubuntu:22.04...`);
                 await new Promise<void>((resolve, reject) => {
                     this.docker.pull('ubuntu:22.04', (err, stream) => {
                         if (err) return reject(err);
                         
                         this.docker.modem.followProgress(stream, (err) => {
                             if (err) return reject(err);
-                            console.log(`✅ Image ubuntu:22.04 pulled successfully`);
                             resolve();
                         });
                     });
@@ -82,13 +75,12 @@ export class DockerService implements OnModuleDestroy {
                     const container = this.docker.getContainer(containerInfo.Id);
                     await container.stop();
                     await container.remove();
-                    console.log(`🧹 Cleaned up orphaned container: ${containerInfo.Names[0]}`);
                 } catch (err) {
                     // Ignorar errores de contenedores ya detenidos
                 }
             }
         } catch (error) {
-            console.error('Error cleaning up orphaned containers:', error);
+            // Silenciar error
         }
     }
 
@@ -102,7 +94,6 @@ export class DockerService implements OnModuleDestroy {
         const existingSession = this.sessions.get(effectiveUserId);
         if (existingSession) {
             // Reutilizar el contenedor existente
-            console.log(`♻️  Reusing existing container for user ${effectiveUserId}`);
             existingSession.connectedSockets.add(socketId);
             existingSession.lastActivity = new Date();
             this.socketToUser.set(socketId, effectiveUserId);
@@ -172,11 +163,8 @@ export class DockerService implements OnModuleDestroy {
             this.sessions.set(effectiveUserId, session);
             this.socketToUser.set(socketId, effectiveUserId);
             
-            console.log(`🐳 Created new container ${containerName} for user ${effectiveUserId}`);
-            
             return session;
         } catch (error) {
-            console.error(`Error creating container for user ${effectiveUserId}:`, error);
             throw error;
         }
     }
@@ -206,9 +194,8 @@ export class DockerService implements OnModuleDestroy {
         try {
             await session.container.resize({ h: rows, w: cols });
             session.lastActivity = new Date();
-            console.log(`📐 Resized container for user ${userId} to ${cols}x${rows}`);
         } catch (error) {
-            console.error(`Error resizing container for user ${userId}:`, error);
+            // Silenciar error
         }
     }
 
@@ -230,7 +217,6 @@ export class DockerService implements OnModuleDestroy {
     async destroySession(socketId: string): Promise<void> {
         const userId = this.socketToUser.get(socketId);
         if (!userId) {
-            console.log(`⚠️  No user mapping found for socket ${socketId}`);
             return;
         }
         
@@ -243,18 +229,14 @@ export class DockerService implements OnModuleDestroy {
         // Remover el socket de la lista de sockets conectados
         session.connectedSockets.delete(socketId);
         this.socketToUser.delete(socketId);
-        
-        console.log(`🔌 Socket ${socketId} disconnected from user ${userId}. Remaining connections: ${session.connectedSockets.size}`);
 
         // Si todavía hay sockets conectados, no destruir el contenedor
         if (session.connectedSockets.size > 0) {
-            console.log(`⏳ Container for user ${userId} kept alive (${session.connectedSockets.size} connections remaining)`);
             return;
         }
 
         // Si no hay más sockets, marcar última actividad pero NO destruir aún
         session.lastActivity = new Date();
-        console.log(`⏰ Container for user ${userId} marked for cleanup after 15 minutes of inactivity`);
     }
 
     // Nueva función para destruir un contenedor por userId
@@ -273,27 +255,23 @@ export class DockerService implements OnModuleDestroy {
             await session.container.remove();
             
             this.sessions.delete(userId);
-            
-            console.log(`🗑️  Destroyed container for user ${userId} after inactivity`);
         } catch (error) {
-            console.error(`Error destroying container for user ${userId}:`, error);
             // Intentar eliminar de todas formas
             try {
                 await session.container.remove({ force: true });
                 this.sessions.delete(userId);
             } catch (e) {
-                console.error(`Failed to force remove container:`, e);
+                // Silenciar error
             }
         }
     }
 
     // Limpiar todas las sesiones al cerrar el módulo
     async onModuleDestroy() {
-        console.log('🧹 Cleaning up all Docker sessions...');
         const destroyPromises = Array.from(this.sessions.keys()).map(userId =>
-            this.destroyUserContainer(userId).catch(err => 
-                console.error(`Error destroying session for user ${userId}:`, err)
-            )
+            this.destroyUserContainer(userId).catch(err => {
+                // Silenciar error
+            })
         );
         await Promise.all(destroyPromises);
     }
@@ -316,10 +294,6 @@ export class DockerService implements OnModuleDestroy {
         for (const userId of sessionsToDestroy) {
             await this.destroyUserContainer(userId);
         }
-
-        if (sessionsToDestroy.length > 0) {
-            console.log(`🧹 Cleaned up ${sessionsToDestroy.length} inactive session(s) older than ${maxAgeMinutes} minutes`);
-        }
     }
 
     // Método para obtener estadísticas
@@ -334,7 +308,6 @@ export class DockerService implements OnModuleDestroy {
             const stats = await session.container.stats({ stream: false });
             return stats;
         } catch (error) {
-            console.error(`Error getting stats for user ${userId}:`, error);
             return null;
         }
     }

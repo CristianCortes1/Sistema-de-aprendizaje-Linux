@@ -5,8 +5,6 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: penguinpath-db-prod
-    env_file:
-      - .env.production
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
@@ -29,8 +27,6 @@ services:
       dockerfile: Dockerfile
     container_name: penguinpath-backend-prod
     user: root  # Necesario para acceso a Docker socket
-    env_file:
-      - .env.production
     environment:
       # Variables que necesitan interpolación
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -38,11 +34,18 @@ services:
       PORT: 3000
       NODE_ENV: production
       DOCKER_HOST: unix:///var/run/docker.sock
-      # Las variables AWS_SES_*, JWT_SECRET, FRONTEND_URL, etc. vienen del env_file
+      # Otras variables de entorno
+      JWT_SECRET: ${JWT_SECRET}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
+      EMAIL_USER: ${EMAIL_USER}
+      FRONTEND_URL: ${FRONTEND_URL}
+      CORS_ORIGIN: ${CORS_ORIGIN}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:rw
-    ports:
-      - "3000:3000"
+    # Puerto 3000 NO expuesto externamente - solo accesible en red interna
+    expose:
+      - "3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,10 +59,9 @@ services:
       context: ./Frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${BACKEND_URL:-http://localhost:3000}
+        # En producción, el frontend usa /api que Nginx proxea a backend:3000
+        VITE_API_URL: /api
     container_name: penguinpath-frontend-prod
-    env_file:
-      - .env.production
     ports:
       - "80:80"
       - "443:443"
