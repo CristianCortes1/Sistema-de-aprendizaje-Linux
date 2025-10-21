@@ -8,7 +8,7 @@ set -e
 echo "🚀 Iniciando despliegue en producción..."
 
 # Verificar que existe .env
-if [ ! -f .env.production ]; then
+if [ ! -f .env ]; then
     echo "❌ Error: No existe .env"
     echo "Crea el archivo .env con las configuraciones de producción"
     exit 1
