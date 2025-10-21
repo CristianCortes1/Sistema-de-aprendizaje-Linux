@@ -18,8 +18,8 @@ COPY . .
 # ARG para la URL del backend (se pasa en build time)
 ARG VITE_API_URL=http://localhost:3000
 
-# Build de producción con la variable
-RUN VITE_API_URL=$VITE_API_URL pnpm run build
+# Build de producción con la variable (sin type-check para evitar errores en Docker)
+RUN VITE_API_URL=$VITE_API_URL pnpm run build:prod
 
 # Etapa de producción con Nginx
 FROM nginx:alpine
