@@ -15,8 +15,11 @@ RUN pnpm install --frozen-lockfile
 # Copiar código fuente
 COPY . .
 
-# Build de producción
-RUN pnpm run build
+# ARG para la URL del backend (se pasa en build time)
+ARG VITE_API_URL=http://localhost:3000
+
+# Build de producción con la variable
+RUN VITE_API_URL=$VITE_API_URL pnpm run build
 
 # Etapa de producción con Nginx
 FROM nginx:alpine

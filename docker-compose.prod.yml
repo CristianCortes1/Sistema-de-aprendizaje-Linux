@@ -56,6 +56,8 @@ services:
     build:
       context: ./Frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${BACKEND_URL:-http://localhost:3000}
     container_name: penguinpath-frontend-prod
     ports:
       - "80:80"
