@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import AuthService from '../services/AuthService'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
+import { API_URL } from '../config/api'
 
 export default {
     name: 'Ranking',
@@ -45,7 +46,7 @@ export default {
         const fetchRanking = async () => {
             try {
                 const token = AuthService.getToken()
-                const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users/ranking', {
+                const response = await fetch(`${API_URL}/users/ranking`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'

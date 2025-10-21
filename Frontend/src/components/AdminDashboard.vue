@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import AuthService from '../services/AuthService'
 import LessonService from '../services/LessonService'
 import Modales from './Modales.vue'
+import { API_URL } from '../config/api'
 
 const router = useRouter()
 
@@ -48,7 +49,7 @@ const filteredUsuarios = computed(() => {
 const fetchUsers = async () => {
     isLoadingUsers.value = true
     try {
-        const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users', {
+        const response = await fetch(`${API_URL}/users`, {
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -80,7 +81,7 @@ const fetchUsers = async () => {
 const fetchLessons = async () => {
     isLoadingLessons.value = true
     try {
-        const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons', {
+        const response = await fetch(`${API_URL}/lessons`, {
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -221,8 +222,8 @@ const guardarCambios = async (data: any) => {
         
         if (currentContext === 'usuarios') {
             const url = currentItemId 
-                ? `https://sistema-de-aprendizaje-linux-production.up.railway.app/users/${currentItemId}`
-                : 'https://sistema-de-aprendizaje-linux-production.up.railway.app/users'
+                ? `${API_URL}/users/${currentItemId}`
+                : `${API_URL}/users`
             
             const method = currentItemId ? 'PATCH' : 'POST'
             
@@ -245,8 +246,8 @@ const guardarCambios = async (data: any) => {
             
         } else {
             const url = currentItemId 
-                ? `https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons/${currentItemId}`
-                : 'https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons'
+                ? `${API_URL}/lessons/${currentItemId}`
+                : `${API_URL}/lessons`
             
             const method = currentItemId ? 'PUT' : 'POST'
             
@@ -276,8 +277,8 @@ const guardarCambios = async (data: any) => {
 const confirmarEliminacion = async () => {
         try {
         const endpoint = currentContext === 'usuarios'
-            ? `https://sistema-de-aprendizaje-linux-production.up.railway.app/users/${currentItemId}`
-            : `https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons/${currentItemId}`
+            ? `${API_URL}/users/${currentItemId}`
+            : `${API_URL}/lessons/${currentItemId}`
 
         const response = await fetch(endpoint, {
             method: 'DELETE'
