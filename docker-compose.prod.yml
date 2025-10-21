@@ -32,11 +32,13 @@ services:
     env_file:
       - .env.production
     environment:
-      # No incluir AWS_SES_* aquí porque vienen del env_file
-      # Si las defines aquí con valor por defecto, sobreescriben el env_file
+      # Variables que necesitan interpolación
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      # Variables fijas
       PORT: 3000
       NODE_ENV: production
       DOCKER_HOST: unix:///var/run/docker.sock
+      # Las variables AWS_SES_*, JWT_SECRET, FRONTEND_URL, etc. vienen del env_file
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:rw
     ports:
