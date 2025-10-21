@@ -16,7 +16,7 @@ export class AuthService {
     ) { }
 
     async validateUser(username: string, password: string) {
-        const user = await this.prisma.usuarios.findFirst({
+        const user = await this.prisma.user.findFirst({
             where: { username },
         });
         if (user && await bcrypt.compare(password, user.contraseña)) {
@@ -33,7 +33,7 @@ export class AuthService {
         // On login, check if a day has passed since last update (updatedAt)
         try {
             const now = new Date();
-            const dbUser = await this.prisma.usuarios.findUnique({ where: { id_Usuario: user.id_Usuario } });
+            const dbUser = await this.prisma.user.findUnique({ where: { id_Usuario: user.id_Usuario } });
             if (!dbUser) throw new UnauthorizedException('User not found');
 
             let shouldIncrement = false;
@@ -48,13 +48,13 @@ export class AuthService {
 
             let updated = dbUser;
             if (shouldIncrement) {
-                updated = await this.prisma.usuarios.update({
+                updated = await this.prisma.user.update({
                     where: { id_Usuario: user.id_Usuario },
                     data: { racha: { increment: 1 }, ultimoLogin: now },
                 });
             } else {
                 // update ultimoLogin to now to mark the login action
-                updated = await this.prisma.usuarios.update({
+                updated = await this.prisma.user.update({
                     where: { id_Usuario: user.id_Usuario },
                     data: { ultimoLogin: now },
                 });
@@ -88,7 +88,7 @@ export class AuthService {
 
         const DEFAULT_AVATAR = `data:image/svg+xml;base64,${base64}`;
 
-        const user = await this.prisma.usuarios.create({
+        const user = await this.prisma.user.create({
             data: {
                 username,
                 correo,
@@ -112,7 +112,7 @@ export class AuthService {
     }
 
     async confirmEmail(token: string) {
-        const user = await this.prisma.usuarios.findFirst({
+        const user = await this.prisma.user.findFirst({
             where: { confirmationToken: token },
         });
 
@@ -120,7 +120,7 @@ export class AuthService {
             throw new UnauthorizedException('Invalid confirmation token');
         }
 
-        const updatedUser = await this.prisma.usuarios.update({
+        const updatedUser = await this.prisma.user.update({
             where: { id_Usuario: user.id_Usuario },
             data: {
                 activo: true,

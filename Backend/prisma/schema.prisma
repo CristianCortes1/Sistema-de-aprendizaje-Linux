@@ -15,7 +15,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Usuarios {
+model User {
   id_Usuario         Int         @id @default(autoincrement())
   username           String      @db.VarChar(25)
   correo             String      @db.VarChar(60)
@@ -30,12 +30,14 @@ model Usuarios {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
   progresos          Progresos[]
+
+  @@map("Usuarios")
 }
 
 model Progresos {
   id                   Int       @id @default(autoincrement())
   progreso             Int
-  usuario              Usuarios  @relation(fields: [Usuarios_id_Usuario], references: [id_Usuario])
+  usuario              User      @relation(fields: [Usuarios_id_Usuario], references: [id_Usuario])
   Usuarios_id_Usuario  Int
   leccion              Lecciones @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
   Lecciones_id_Leccion Int

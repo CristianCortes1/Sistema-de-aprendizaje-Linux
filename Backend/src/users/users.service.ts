@@ -9,7 +9,7 @@ export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   create(createUserDto: CreateUserDto) {
-    return this.prisma.usuarios.create({
+    return this.prisma.user.create({
       data: {
         username: createUserDto.username,
         correo: createUserDto.email,
@@ -22,23 +22,23 @@ export class UsersService {
   }
 
   findAllForExperience() {
-    return this.prisma.usuarios.findMany({
+    return this.prisma.user.findMany({
       orderBy: { experiencia: 'desc' },
     });
   }
 
   findAll() {
-    return this.prisma.usuarios.findMany();
+    return this.prisma.user.findMany();
   }
 
   findOne(id: number) {
-    return this.prisma.usuarios.findUnique({
+    return this.prisma.user.findUnique({
       where: { id_Usuario: id },
     });
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
-    return this.prisma.usuarios.update({
+    return this.prisma.user.update({
       where: { id_Usuario: id },
       data: {
         username: updateUserDto.username,
@@ -52,7 +52,7 @@ export class UsersService {
   }
 
   remove(id: number) {
-    return this.prisma.usuarios.delete({
+    return this.prisma.user.delete({
       where: { id_Usuario: id },
     });
   }
