@@ -32,18 +32,11 @@ services:
     env_file:
       - .env.production
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-penguinpath}?schema=public
-      JWT_SECRET: ${JWT_SECRET}
+      # No incluir AWS_SES_* aquí porque vienen del env_file
+      # Si las defines aquí con valor por defecto, sobreescriben el env_file
       PORT: 3000
       NODE_ENV: production
-      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       DOCKER_HOST: unix:///var/run/docker.sock
-      INACTIVITY_TIMEOUT: ${INACTIVITY_TIMEOUT:-900000}  # 15 minutos
-      AWS_SES_SMTP_HOST: ${AWS_SES_SMTP_HOST:-}
-      AWS_SES_SMTP_USER: ${AWS_SES_SMTP_USER:-}
-      AWS_SES_SMTP_PASSWORD: ${AWS_SES_SMTP_PASSWORD:-}
-      AWS_SES_FROM_EMAIL: ${AWS_SES_FROM_EMAIL:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:rw
     ports:
