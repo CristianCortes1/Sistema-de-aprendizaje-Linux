@@ -11,6 +11,7 @@ async function bootstrap() {
     origin: [
       frontendUrl,
       'http://localhost:5173',
+      'http://penguinpath.duckdns.org/',
       'http://localhost:8080',
       /^http:\/\/\d+\.\d+\.\d+\.\d+(:\d+)?$/,  // Allow any IP address
     ],
