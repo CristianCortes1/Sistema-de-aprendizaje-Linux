@@ -1,5 +1,9 @@
 version: '3.8'
 
+# Especificar archivo de variables de entorno
+env_file:
+  - .env.production
+
 services:
   # Base de datos PostgreSQL
   postgres:
