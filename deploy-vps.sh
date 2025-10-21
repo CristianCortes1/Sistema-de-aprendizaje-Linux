@@ -38,15 +38,15 @@ fi
 
 # Detener contenedores existentes
 echo "‚èπÔ∏è  Deteniendo servicios anteriores..."
-docker-compose -f docker-compose.prod.yml down || true
+docker compose -f docker-compose.prod.yml down || true
 
 # Construir nuevas im√°genes
 echo "Ì¥® Construyendo im√°genes..."
-docker-compose -f docker-compose.prod.yml build --no-cache
+docker compose -f docker-compose.prod.yml build --no-cache
 
 # Iniciar servicios
 echo "‚ñ∂Ô∏è  Iniciando servicios..."
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 
 # Esperar a que el backend est√© listo
 echo "‚è≥ Esperando a que los servicios inicien..."
@@ -54,16 +54,16 @@ sleep 15
 
 # Verificar estado
 echo "‚úÖ Verificando servicios..."
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 
 # Mostrar logs
 echo ""
 echo "Ì≥ã √öltimos logs del backend:"
-docker-compose -f docker-compose.prod.yml logs --tail 30 backend
+docker compose -f docker-compose.prod.yml logs --tail 30 backend
 
 echo ""
 echo "Ì≥ã √öltimos logs del frontend:"
-docker-compose -f docker-compose.prod.yml logs --tail 10 frontend
+docker compose -f docker-compose.prod.yml logs --tail 10 frontend
 
 echo ""
 echo "‚ú® ¬°Despliegue completado!"
