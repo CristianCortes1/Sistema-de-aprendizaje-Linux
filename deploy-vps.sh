@@ -16,7 +16,7 @@ fi
 
 # Pull latest changes
 echo "📥 Descargando últimos cambios..."
-git pull origin main  # Cambiar a main o docker según tu branch
+git pull origin docker
 
 # Construir imagen de ubuntu-user si no existe
 echo "🐧 Verificando imagen de Ubuntu..."
