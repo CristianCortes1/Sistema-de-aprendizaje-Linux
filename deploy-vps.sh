@@ -5,7 +5,7 @@
 
 set -e
 
-echo "ğŸš€ Iniciando despliegue en producciÃ³n..."
+echo "íº€ Iniciando despliegue en producciÃ³n..."
 
 # Verificar que existe .env.production
 if [ ! -f .env.production ]; then
@@ -16,27 +16,32 @@ if [ ! -f .env.production ]; then
 fi
 
 # Pull latest changes
-echo "ğŸ“¥ Descargando Ãºltimos cambios..."
+echo "í³¥ Descargando Ãºltimos cambios..."
 git pull origin docker
 
-# Cargar variables de entorno
-export $(cat .env.production | xargs)
+# Cargar variables de entorno (filtrar comentarios y lÃ­neas vacÃ­as)
+echo "âš™ï¸  Cargando variables de entorno..."
+set -a
+source <(grep -v '^#' .env.production | grep -v '^$' | sed 's/\r$//')
+set +a
 
 # Construir imagen de ubuntu-user si no existe
-echo "ğŸ§ Verificando imagen de Ubuntu..."
-if ! docker images | grep -q "ubuntu-user"; then
-    echo "Construyendo imagen ubuntu-user..."
+echo "í°§ Verificando imagen de Ubuntu..."
+if ! docker images | grep -q "penguinpath-ubuntu"; then
+    echo "Construyendo imagen penguinpath-ubuntu..."
     cd Backend
-    docker build -f Dockerfile.ubuntu-user -t ubuntu-user .
+    docker build -f Dockerfile.ubuntu-user -t penguinpath-ubuntu:latest .
     cd ..
+else
+    echo "âœ… Imagen penguinpath-ubuntu ya existe"
 fi
 
 # Detener contenedores existentes
-echo "â¹ï¸  Deteniendo servicios..."
-docker-compose -f docker-compose.prod.yml down
+echo "â¹ï¸  Deteniendo servicios anteriores..."
+docker-compose -f docker-compose.prod.yml down || true
 
 # Construir nuevas imÃ¡genes
-echo "ğŸ”¨ Construyendo imÃ¡genes..."
+echo "í´¨ Construyendo imÃ¡genes..."
 docker-compose -f docker-compose.prod.yml build --no-cache
 
 # Iniciar servicios
@@ -44,21 +49,34 @@ echo "â–¶ï¸  Iniciando servicios..."
 docker-compose -f docker-compose.prod.yml up -d
 
 # Esperar a que el backend estÃ© listo
-echo "â³ Esperando a que el backend inicie..."
-sleep 10
+echo "â³ Esperando a que los servicios inicien..."
+sleep 15
 
 # Verificar estado
 echo "âœ… Verificando servicios..."
 docker-compose -f docker-compose.prod.yml ps
 
 # Mostrar logs
-echo "ğŸ“‹ Ãšltimos logs:"
-docker-compose -f docker-compose.prod.yml logs --tail 20
+echo ""
+echo "í³‹ Ãšltimos logs del backend:"
+docker-compose -f docker-compose.prod.yml logs --tail 30 backend
 
 echo ""
-echo "âœ¨ Despliegue completado!"
-echo "Frontend: http://tu-servidor"
-echo "Backend: http://tu-servidor:3000"
+echo "í³‹ Ãšltimos logs del frontend:"
+docker-compose -f docker-compose.prod.yml logs --tail 10 frontend
+
 echo ""
-echo "Para ver logs en tiempo real:"
-echo "docker-compose -f docker-compose.prod.yml logs -f"
+echo "âœ¨ Â¡Despliegue completado!"
+echo ""
+echo "í¼ Accede a tu aplicaciÃ³n:"
+echo "   Frontend: http://$(curl -s ifconfig.me)"
+echo "   Backend:  http://$(curl -s ifconfig.me):3000"
+echo ""
+echo "í³Š Para ver logs en tiempo real:"
+echo "   docker-compose -f docker-compose.prod.yml logs -f"
+echo ""
+echo "í³¦ Para ver contenedores activos:"
+echo "   docker-compose -f docker-compose.prod.yml ps"
+echo ""
+echo "í´„ Para reiniciar servicios:"
+echo "   docker-compose -f docker-compose.prod.yml restart"
