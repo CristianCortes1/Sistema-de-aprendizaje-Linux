@@ -1,14 +1,12 @@
 version: '3.8'
 
-# Especificar archivo de variables de entorno
-env_file:
-  - .env.production
-
 services:
   # Base de datos PostgreSQL
   postgres:
     image: postgres:16-alpine
     container_name: penguinpath-db-prod
+    env_file:
+      - .env.production
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
@@ -31,6 +29,8 @@ services:
       dockerfile: Dockerfile
     container_name: penguinpath-backend-prod
     user: root  # Necesario para acceso a Docker socket
+    env_file:
+      - .env.production
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-penguinpath}?schema=public
       JWT_SECRET: ${JWT_SECRET}
@@ -63,6 +63,8 @@ services:
       args:
         VITE_API_URL: ${BACKEND_URL:-http://localhost:3000}
     container_name: penguinpath-frontend-prod
+    env_file:
+      - .env.production
     ports:
       - "80:80"
       - "443:443"
