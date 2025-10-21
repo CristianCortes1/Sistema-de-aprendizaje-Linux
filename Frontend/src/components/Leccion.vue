@@ -17,9 +17,6 @@ function getOrCreateGuestId(): string {
         // Generar nuevo ID único para invitado
         guestId = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
         localStorage.setItem('guestId', guestId)
-        console.log('✨ Created new guest ID:', guestId)
-    } else {
-        console.log('♻️ Using existing guest ID:', guestId)
     }
     
     return guestId
@@ -35,11 +32,10 @@ function getUserIdForTerminal(): string {
             if (payload && payload.sub) {
                 // Convertir a string por si el ID viene como número
                 const userId = String(payload.sub)
-                console.log('👤 Using logged-in user ID:', userId)
                 return userId
             }
         } catch (error) {
-            console.warn('⚠️ Error parsing token:', error)
+            // Silenciar error
         }
     }
     
@@ -58,13 +54,11 @@ export default defineComponent({
         // Obtener userId del token (puede ser null si no está logueado)
         // Si no hay usuario logueado, se genera un guestId persistente
         const userId = getUserIdForTerminal()
-        console.log('🔌 User ID for terminal connection:', userId)
 
         // API URL usando la configuración centralizada
         // En producción, esto será '' (empty string) para usar la misma URL que el navegador
         // En desarrollo, será 'http://localhost:3000'
         const WS_URL = import.meta.env.MODE === 'production' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000')
-        console.log('🔌 Connecting to WebSocket:', WS_URL || 'same origin', '| Mode:', import.meta.env.MODE)
 
         // Terminal - conectar con autenticación
         const socket = io(WS_URL, {
@@ -149,14 +143,12 @@ export default defineComponent({
             socket.on('connect', () => {
                 isConnected.value = true
                 terminalTitle.value = 'Terminal SSH'
-                terminal?.writeln('\x1b[1;32m✓ Conectado al servidor SSH\x1b[0m')
             })
 
             // Desconexión
             socket.on('disconnect', () => {
                 isConnected.value = false
                 terminalTitle.value = 'Desconectado'
-                terminal?.writeln('\x1b[1;31m✗ Desconectado del servidor\x1b[0m')
             })
 
             // Recibir output del servidor
@@ -255,9 +247,6 @@ export default defineComponent({
                             </div>
                         </div>
                         <div ref="terminalContainer" class="terminal-container"></div>
-                    </div>
-                    <div class="terminal-help">
-                        <span class="help-item">Terminal real con soporte completo para nano, vim, htop y más</span>
                     </div>
                 </div>
 
@@ -421,23 +410,6 @@ export default defineComponent({
 
 .terminal-container :deep(.xterm-viewport) {
     overflow-y: auto;
-}
-
-.terminal-help {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    font-size: 12px;
-}
-
-.help-item {
-    color: rgba(255, 255, 255, 0.7);
-    display: flex;
-    align-items: center;
-    gap: 5px;
 }
 
 .challenge-section {
