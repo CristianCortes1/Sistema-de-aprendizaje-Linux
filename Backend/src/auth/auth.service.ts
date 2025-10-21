@@ -30,35 +30,42 @@ export class AuthService {
     }
 
     async login(user: any) {
-        // On login, check if a day has passed since last update (updatedAt)
         try {
             const now = new Date();
             const dbUser = await this.prisma.user.findUnique({ where: { id_Usuario: user.id_Usuario } });
             if (!dbUser) throw new UnauthorizedException('User not found');
 
-            let shouldIncrement = false;
+            let newRacha = dbUser.racha;
             const oneDayMs = 24 * 60 * 60 * 1000;
+            const twoDaysMs = 48 * 60 * 60 * 1000;
+
             if (dbUser.ultimoLogin) {
                 const diffMs = now.getTime() - dbUser.ultimoLogin.getTime();
-                if (diffMs >= oneDayMs) shouldIncrement = true;
+                
+                // Si se conectó en menos de 24 horas, mantener la racha (mismo día)
+                if (diffMs < oneDayMs) {
+                    // No hacer nada, mantener racha actual
+                }
+                // Si se conectó entre 24h y 48h, incrementar racha (día consecutivo)
+                else if (diffMs >= oneDayMs && diffMs < twoDaysMs) {
+                    newRacha = dbUser.racha + 1;
+                }
+                // Si pasaron más de 48 horas, reiniciar racha a 1
+                else {
+                    newRacha = 1;
+                }
             } else {
-                // No ultimoLogin recorded - treat as eligible
-                shouldIncrement = true;
+                // Primera vez que hace login, establecer racha en 1
+                newRacha = 1;
             }
 
-            let updated = dbUser;
-            if (shouldIncrement) {
-                updated = await this.prisma.user.update({
-                    where: { id_Usuario: user.id_Usuario },
-                    data: { racha: { increment: 1 }, ultimoLogin: now },
-                });
-            } else {
-                // update ultimoLogin to now to mark the login action
-                updated = await this.prisma.user.update({
-                    where: { id_Usuario: user.id_Usuario },
-                    data: { ultimoLogin: now },
-                });
-            }
+            const updated = await this.prisma.user.update({
+                where: { id_Usuario: user.id_Usuario },
+                data: { 
+                    racha: newRacha,
+                    ultimoLogin: now 
+                },
+            });
 
             const payload = { username: updated.username, sub: updated.id_Usuario };
             const { contraseña, ...userSafe } = updated as any;
@@ -67,7 +74,6 @@ export class AuthService {
                 user: userSafe,
             };
         } catch (err) {
-            // Re-throw as Unauthorized to avoid leaking details
             throw new UnauthorizedException('Login error');
         }
     }
@@ -94,18 +100,13 @@ export class AuthService {
                 correo,
                 contraseña: hashed,
                 avatar: DEFAULT_AVATAR,
-                activo: true, // Activar usuarios inmediatamente (producción requiere AWS SES aprobado)
+                activo: false, // Usuario debe confirmar email
                 confirmationToken,
             },
         });
 
-        // Intentar enviar email de confirmación (fallar silenciosamente en Sandbox)
-        try {
-            await this.emailService.sendConfirmationEmail(correo, confirmationToken, username);
-        } catch (error) {
-            console.warn(`⚠️  Email confirmation not sent (AWS SES Sandbox): ${correo}`);
-            // No lanzar error, permitir que el registro continúe
-        }
+        // Enviar email de confirmación con SendGrid
+        await this.emailService.sendConfirmationEmail(correo, confirmationToken, username);
 
         const { contraseña, confirmationToken: token, ...result } = user;
         return result;
