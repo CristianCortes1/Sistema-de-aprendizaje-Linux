@@ -60,12 +60,14 @@ export default defineComponent({
         const userId = getUserIdForTerminal()
         console.log('🔌 User ID for terminal connection:', userId)
 
-        // API URL desde variables de entorno
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-        console.log('🔌 Connecting to WebSocket:', API_URL)
+        // API URL usando la configuración centralizada
+        // En producción, esto será '' (empty string) para usar la misma URL que el navegador
+        // En desarrollo, será 'http://localhost:3000'
+        const WS_URL = import.meta.env.MODE === 'production' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+        console.log('🔌 Connecting to WebSocket:', WS_URL || 'same origin', '| Mode:', import.meta.env.MODE)
 
         // Terminal - conectar con autenticación
-        const socket = io(API_URL, {
+        const socket = io(WS_URL, {
             auth: {
                 userId: userId
             }
