@@ -3,11 +3,20 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthService from '../services/AuthService'
 import LessonService from '../services/LessonService'
+import Modales from './Modales.vue'
 
 const router = useRouter()
 
 const activeTab = ref<'users' | 'lessons'>('users')
 const searchTerm = ref('')
+
+// Control de modales con Modales.vue
+const modalVisible = ref(false)
+const modalType = ref<'usuario' | 'leccion' | 'eliminar'>('usuario')
+const modalTitle = ref('')
+const modalData = ref<any>({})
+let currentContext: 'usuarios' | 'lecciones' = 'usuarios'
+let currentItemId: number | null = null
 
 const user = ref({
     username: '',
@@ -17,29 +26,16 @@ const user = ref({
     avatar: ''
 })
 
-// Usuarios desde el backend
 const usuarios = ref<any[]>([])
 const isLoadingUsers = ref(false)
-
-const lecciones = ref([
-    { id: 1, titulo: 'Introduction to Linux', descripcion: 'Learn the basics of Linux operating system.' },
-    { id: 2, titulo: 'File Management', descripcion: 'Master file manipulation in Linux.' },
-    { id: 3, titulo: 'User Management', descripcion: 'Manage users and permissions effectively.' },
-])
+const lecciones = ref<any[]>([])
+const isLoadingLessons = ref(false)
 
 const showAddLesson = ref(false)
-const showAddUser = ref(false)
-
 const newLesson = ref<any>({
     title: '',
     description: '',
     challenges: [{ title: '', command: '', feedback: '' }]
-})
-
-const newUser = ref({
-    name: '',
-    email: '',
-    role: 'User'
 })
 
 const filteredUsuarios = computed(() => {
@@ -49,27 +45,11 @@ const filteredUsuarios = computed(() => {
     )
 })
 
-onMounted(async () => {
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-        const parsed = JSON.parse(storedUser)
-        user.value.username = parsed.username
-        user.value.correo = parsed.correo
-        user.value.racha = parsed.racha || 0
-        user.value.experiencia = parsed.experiencia || 0
-        user.value.avatar = parsed.avatar
-    }
-
-    await fetchUsers()
-})
-
 const fetchUsers = async () => {
     isLoadingUsers.value = true
     try {
-        const token = AuthService.getToken()
         const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users', {
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         })
@@ -97,6 +77,50 @@ const fetchUsers = async () => {
     }
 }
 
+const fetchLessons = async () => {
+    isLoadingLessons.value = true
+    try {
+        const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons', {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
+
+        const data = await response.json()
+        console.log('Lecciones recibidas de la API:', data)
+
+        lecciones.value = data.map((leccion: any) => ({
+            id: leccion.id_Leccion,
+            titulo: leccion.Titulo,
+            descripcion: 'Descripción de ' + leccion.Titulo
+        }))
+
+        console.log('Lecciones mapeadas:', lecciones.value)
+    } catch (error) {
+        console.error('Error fetching lessons:', error)
+        lecciones.value = []
+    } finally {
+        isLoadingLessons.value = false
+    }
+}
+
+onMounted(async () => {
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+        const parsed = JSON.parse(storedUser)
+        user.value.username = parsed.username
+        user.value.correo = parsed.correo
+        user.value.racha = parsed.racha || 0
+        user.value.experiencia = parsed.experiencia || 0
+        user.value.avatar = parsed.avatar
+    }
+
+    await fetchUsers()
+    await fetchLessons()
+})
+
 const getDefaultAvatar = (username: string) => {
     const colors = ['FF6B6B', '4ECDC4', '45B7D1', 'FFA07A', '98D8C8', 'F7DC6F', 'BB8FCE']
     const colorIndex = username.length % colors.length
@@ -110,6 +134,169 @@ const logout = () => {
     router.push('/')
 }
 
+// Funciones para abrir modales con Modales.vue
+const openAddUser = () => {
+    modalTitle.value = 'Agregar Usuario'
+    modalType.value = 'usuario'
+    modalData.value = { nombre: '', correo: '', rol: 'usuario', estado: 'activo' }
+    currentContext = 'usuarios'
+    currentItemId = null
+    modalVisible.value = true
+}
+
+const editUser = (id: number) => {
+    const usuario = usuarios.value.find(u => u.id === id)
+    if (usuario) {
+        modalTitle.value = 'Editar Usuario'
+        modalType.value = 'usuario'
+        modalData.value = {
+            nombre: usuario.nombre,
+            correo: usuario.email,
+            rol: usuario.rol.toLowerCase(),
+            estado: usuario.estado.toLowerCase()
+        }
+        currentContext = 'usuarios'
+        currentItemId = id
+        modalVisible.value = true
+    }
+}
+
+const openAddLesson = () => {
+    modalTitle.value = 'Agregar Lección'
+    modalType.value = 'leccion'
+    modalData.value = { titulo: '', descripcion: '', comandos: '', retroalimentacion: '' }
+    currentContext = 'lecciones'
+    currentItemId = null
+    modalVisible.value = true
+}
+
+const editLesson = (id: number) => {
+    const leccion = lecciones.value.find(l => l.id === id)
+    if (leccion) {
+        modalTitle.value = 'Editar Lección'
+        modalType.value = 'leccion'
+        modalData.value = {
+            titulo: leccion.titulo,
+            descripcion: leccion.descripcion,
+            comandos: '',
+            retroalimentacion: ''
+        }
+        currentContext = 'lecciones'
+        currentItemId = id
+        modalVisible.value = true
+    }
+}
+
+const confirmDeleteUser = (id: number) => {
+    const usuario = usuarios.value.find(u => u.id === id)
+    if (usuario) {
+        modalTitle.value = 'Confirmar Eliminación'
+        modalType.value = 'eliminar'
+        modalData.value = { nombre: usuario.nombre }
+        currentContext = 'usuarios'
+        currentItemId = id
+        modalVisible.value = true
+    }
+}
+
+const confirmDeleteLesson = (id: number) => {
+    const leccion = lecciones.value.find(l => l.id === id)
+    if (leccion) {
+        modalTitle.value = 'Confirmar Eliminación'
+        modalType.value = 'eliminar'
+        modalData.value = { titulo: leccion.titulo }
+        currentContext = 'lecciones'
+        currentItemId = id
+        modalVisible.value = true
+    }
+}
+
+const cerrarModal = () => {
+    modalVisible.value = false
+    currentItemId = null
+}
+
+const guardarCambios = async (data: any) => {
+        try {
+        
+        if (currentContext === 'usuarios') {
+            const url = currentItemId 
+                ? `https://sistema-de-aprendizaje-linux-production.up.railway.app/users/${currentItemId}`
+                : 'https://sistema-de-aprendizaje-linux-production.up.railway.app/users'
+            
+            const method = currentItemId ? 'PATCH' : 'POST'
+            
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: data.nombre,
+                    email: data.correo,
+                    rol: data.rol,
+                    activo: data.estado === 'activo'
+                })
+            })
+            
+            if (!response.ok) throw new Error('Error al guardar usuario')
+            await fetchUsers()
+            alert(currentItemId ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente')
+            
+        } else {
+            const url = currentItemId 
+                ? `https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons/${currentItemId}`
+                : 'https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons'
+            
+            const method = currentItemId ? 'PUT' : 'POST'
+            
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    Titulo: data.titulo,
+                    Descripcion: data.descripcion
+                })
+            })
+            
+            if (!response.ok) throw new Error('Error al guardar lección')
+            await fetchLessons()
+            alert(currentItemId ? 'Lección actualizada correctamente' : 'Lección creada correctamente')
+        }
+        
+        cerrarModal()
+    } catch (err: any) {
+        console.error('Error guardando datos:', err)
+        alert(`Error al guardar: ${err.message}`)
+    }
+}
+
+const confirmarEliminacion = async () => {
+        try {
+        const endpoint = currentContext === 'usuarios'
+            ? `https://sistema-de-aprendizaje-linux-production.up.railway.app/users/${currentItemId}`
+            : `https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons/${currentItemId}`
+
+        const response = await fetch(endpoint, {
+            method: 'DELETE'
+        })
+
+        if (!response.ok) throw new Error('Error al eliminar')
+
+        if (currentContext === 'usuarios') await fetchUsers()
+        else await fetchLessons()
+
+        alert('Eliminado correctamente')
+        cerrarModal()
+    } catch (err: any) {
+        console.error('Error eliminando:', err)
+        alert(`Error al eliminar: ${err.message}`)
+    }
+}
+
+// Funciones para el modal de agregar lección con challenges (mantener original)
 const addChallenge = () => {
     newLesson.value.challenges.push({ title: '', command: '', feedback: '' })
 }
@@ -130,30 +317,6 @@ const removeChallenge = (index: number) => {
     newLesson.value.challenges.splice(index, 1)
 }
 
-const deleteLesson = (id: number) => {
-    const index = lecciones.value.findIndex(l => l.id === id)
-    if (index > -1) {
-        lecciones.value.splice(index, 1)
-    }
-}
-
-const deleteUser = async (id: number) => {
-    const index = usuarios.value.findIndex(u => u.id === id)
-    if (index > -1) {
-        usuarios.value.splice(index, 1)
-    }
-}
-
-const editUser = (id: number) => {
-    console.log('Editar usuario:', id)
-}
-
-const saveUser = () => {
-    console.log('Guardando usuario:', newUser.value)
-    showAddUser.value = false
-    newUser.value = { name: '', email: '', role: 'User' }
-}
-
 const isSaving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref('')
@@ -172,7 +335,6 @@ const toRequestPayload = () => {
 const saveLesson = async () => {
     saveError.value = ''
     saveSuccess.value = ''
-    // basic validation
     if (!newLesson.value.title || newLesson.value.challenges.length === 0) {
         saveError.value = 'El título y al menos un reto son obligatorios.'
         return
@@ -183,7 +345,7 @@ const saveLesson = async () => {
         const payload = toRequestPayload()
         await LessonService.create(payload)
         saveSuccess.value = 'Lección creada correctamente.'
-        // reset form
+        await fetchLessons()
         newLesson.value = { title: '', description: '', challenges: [{ title: '', command: '', feedback: '' }] }
         showAddLesson.value = false
     } catch (err: any) {
@@ -214,18 +376,28 @@ const saveLesson = async () => {
         <aside class="sidebar">
             <nav>
                 <button :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'" class="nav-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                    </svg>
                     <span>Usuarios</span>
                 </button>
                 <button :class="{ active: activeTab === 'lessons' }" @click="activeTab = 'lessons'" class="nav-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
                     <span>Lecciones</span>
                 </button>
             </nav>
 
             <div class="sidebar-footer">
                 <button class="nav-btn config-btn" @click="logout">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
                     <span>Cerrar sesión</span>
                 </button>
             </div>
@@ -237,11 +409,14 @@ const saveLesson = async () => {
             <section v-if="activeTab === 'users'" class="users-section">
                 <div class="section-header">
                     <h2>Usuarios</h2>
-                    <button class="btn-add" @click="showAddUser = true">Agregar usuario</button>
+                    <button class="btn-add" @click="openAddUser">Agregar usuario</button>
                 </div>
 
                 <div class="search-container">
-                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                    </svg>
                     <input type="text" v-model="searchTerm" placeholder="Buscar usuarios por nombre, correo..." class="search-input" />
                 </div>
 
@@ -265,8 +440,8 @@ const saveLesson = async () => {
                                     <span :class="['badge', usuario.estado === 'Activo' ? 'badge-active' : 'badge-inactive']">{{ usuario.estado }}</span>
                                 </td>
                                 <td class="actions-col">
-                                    <button class="btn-action btn-edit">Editar</button>
-                                    <button class="btn-action btn-delete">Eliminar</button>
+                                    <button class="btn-action btn-edit" @click="editUser(usuario.id)">Editar</button>
+                                    <button class="btn-action btn-delete" @click="confirmDeleteUser(usuario.id)">Eliminar</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -277,8 +452,8 @@ const saveLesson = async () => {
             <!-- Lessons Tab -->
             <section v-else class="lessons-section">
                 <div class="section-header">
-                    <h2>Manage Lessons</h2>
-                    <button class="btn-add" @click="showAddLesson = true">Add New Lesson</button>
+                    <h2>Lecciones</h2>
+                    <button class="btn-add" @click="showAddLesson = true">Agregar Lección</button>
                 </div>
 
                 <div class="lessons-list">
@@ -287,92 +462,58 @@ const saveLesson = async () => {
                             <h3>{{ leccion.titulo }}</h3>
                             <p>{{ leccion.descripcion }}</p>
                         </div>
-                        <button class="btn-delete-lesson" @click="deleteLesson(leccion.id)">Delete</button>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-action btn-edit" @click="editLesson(leccion.id)" style="padding: 6px 16px; border-radius: 6px;">Editar</button>
+                            <button class="btn-delete-lesson" @click="confirmDeleteLesson(leccion.id)">Borrar</button>
+                        </div>
                     </div>
                 </div>
             </section>
         </main>
 
-        <!-- Modal: Add User -->
-        <div v-if="showAddUser" class="modal-overlay" @click="showAddUser = false">
-            <div class="modal-content modal-user" @click.stop>
-                <div class="modal-header">
-                    <h3>Add New User</h3>
-                    <button class="btn-close" @click="showAddUser = false">×</button>
-                </div>
-
-                <div class="modal-body">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Name</label>
-                            <input type="text" v-model="newUser.name" placeholder="Enter user name" class="form-input" />
-                        </div>
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" v-model="newUser.email" placeholder="Enter user email" class="form-input" />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Role</label>
-                        <select v-model="newUser.role" class="form-select">
-                            <option value="User">User</option>
-                            <option value="Admin">Admin</option>
-                            <option value="Estudiante">Estudiante</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn-cancel" @click="showAddUser = false">Cancel</button>
-                    <button class="btn-save" @click="saveUser">Add User</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal: Add Lesson -->
+        <!-- Modal: Add Lesson con Challenges (mantener original) -->
         <div v-if="showAddLesson" class="modal-overlay" @click="showAddLesson = false">
             <div class="modal-content" @click.stop>
                 <div class="modal-header">
-                    <h3>Add New Lesson</h3>
+                    <h3>Agregar Lección</h3>
                     <button class="btn-close" @click="showAddLesson = false">×</button>
                 </div>
 
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Lesson Title</label>
-                        <input type="text" v-model="newLesson.title" placeholder="e.g., Mastering the Command Line" class="form-input" />
+                        <label>Título</label>
+                        <input type="text" v-model="newLesson.title" placeholder="Dominando lineas de comando." class="form-input" />
                     </div>
 
                     <div class="form-group">
-                        <label>Lesson Description</label>
-                        <textarea v-model="newLesson.description" placeholder="A short summary of what the lesson covers." rows="4" class="form-textarea"></textarea>
+                        <label>Descripción</label>
+                        <textarea v-model="newLesson.description" placeholder="Un pequeño resumen de que cubre la lección." rows="4" class="form-textarea"></textarea>
                     </div>
 
                     <div class="form-group">
                         <div class="challenges-header" style="display:flex; justify-content:space-between; align-items:center;">
-                            <label style="color:white">Challenges</label>
-                            <button class="btn-add-challenge btn-add" @click="addChallenge">Add Challenge</button>
+                            <label style="color:white">Retos</label>
+                            <button class="btn-add-challenge btn-add" @click="addChallenge">Añade un reto</button>
                         </div>
 
                         <div class="challenges-list">
                             <div v-for="(challenge, index) in newLesson.challenges" :key="index" class="challenge-item" style="margin-top:12px;">
                                 <div style="display:flex; gap:8px;">
-                                    <input type="text" v-model="challenge.title" placeholder="e.g., Create a Directory" class="challenge-input form-input" />
-                                    <input type="text" v-model="challenge.command" placeholder="e.g., mkdir my_folder" class="challenge-input form-input mono" />
+                                    <input type="text" v-model="challenge.title" placeholder="Crea una carpeta" class="challenge-input form-input" />
+                                    <input type="text" v-model="challenge.command" placeholder="mkdir my_folder" class="challenge-input form-input mono" />
                                 </div>
                                 <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-                                    <textarea v-model="challenge.feedback" placeholder="Feedback message" class="form-textarea" style="flex:1"></textarea>
+                                    <textarea v-model="challenge.feedback" placeholder="Mensaje de retroalimentación." class="form-textarea" style="flex:1"></textarea>
                                 </div>
                                 <div style="margin-top:8px; display:flex; gap:8px;">
-                                    <button class="btn-add" @click.prevent="addCommand(index)">Add command</button>
-                                    <button class="btn-delete" @click.prevent="removeChallenge(index)">Remove challenge</button>
+                                    <button class="btn-add" @click.prevent="addCommand(index)">Añade un comando</button>
+                                    <button class="btn-delete" @click.prevent="removeChallenge(index)">Elimina un reto</button>
                                 </div>
 
                                 <div v-if="challenge.commands && challenge.commands.length" style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
                                     <div v-for="(cmd, ci) in challenge.commands" :key="ci" style="display:flex; gap:8px; align-items:center;">
-                                        <input v-model="cmd.comando" placeholder="Command" class="form-input" />
-                                        <button class="btn-delete" @click.prevent="removeCommand(index, ci)">Remove</button>
+                                        <input v-model="cmd.comando" placeholder="Comando" class="form-input" />
+                                        <button class="btn-delete" @click.prevent="removeCommand(index, ci)">Eliminar</button>
                                     </div>
                                 </div>
                             </div>
@@ -390,6 +531,17 @@ const saveLesson = async () => {
                 </div>
             </div>
         </div>
+
+        <!-- Componente Modales para usuarios y editar lecciones -->
+        <Modales 
+            :visible="modalVisible" 
+            :type="modalType" 
+            :title="modalTitle" 
+            :data="modalData" 
+            @close="cerrarModal"
+            @save="guardarCambios" 
+            @confirmDelete="confirmarEliminacion" 
+        />
     </div>
 </template>
 
@@ -405,7 +557,13 @@ const saveLesson = async () => {
     grid-template-columns: 240px 1fr;
     grid-template-rows: 70px 1fr;
     min-height: 100vh;
+    width: 100vw;
     background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .admin-header {
@@ -769,10 +927,7 @@ const saveLesson = async () => {
     flex-direction: column;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     animation: slideUp 0.3s ease;
-}
-
-.modal-user {
-    max-width: 550px;
+    overflow-y: auto;
 }
 
 @keyframes slideUp {
@@ -786,4 +941,163 @@ const saveLesson = async () => {
     }
 }
 
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    position: sticky;
+    top: 0;
+    background: linear-gradient(135deg, rgba(239, 156, 108, 0.95) 0%, rgba(197, 125, 161, 0.95) 50%, rgba(149, 110, 170, 0.95) 100%);
+    z-index: 10;
+}
+
+.modal-header h3 {
+    color: white;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.btn-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-body {
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: white;
+    font-weight: 500;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.form-input,
+.form-textarea,
+.form-select {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    color: white;
+    font-size: 15px;
+    font-family: inherit;
+    transition: all 0.3s;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.form-select {
+    cursor: pointer;
+}
+
+.form-select option {
+    background: #6b4c8a;
+    color: white;
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(239, 156, 108, 0.95) 0%, rgba(197, 125, 161, 0.95) 50%, rgba(149, 110, 170, 0.95) 100%);
+}
+
+.btn-cancel,
+.btn-save {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-cancel {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-save {
+    background: rgba(34, 197, 94, 0.3);
+    color: white;
+    border: 1px solid rgba(34, 197, 94, 0.5);
+}
+
+.btn-save:hover {
+    background: rgba(34, 197, 94, 0.4);
+}
+
+.btn-save:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.challenge-input {
+    flex: 1;
+}
+
+.mono {
+    font-family: 'Courier New', monospace;
+}
 </style>
