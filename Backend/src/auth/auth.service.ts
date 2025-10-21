@@ -94,13 +94,18 @@ export class AuthService {
                 correo,
                 contraseña: hashed,
                 avatar: DEFAULT_AVATAR,
-                activo: false,
+                activo: true, // Activar usuarios inmediatamente (producción requiere AWS SES aprobado)
                 confirmationToken,
             },
         });
 
-        // Send confirmation email
-        await this.emailService.sendConfirmationEmail(correo, confirmationToken, username);
+        // Intentar enviar email de confirmación (fallar silenciosamente en Sandbox)
+        try {
+            await this.emailService.sendConfirmationEmail(correo, confirmationToken, username);
+        } catch (error) {
+            console.warn(`⚠️  Email confirmation not sent (AWS SES Sandbox): ${correo}`);
+            // No lanzar error, permitir que el registro continúe
+        }
 
         const { contraseña, confirmationToken: token, ...result } = user;
         return result;
