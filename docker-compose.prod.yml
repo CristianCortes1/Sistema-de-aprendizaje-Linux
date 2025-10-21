@@ -36,6 +36,10 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       DOCKER_HOST: unix:///var/run/docker.sock
       INACTIVITY_TIMEOUT: ${INACTIVITY_TIMEOUT:-900000}  # 15 minutos
+      AWS_SES_SMTP_HOST: ${AWS_SES_SMTP_HOST:-}
+      AWS_SES_SMTP_USER: ${AWS_SES_SMTP_USER:-}
+      AWS_SES_SMTP_PASSWORD: ${AWS_SES_SMTP_PASSWORD:-}
+      AWS_SES_FROM_EMAIL: ${AWS_SES_FROM_EMAIL:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:rw
     ports:
