@@ -1,7 +1,10 @@
-import { defineComponent, ref, onMounted, nextTick } from 'vue';
+import { defineComponent, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { io } from 'socket.io-client';
-import { AnsiUp } from 'ansi_up';
+import { Terminal } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
+import { WebLinksAddon } from 'xterm-addon-web-links';
+import 'xterm/css/xterm.css';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
 debugger; /* PartiallyEnd: #3632/script.vue */
@@ -12,43 +15,119 @@ const __VLS_export = defineComponent({
         const router = useRouter();
         const route = useRoute();
         // Terminal
-        const socket = io('http://localhost:3000');
-        const command = ref('');
-        const output = ref('');
-        const outputRef = ref(null);
-        const ansi_up = new AnsiUp();
+        const socket = io('https://sistema-de-aprendizaje-linux-production.up.railway.app');
+        const terminalContainer = ref(null);
+        let terminal = null;
+        let fitAddon = null;
+        // Estado de la terminal
+        const isConnected = ref(false);
+        const terminalTitle = ref('Conectando...');
         // UI state (lesson, hints, progress)
         const showHint = ref(false);
         const progress = ref(30);
         const lesson = ref({
-            title: 'Lesson 1: Basic Navigation',
+            title: 'Leccion 1: comandos basicos',
             challenge: {
                 title: 'Challenge 1: Change Directory',
                 description: 'Use the cd command to navigate to the "documents" directory. Type your command in the terminal and press "Run" to check your answer.',
                 hint: 'The command is cd documents',
                 correctCommand: 'cd documents',
-                directory: 'penguin@earth:~$'
+                directory: '~'
             }
         });
-        onMounted(() => {
-            socket.on('output', async (data) => {
-                const html = ansi_up.ansi_to_html(data);
-                output.value += html;
-                await nextTick();
-                if (outputRef.value) {
-                    outputRef.value.scrollTop = outputRef.value.scrollHeight;
+        onMounted(async () => {
+            await nextTick();
+            if (!terminalContainer.value)
+                return;
+            // Crear instancia de xterm
+            terminal = new Terminal({
+                cursorBlink: true,
+                cursorStyle: 'block',
+                fontFamily: '"Ubuntu Mono", "Courier New", monospace',
+                fontSize: 15,
+                lineHeight: 1.4,
+                theme: {
+                    background: '#300a24',
+                    foreground: '#d3d7cf',
+                    cursor: '#d3d7cf',
+                    cursorAccent: '#300a24',
+                    black: '#2e3436',
+                    red: '#cc0000',
+                    green: '#4e9a06',
+                    yellow: '#c4a000',
+                    blue: '#3465a4',
+                    magenta: '#75507b',
+                    cyan: '#06989a',
+                    white: '#d3d7cf',
+                    brightBlack: '#555753',
+                    brightRed: '#ef2929',
+                    brightGreen: '#8ae234',
+                    brightYellow: '#fce94f',
+                    brightBlue: '#729fcf',
+                    brightMagenta: '#ad7fa8',
+                    brightCyan: '#34e2e2',
+                    brightWhite: '#eeeeec'
+                },
+                allowProposedApi: true,
+            });
+            // Addons
+            fitAddon = new FitAddon();
+            terminal.loadAddon(fitAddon);
+            terminal.loadAddon(new WebLinksAddon());
+            // Montar terminal en el DOM
+            terminal.open(terminalContainer.value);
+            fitAddon.fit();
+            // Manejar input del usuario
+            terminal.onData((data) => {
+                socket.emit('input', data);
+            });
+            // Conexión establecida
+            socket.on('connect', () => {
+                isConnected.value = true;
+                terminalTitle.value = 'Terminal SSH';
+                terminal?.writeln('\x1b[1;32m✓ Conectado al servidor SSH\x1b[0m');
+            });
+            // Desconexión
+            socket.on('disconnect', () => {
+                isConnected.value = false;
+                terminalTitle.value = 'Desconectado';
+                terminal?.writeln('\x1b[1;31m✗ Desconectado del servidor\x1b[0m');
+            });
+            // Recibir output del servidor
+            socket.on('output', (data) => {
+                terminal?.write(data);
+            });
+            // Redimensionar terminal cuando cambia el tamaño de la ventana
+            const handleResize = () => {
+                if (fitAddon && terminal) {
+                    fitAddon.fit();
+                    // Enviar nuevo tamaño al servidor
+                    socket.emit('resize', {
+                        cols: terminal.cols,
+                        rows: terminal.rows
+                    });
                 }
+            };
+            window.addEventListener('resize', handleResize);
+            // Enviar tamaño inicial al servidor
+            if (terminal) {
+                socket.emit('resize', {
+                    cols: terminal.cols,
+                    rows: terminal.rows
+                });
+            }
+            // Cleanup
+            onUnmounted(() => {
+                window.removeEventListener('resize', handleResize);
+                terminal?.dispose();
+                socket.disconnect();
             });
         });
-        const sendCommand = () => {
-            if (!command.value.trim())
-                return;
-            socket.emit('input', command.value);
-            output.value += `<span class='prompt'>penguin@earth:~$</span> ${command.value}<br>`;
-            command.value = '';
-        };
         const toggleHint = () => {
             showHint.value = !showHint.value;
+        };
+        const clearTerminal = () => {
+            terminal?.clear();
         };
         // Navegación
         const goBack = () => router.push('/dashboard');
@@ -57,10 +136,7 @@ const __VLS_export = defineComponent({
         const goRanking = () => router.push('/ranking');
         const goConfig = () => router.push('/configuracion');
         return {
-            command,
-            output,
-            outputRef,
-            sendCommand,
+            terminalContainer,
             showHint,
             toggleHint,
             progress,
@@ -70,6 +146,9 @@ const __VLS_export = defineComponent({
             goBiblioteca,
             goRanking,
             goConfig,
+            isConnected,
+            terminalTitle,
+            clearTerminal,
         };
     },
 });
@@ -80,43 +159,119 @@ const __VLS_self = (await import('vue')).defineComponent({
         const router = useRouter();
         const route = useRoute();
         // Terminal
-        const socket = io('http://localhost:3000');
-        const command = ref('');
-        const output = ref('');
-        const outputRef = ref(null);
-        const ansi_up = new AnsiUp();
+        const socket = io('https://sistema-de-aprendizaje-linux-production.up.railway.app');
+        const terminalContainer = ref(null);
+        let terminal = null;
+        let fitAddon = null;
+        // Estado de la terminal
+        const isConnected = ref(false);
+        const terminalTitle = ref('Conectando...');
         // UI state (lesson, hints, progress)
         const showHint = ref(false);
         const progress = ref(30);
         const lesson = ref({
-            title: 'Lesson 1: Basic Navigation',
+            title: 'Leccion 1: comandos basicos',
             challenge: {
                 title: 'Challenge 1: Change Directory',
                 description: 'Use the cd command to navigate to the "documents" directory. Type your command in the terminal and press "Run" to check your answer.',
                 hint: 'The command is cd documents',
                 correctCommand: 'cd documents',
-                directory: 'penguin@earth:~$'
+                directory: '~'
             }
         });
-        onMounted(() => {
-            socket.on('output', async (data) => {
-                const html = ansi_up.ansi_to_html(data);
-                output.value += html;
-                await nextTick();
-                if (outputRef.value) {
-                    outputRef.value.scrollTop = outputRef.value.scrollHeight;
+        onMounted(async () => {
+            await nextTick();
+            if (!terminalContainer.value)
+                return;
+            // Crear instancia de xterm
+            terminal = new Terminal({
+                cursorBlink: true,
+                cursorStyle: 'block',
+                fontFamily: '"Ubuntu Mono", "Courier New", monospace',
+                fontSize: 15,
+                lineHeight: 1.4,
+                theme: {
+                    background: '#300a24',
+                    foreground: '#d3d7cf',
+                    cursor: '#d3d7cf',
+                    cursorAccent: '#300a24',
+                    black: '#2e3436',
+                    red: '#cc0000',
+                    green: '#4e9a06',
+                    yellow: '#c4a000',
+                    blue: '#3465a4',
+                    magenta: '#75507b',
+                    cyan: '#06989a',
+                    white: '#d3d7cf',
+                    brightBlack: '#555753',
+                    brightRed: '#ef2929',
+                    brightGreen: '#8ae234',
+                    brightYellow: '#fce94f',
+                    brightBlue: '#729fcf',
+                    brightMagenta: '#ad7fa8',
+                    brightCyan: '#34e2e2',
+                    brightWhite: '#eeeeec'
+                },
+                allowProposedApi: true,
+            });
+            // Addons
+            fitAddon = new FitAddon();
+            terminal.loadAddon(fitAddon);
+            terminal.loadAddon(new WebLinksAddon());
+            // Montar terminal en el DOM
+            terminal.open(terminalContainer.value);
+            fitAddon.fit();
+            // Manejar input del usuario
+            terminal.onData((data) => {
+                socket.emit('input', data);
+            });
+            // Conexión establecida
+            socket.on('connect', () => {
+                isConnected.value = true;
+                terminalTitle.value = 'Terminal SSH';
+                terminal?.writeln('\x1b[1;32m✓ Conectado al servidor SSH\x1b[0m');
+            });
+            // Desconexión
+            socket.on('disconnect', () => {
+                isConnected.value = false;
+                terminalTitle.value = 'Desconectado';
+                terminal?.writeln('\x1b[1;31m✗ Desconectado del servidor\x1b[0m');
+            });
+            // Recibir output del servidor
+            socket.on('output', (data) => {
+                terminal?.write(data);
+            });
+            // Redimensionar terminal cuando cambia el tamaño de la ventana
+            const handleResize = () => {
+                if (fitAddon && terminal) {
+                    fitAddon.fit();
+                    // Enviar nuevo tamaño al servidor
+                    socket.emit('resize', {
+                        cols: terminal.cols,
+                        rows: terminal.rows
+                    });
                 }
+            };
+            window.addEventListener('resize', handleResize);
+            // Enviar tamaño inicial al servidor
+            if (terminal) {
+                socket.emit('resize', {
+                    cols: terminal.cols,
+                    rows: terminal.rows
+                });
+            }
+            // Cleanup
+            onUnmounted(() => {
+                window.removeEventListener('resize', handleResize);
+                terminal?.dispose();
+                socket.disconnect();
             });
         });
-        const sendCommand = () => {
-            if (!command.value.trim())
-                return;
-            socket.emit('input', command.value);
-            output.value += `<span class='prompt'>penguin@earth:~$</span> ${command.value}<br>`;
-            command.value = '';
-        };
         const toggleHint = () => {
             showHint.value = !showHint.value;
+        };
+        const clearTerminal = () => {
+            terminal?.clear();
         };
         // Navegación
         const goBack = () => router.push('/dashboard');
@@ -125,10 +280,7 @@ const __VLS_self = (await import('vue')).defineComponent({
         const goRanking = () => router.push('/ranking');
         const goConfig = () => router.push('/configuracion');
         return {
-            command,
-            output,
-            outputRef,
-            sendCommand,
+            terminalContainer,
             showHint,
             toggleHint,
             progress,
@@ -138,6 +290,9 @@ const __VLS_self = (await import('vue')).defineComponent({
             goBiblioteca,
             goRanking,
             goConfig,
+            isConnected,
+            terminalTitle,
+            clearTerminal,
         };
     },
 });
@@ -146,20 +301,18 @@ let __VLS_elements;
 const __VLS_componentsOption = { Header, Footer };
 let __VLS_components;
 let __VLS_directives;
-/** @type {__VLS_StyleScopedClasses['back-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['control']} */ ;
 /** @type {__VLS_StyleScopedClasses['control']} */ ;
 /** @type {__VLS_StyleScopedClasses['control']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-output']} */ ;
-/** @type {__VLS_StyleScopedClasses['prompt']} */ ;
-/** @type {__VLS_StyleScopedClasses['command-input']} */ ;
-/** @type {__VLS_StyleScopedClasses['execute-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-indicator']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['hint-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['hint']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-content']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-title']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-body']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "leccion" },
 });
@@ -176,12 +329,6 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "lesson-header" },
 });
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.goBack) },
-    ...{ class: "back-btn" },
-});
-// @ts-ignore
-[goBack,];
 __VLS_asFunctionalElement(__VLS_elements.h1, __VLS_elements.h1)({
     ...{ class: "lesson-title" },
 });
@@ -195,7 +342,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "terminal-section" },
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "terminal" },
+    ...{ class: "terminal-wrapper" },
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "terminal-header" },
@@ -215,32 +362,31 @@ __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "terminal-title" },
 });
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "terminal-body" },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "terminal-output" },
-    ref: "outputRef",
-});
-__VLS_asFunctionalDirective(__VLS_directives.vHtml)(null, { ...__VLS_directiveBindingRestFields, value: (__VLS_ctx.output) }, null, null);
-/** @type {typeof __VLS_ctx.outputRef} */ ;
+(__VLS_ctx.terminalTitle);
 // @ts-ignore
-[output, outputRef,];
+[terminalTitle,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "terminal-input" },
+    ...{ class: "connection-status" },
 });
 __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-    ...{ class: "prompt" },
-});
-__VLS_asFunctionalElement(__VLS_elements.input)({
-    ...{ onKeyup: (__VLS_ctx.sendCommand) },
-    value: (__VLS_ctx.command),
-    type: "text",
-    ...{ class: "command-input" },
-    placeholder: "Enter a command...",
+    ...{ class: "status-indicator" },
+    ...{ class: ({ connected: __VLS_ctx.isConnected }) },
 });
 // @ts-ignore
-[sendCommand, command,];
+[isConnected,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ref: "terminalContainer",
+    ...{ class: "terminal-container" },
+});
+/** @type {typeof __VLS_ctx.terminalContainer} */ ;
+// @ts-ignore
+[terminalContainer,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "terminal-help" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "help-item" },
+});
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "challenge-section" },
 });
@@ -325,11 +471,10 @@ const __VLS_7 = __VLS_6({
 /** @type {__VLS_StyleScopedClasses['leccion']} */ ;
 /** @type {__VLS_StyleScopedClasses['content']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-header']} */ ;
-/** @type {__VLS_StyleScopedClasses['back-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-content']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-wrapper']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-controls']} */ ;
 /** @type {__VLS_StyleScopedClasses['control']} */ ;
@@ -339,11 +484,12 @@ const __VLS_7 = __VLS_6({
 /** @type {__VLS_StyleScopedClasses['control']} */ ;
 /** @type {__VLS_StyleScopedClasses['green']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-title']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-body']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-output']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-input']} */ ;
-/** @type {__VLS_StyleScopedClasses['prompt']} */ ;
-/** @type {__VLS_StyleScopedClasses['command-input']} */ ;
+/** @type {__VLS_StyleScopedClasses['connection-status']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-indicator']} */ ;
+/** @type {__VLS_StyleScopedClasses['connected']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-help']} */ ;
+/** @type {__VLS_StyleScopedClasses['help-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-panel']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-title']} */ ;

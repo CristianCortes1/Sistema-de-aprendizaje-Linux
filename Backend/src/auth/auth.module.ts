@@ -1,12 +1,4 @@
 import { Module } from '@nestjs/common';
-<<<<<<< HEAD
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
-
-@Module({
-  controllers: [AuthController],
-  providers: [AuthService],
-=======
 import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -23,6 +15,5 @@ import { EmailModule } from '../email/email.module';
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService],
->>>>>>> Backend
 })
 export class AuthModule {}
