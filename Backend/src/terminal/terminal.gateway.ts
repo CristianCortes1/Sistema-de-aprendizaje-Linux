@@ -19,6 +19,16 @@ export class TerminalGateway
   async handleConnection(client: Socket) {
     const userId = client.handshake.auth?.userId;
 
+    // 🔒 Rechazar conexiones no autenticadas
+    if (!userId) {
+      client.emit(
+        'output',
+        '\x1b[1;31mError: Authentication required. Please login to access the terminal.\x1b[0m\r\n',
+      );
+      client.disconnect();
+      return;
+    }
+
     try {
       const session = await this.dockerService.createUserContainer(
         client.id,
@@ -40,6 +50,7 @@ export class TerminalGateway
       });
     } catch (error: any) {
       client.emit('output', `\x1b[1;31mConnection error\x1b[0m\r\n`);
+      client.disconnect();
     }
   }
 

@@ -9,39 +9,26 @@ import 'xterm/css/xterm.css'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
 
-// Función inline para obtener o crear guestId
-function getOrCreateGuestId(): string {
-    let guestId = localStorage.getItem('guestId')
-    
-    if (!guestId) {
-        // Generar nuevo ID único para invitado
-        guestId = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-        localStorage.setItem('guestId', guestId)
-    }
-    
-    return guestId
-}
-
-// Función inline para obtener userId (de token o guestId)
-function getUserIdForTerminal(): string {
+// Función para obtener userId del token JWT
+function getUserIdForTerminal(): string | null {
     const token = localStorage.getItem('token')
     
-    if (token) {
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]))
-            if (payload && payload.sub) {
-                // Convertir a string por si el ID viene como número
-                const userId = String(payload.sub)
-                return userId
-            }
-        } catch (error) {
-            // Silenciar error
-        }
+    if (!token) {
+        // ❌ Sin token = sin acceso al terminal
+        return null
     }
     
-    // Si no hay token o falló el parsing, usar guestId
-    const guestId = getOrCreateGuestId()
-    return guestId
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        if (payload && payload.sub) {
+            // Convertir a string por si el ID viene como número
+            return String(payload.sub)
+        }
+    } catch (error) {
+        console.error('Error decoding token:', error)
+    }
+    
+    return null
 }
 
 export default defineComponent({
@@ -51,28 +38,13 @@ export default defineComponent({
         const router = useRouter()
         const route = useRoute()
 
-        // Obtener userId del token (puede ser null si no está logueado)
-        // Si no hay usuario logueado, se genera un guestId persistente
+        // Obtener userId del token (REQUERIDO para terminal)
         const userId = getUserIdForTerminal()
 
-        // API URL usando la configuración centralizada
-        // En producción, esto será '' (empty string) para usar la misma URL que el navegador
-        // En desarrollo, será 'http://localhost:3000'
-        const WS_URL = import.meta.env.MODE === 'production' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000')
-
-        // Terminal - conectar con autenticación
-        const socket = io(WS_URL, {
-            auth: {
-                userId: userId
-            }
-        })
-        const terminalContainer = ref<HTMLElement | null>(null)
-        let terminal: Terminal | null = null
-        let fitAddon: FitAddon | null = null
-        
         // Estado de la terminal
         const isConnected = ref(false)
         const terminalTitle = ref('Conectando...')
+        const terminalContainer = ref<HTMLElement | null>(null)
 
         // UI state (lesson, hints, progress)
         const showHint = ref(false)
@@ -87,6 +59,42 @@ export default defineComponent({
                 directory: '~'
             }
         })
+
+        // ❌ Redirigir a login si no está autenticado
+        if (!userId) {
+            console.warn('No authenticated user - redirecting to login')
+            router.push('/login')
+            
+            // Retornar objeto mínimo para evitar errores
+            return {
+                terminalContainer,
+                showHint,
+                toggleHint: () => {},
+                progress,
+                lesson,
+                goBack: () => {},
+                goInicio: () => {},
+                goBiblioteca: () => {},
+                goRanking: () => {},
+                goConfig: () => {},
+                isConnected,
+                terminalTitle,
+                clearTerminal: () => {},
+            }
+        }
+
+        // API URL usando la configuración centralizada
+        const WS_URL = import.meta.env.MODE === 'production' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+
+        // Terminal - conectar con autenticación
+        const socket = io(WS_URL, {
+            auth: {
+                userId: userId
+            }
+        })
+        
+        let terminal: Terminal | null = null
+        let fitAddon: FitAddon | null = null
 
         onMounted(async () => {
             await nextTick()

@@ -85,15 +85,44 @@ describe('TerminalGateway', () => {
       );
     });
 
-    it('should create container without userId for guest', async () => {
+    it('should reject connection without userId', async () => {
       mockSocket.handshake.auth = {};
 
       await gateway.handleConnection(mockSocket);
 
-      expect(dockerService.createUserContainer).toHaveBeenCalledWith(
-        'socket-123',
-        undefined,
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'output',
+        '\x1b[1;31mError: Authentication required. Please login to access the terminal.\x1b[0m\r\n',
       );
+      expect(mockSocket.disconnect).toHaveBeenCalled();
+      expect(dockerService.createUserContainer).not.toHaveBeenCalled();
+    });
+
+    it('should reject connection with null auth', async () => {
+      mockSocket.handshake.auth = null as any;
+
+      await gateway.handleConnection(mockSocket);
+
+      expect(mockSocket.disconnect).toHaveBeenCalled();
+      expect(dockerService.createUserContainer).not.toHaveBeenCalled();
+    });
+
+    it('should reject connection with undefined userId', async () => {
+      mockSocket.handshake.auth = { userId: undefined };
+
+      await gateway.handleConnection(mockSocket);
+
+      expect(mockSocket.disconnect).toHaveBeenCalled();
+      expect(dockerService.createUserContainer).not.toHaveBeenCalled();
+    });
+
+    it('should reject connection with empty userId', async () => {
+      mockSocket.handshake.auth = { userId: '' };
+
+      await gateway.handleConnection(mockSocket);
+
+      expect(mockSocket.disconnect).toHaveBeenCalled();
+      expect(dockerService.createUserContainer).not.toHaveBeenCalled();
     });
 
     it('should setup stream listeners for output', async () => {
@@ -159,28 +188,14 @@ describe('TerminalGateway', () => {
       expect(mockServer.to).toHaveBeenCalledWith('socket-3');
     });
 
-    it('should emit error message when container creation fails', async () => {
+    it('should disconnect client on connection error', async () => {
       dockerService.createUserContainer.mockRejectedValue(
         new Error('Docker error'),
       );
 
       await gateway.handleConnection(mockSocket);
 
-      expect(mockSocket.emit).toHaveBeenCalledWith(
-        'output',
-        '\x1b[1;31mConnection error\x1b[0m\r\n',
-      );
-    });
-
-    it('should handle missing auth gracefully', async () => {
-      mockSocket.handshake.auth = null as any;
-
-      await gateway.handleConnection(mockSocket);
-
-      expect(dockerService.createUserContainer).toHaveBeenCalledWith(
-        'socket-123',
-        undefined,
-      );
+      expect(mockSocket.disconnect).toHaveBeenCalled();
     });
   });
 

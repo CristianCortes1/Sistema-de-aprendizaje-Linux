@@ -209,20 +209,24 @@ describe('DockerService', () => {
       expect(session.container).toBe(mockContainer);
     });
 
-    it('should use guest ID when no userId provided', async () => {
+    it('should throw error when no userId provided', async () => {
       const socketId = 'socket-789';
 
-      await service.createUserContainer(socketId);
+      await expect(
+        service.createUserContainer(socketId, ''),
+      ).rejects.toThrow('userId is required - authentication needed');
 
-      expect(mockDocker.createContainer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'penguinpath-user-guest-socket-789',
-          Labels: {
-            'penguinpath.user': 'guest-socket-789',
-            'penguinpath.created': expect.any(String),
-          },
-        }),
-      );
+      expect(mockDocker.createContainer).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when userId is null', async () => {
+      const socketId = 'socket-789';
+
+      await expect(
+        service.createUserContainer(socketId, null as any),
+      ).rejects.toThrow('userId is required - authentication needed');
+
+      expect(mockDocker.createContainer).not.toHaveBeenCalled();
     });
 
     it('should reuse existing container for same user', async () => {

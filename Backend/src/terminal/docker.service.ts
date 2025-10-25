@@ -18,7 +18,6 @@ export class DockerService implements OnModuleDestroy {
   private socketToUser: Map<string, string> = new Map(); // socketId -> userId
   private readonly IMAGE_NAME = 'penguinpath-ubuntu:latest'; // Imagen personalizada con herramientas
   private readonly CONTAINER_PREFIX = 'penguinpath-user-';
-  private readonly INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutos en milisegundos
 
   constructor() {
     // Conectar a Docker
@@ -89,12 +88,15 @@ export class DockerService implements OnModuleDestroy {
 
   async createUserContainer(
     socketId: string,
-    userId?: string,
+    userId: string, // ✅ Ya no es opcional - autenticación requerida
   ): Promise<ContainerSession> {
-    // Si no hay userId, el frontend debería enviar un guestId persistente
-    // Si aún así no hay nada, usar el socketId (fallback)
-    // IMPORTANTE: Convertir a string para que Docker labels funcionen correctamente
-    const effectiveUserId = userId ? String(userId) : `guest-${socketId}`;
+    // Validar que userId existe
+    if (!userId) {
+      throw new Error('userId is required - authentication needed');
+    }
+
+    // Convertir a string para que Docker labels funcionen correctamente
+    const effectiveUserId = String(userId);
 
     // Verificar si ya existe una sesión para este usuario
     const existingSession = this.sessions.get(effectiveUserId);
