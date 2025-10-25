@@ -5,7 +5,6 @@ import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class CommandsService {
-
   constructor(private prisma: PrismaService) {}
 
   create(createCommandDto: CreateCommandDto) {

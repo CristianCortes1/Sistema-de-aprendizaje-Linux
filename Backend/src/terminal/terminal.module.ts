@@ -3,7 +3,7 @@ import { TerminalGateway } from './terminal.gateway';
 import { DockerService } from './docker.service';
 
 @Module({
-    providers: [TerminalGateway, DockerService],
-    exports: [DockerService],
+  providers: [TerminalGateway, DockerService],
+  exports: [DockerService],
 })
-export class TerminalModule { }
+export class TerminalModule {}

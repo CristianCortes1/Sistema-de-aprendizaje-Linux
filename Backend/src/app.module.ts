@@ -9,9 +9,16 @@ import { ProgressModule } from './progress/progress.module';
 import { TerminalModule } from './terminal/terminal.module';
 
 @Module({
-    imports: [AuthModule, UsersModule, LessonsModule, ChallengesModule, CommandsModule, ProgressModule, TerminalModule],
-    controllers: [],
-    providers: [PrismaService],
-
+  imports: [
+    AuthModule,
+    UsersModule,
+    LessonsModule,
+    ChallengesModule,
+    CommandsModule,
+    ProgressModule,
+    TerminalModule,
+  ],
+  controllers: [],
+  providers: [PrismaService],
 })
-export class AppModule { }
+export class AppModule {}
