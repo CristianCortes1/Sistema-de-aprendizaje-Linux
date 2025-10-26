@@ -4,23 +4,47 @@ import sgMail from '@sendgrid/mail';
 
 @Injectable()
 export class EmailService implements OnModuleInit {
-    private transporter!: nodemailer.Transporter;
-    private ready = false;
+  private transporter!: nodemailer.Transporter;
+  private ready = false;
   private useSendgrid = false;
 
-    async onModuleInit() {
-        await this.init();
-    }
+  async onModuleInit() {
+    await this.init();
+  }
 
   private async init() {
-        try {
+    try {
       const useProd = process.env.NODE_ENV === 'production';
-      // Preferir SendGrid API en producción si existe API key (evita timeouts SMTP)
+
+      // Opción 1: SendGrid API (si existe API key)
       if (useProd && process.env.SENDGRID_API_KEY) {
         sgMail.setApiKey(process.env.SENDGRID_API_KEY);
         this.useSendgrid = true;
         this.ready = true;
         console.log('✅ Email: SendGrid API listo');
+        return;
+      }
+
+      // Opción 2: AWS SES SMTP (si existe configuración)
+      if (
+        useProd &&
+        process.env.AWS_SES_SMTP_USER &&
+        process.env.AWS_SES_SMTP_PASSWORD
+      ) {
+        this.transporter = nodemailer.createTransport({
+          host:
+            process.env.AWS_SES_SMTP_HOST ||
+            'email-smtp.us-east-2.amazonaws.com',
+          port: 587,
+          secure: false, // true for 465, false for other ports
+          auth: {
+            user: process.env.AWS_SES_SMTP_USER,
+            pass: process.env.AWS_SES_SMTP_PASSWORD,
+          },
+        });
+        await this.transporter.verify();
+        this.ready = true;
+        console.log('✅ Email: AWS SES SMTP listo');
         return;
       }
 
@@ -40,7 +64,10 @@ export class EmailService implements OnModuleInit {
           console.log('✅ Ethereal account:', testAccount.user);
           return;
         } catch (e: any) {
-          console.warn('⚠️ Ethereal no disponible, usando stream transport:', e.message);
+          console.warn(
+            '⚠️ Ethereal no disponible, usando stream transport:',
+            e.message,
+          );
           this.transporter = nodemailer.createTransport({
             streamTransport: true,
             newline: 'unix',
@@ -57,7 +84,9 @@ export class EmailService implements OnModuleInit {
         this.transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
           port: Number(process.env.SMTP_PORT ?? 587),
-          secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465,
+          secure:
+            process.env.SMTP_SECURE === 'true' ||
+            Number(process.env.SMTP_PORT) === 465,
           auth: {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS,
@@ -71,24 +100,29 @@ export class EmailService implements OnModuleInit {
         this.ready = true;
         console.log('✅ Email: SMTP verificado');
       }
-        } catch (err: any) {
-            console.error('❌ Error inicializando email transporter:', err?.message);
-        }
+    } catch (err: any) {
+      console.error('❌ Error inicializando email transporter:', err?.message);
     }
+  }
 
-    private ensureReady() {
-        if (!this.ready) throw new Error('Email transporter not initialized yet');
-    }
+  private ensureReady() {
+    if (!this.ready) throw new Error('Email transporter not initialized yet');
+  }
 
-    async sendConfirmationEmail(email: string, confirmationToken: string, username: string) {
-        this.ensureReady();
+  async sendConfirmationEmail(
+    email: string,
+    confirmationToken: string,
+    username: string,
+  ) {
+    this.ensureReady();
 
-        const confirmationUrl = `${process.env.FRONTEND_URL}/confirm-email?token=${confirmationToken}`;
-        const from =
-            process.env.EMAIL_FROM ||
-            '"Penguin Path 🐧" <noreply@penguinpath.app>';
+    const confirmationUrl = `${process.env.FRONTEND_URL}/confirm-email?token=${confirmationToken}`;
+    const from =
+      process.env.AWS_SES_FROM_EMAIL ||
+      process.env.EMAIL_FROM ||
+      '"Penguin Path 🐧" <noreply@penguinpath.app>';
 
-        const html = `
+    const html = `
         <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
           <div style="background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%); padding: 20px; text-align: center;">
             <h1 style="color: white; margin: 0;">🐧 Penguin Path</h1>
@@ -116,14 +150,24 @@ export class EmailService implements OnModuleInit {
         </div>
       `;
 
-        if (this.useSendgrid) {
-            const res = await sgMail.send({ to: email, from, subject: 'Confirma tu cuenta - Penguin Path', html });
-            return res;
-        }
-
-        const result = await this.transporter.sendMail({ from, to: email, subject: 'Confirma tu cuenta - Penguin Path', html });
-        const preview = nodemailer.getTestMessageUrl(result);
-        if (preview) console.log(`🔍 Preview email: ${preview}`);
-        return result;
+    if (this.useSendgrid) {
+      const res = await sgMail.send({
+        to: email,
+        from,
+        subject: 'Confirma tu cuenta - Penguin Path',
+        html,
+      });
+      return res;
     }
+
+    const result = await this.transporter.sendMail({
+      from,
+      to: email,
+      subject: 'Confirma tu cuenta - Penguin Path',
+      html,
+    });
+    const preview = nodemailer.getTestMessageUrl(result);
+    if (preview) console.log(`🔍 Preview email: ${preview}`);
+    return result;
+  }
 }

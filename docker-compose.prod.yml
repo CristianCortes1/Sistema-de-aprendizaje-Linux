@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: penguinpath-db-prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-penguinpath}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - penguinpath-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend NestJS
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: penguinpath-backend-prod
+    user: root  # Necesario para acceso a Docker socket
+    environment:
+      # Variables que necesitan interpolación
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      # Variables fijas
+      PORT: 3000
+      NODE_ENV: production
+      DOCKER_HOST: unix:///var/run/docker.sock
+      # Otras variables de entorno
+      JWT_SECRET: ${JWT_SECRET}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
+      EMAIL_USER: ${EMAIL_USER}
+      FRONTEND_URL: ${FRONTEND_URL}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    # Puerto 3000 NO expuesto externamente - solo accesible en red interna
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - penguinpath-network
+    restart: unless-stopped
+
+  # Frontend Vue/Nginx
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+      args:
+        # En producción, el frontend usa /api que Nginx proxea a backend:3000
+        VITE_API_URL: /api
+    container_name: penguinpath-frontend-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    networks:
+      - penguinpath-network
+    restart: unless-stopped
+    volumes:
+      # Para SSL certificates (opcional, si usas Let's Encrypt)
+      - ./ssl:/etc/nginx/ssl:ro
+
+volumes:
+  postgres_data:
+
+networks:
+  penguinpath-network:
+    driver: bridge

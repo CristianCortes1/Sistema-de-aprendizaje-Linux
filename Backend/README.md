@@ -1,98 +1,397 @@
+# 🐧 PenguinPath - Backend API
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Sistema de aprendizaje interactivo de comandos Linux construido con NestJS, Prisma y PostgreSQL.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 📋 Descripción
 
-## Description
+Backend del sistema PenguinPath que proporciona una API REST completa para:
+- 🔐 Autenticación y autorización de usuarios
+- 📚 Gestión de lecciones y retos de aprendizaje
+- 💻 Validación de comandos Linux
+- 📊 Seguimiento de progreso del usuario
+- 🎮 Sistema de gamificación (experiencia, monedas, items)
+- 🏆 Sistema de rankings
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🚀 Inicio Rápido
 
-## Project setup
+### Prerrequisitos
 
-```bash
-$ pnpm install
-```
+- Docker y Docker Compose (Recomendado) ⭐
+- O alternativamente:
+  - Node.js >= 18
+  - pnpm >= 8
+  - PostgreSQL >= 14
 
-## Compile and run the project
+### 🐳 Opción 1: Con Docker (Recomendado)
 
 ```bash
-# development
-$ pnpm run start
+# Desde la raíz del proyecto
+cd ..
 
-# watch mode
-$ pnpm run start:dev
+# Iniciar todos los servicios (Backend + PostgreSQL + Frontend)
+docker-compose -f docker-compose.dev.yml up -d
 
-# production mode
-$ pnpm run start:prod
+# Ver logs del backend
+docker-compose -f docker-compose.dev.yml logs -f backend
+
+# La API estará disponible en http://localhost:3000
+# Swagger UI en http://localhost:3000/api
 ```
 
-## Run tests
+**Comandos útiles:**
 
 ```bash
-# unit tests
-$ pnpm run test
+# Ver estado de los contenedores
+docker-compose -f docker-compose.dev.yml ps
 
-# e2e tests
-$ pnpm run test:e2e
+# Detener los servicios
+docker-compose -f docker-compose.dev.yml down
 
-# test coverage
-$ pnpm run test:cov
+# Reiniciar solo el backend
+docker-compose -f docker-compose.dev.yml restart backend
+
+# Ver logs en tiempo real
+docker-compose -f docker-compose.dev.yml logs -f
+
+# Acceder al contenedor del backend
+docker exec -it penguinpath-backend sh
+
+# Ejecutar migraciones de Prisma
+docker exec -it penguinpath-backend npx prisma migrate dev
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 💻 Opción 2: Sin Docker (Desarrollo Local)
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+# Clonar el repositorio
+git clone <repository-url>
+cd Backend
+
+# Instalar dependencias
+pnpm install
+
+# Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus configuraciones
+
+# Asegúrate de tener PostgreSQL corriendo
+# Actualiza DATABASE_URL en .env
+
+# Ejecutar migraciones de base de datos
+npx prisma migrate dev
+
+# Generar cliente Prisma
+npx prisma generate
+
+# Iniciar en modo desarrollo
+pnpm run start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Desarrollo
 
-## Resources
+**Con Docker:**
+```bash
+# Los cambios en el código se reflejan automáticamente con hot-reload
+docker-compose -f docker-compose.dev.yml up -d
 
-Check out a few resources that may come in handy when working with NestJS:
+# Ver logs
+docker-compose -f docker-compose.dev.yml logs -f backend
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+**Sin Docker:**
+```bash
+# Modo desarrollo con hot-reload
+pnpm run start:dev
 
-## Support
+# Modo desarrollo con debug
+pnpm run start:debug
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Compilar proyecto
+pnpm run build
 
-## Stay in touch
+# Modo producción
+pnpm run start:prod
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### 🐳 Docker en Detalle
 
-## License
+El proyecto incluye tres configuraciones de Docker Compose:
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+1. **docker-compose.dev.yml** - Desarrollo (Hot-reload, debug)
+2. **docker-compose.yml** - Producción local
+3. **docker-compose.prod.yml** - Producción en servidor
+
+**Servicios incluidos:**
+- 🐘 PostgreSQL 16
+- 🚀 Backend (NestJS)
+- 🎨 Frontend (Vue.js)
+- 🔗 Red compartida
+
+**Volúmenes:**
+- Base de datos persistente
+- Socket de Docker (para terminal virtual)
+
+## 📚 Documentación de la API
+
+### Swagger UI (Recomendado)
+
+Una vez iniciado el servidor, accede a la documentación interactiva:
+
+**URL**: `http://localhost:3000/api`
+
+La interfaz de Swagger te permite:
+- ✅ Explorar todos los endpoints disponibles
+- ✅ Ver esquemas de datos y validaciones
+- ✅ Probar las peticiones directamente desde el navegador
+- ✅ Ver ejemplos de request/response
+- ✅ Autenticarte con JWT
+
+### Documentación Markdown
+
+Para una guía completa de la API, consulta:
+- [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) - Guía completa de endpoints y modelos
+
+## 🏗️ Estructura del Proyecto
+
+```
+Backend/
+├── src/
+│   ├── auth/              # Autenticación y autorización
+│   │   ├── dto/          # Data Transfer Objects
+│   │   ├── auth.controller.ts
+│   │   └── auth.service.ts
+│   ├── users/            # Gestión de usuarios
+│   ├── lessons/          # Lecciones de aprendizaje
+│   ├── challenges/       # Retos/desafíos
+│   ├── commands/         # Comandos Linux
+│   ├── progress/         # Progreso de usuarios
+│   ├── items/            # Items de gamificación
+│   ├── email/            # Servicio de emails
+│   ├── terminal/         # Terminal virtual con Docker
+│   ├── common/           # DTOs y utilidades comunes
+│   ├── prisma.service.ts # Servicio de Prisma ORM
+│   ├── app.module.ts     # Módulo principal
+│   └── main.ts           # Punto de entrada
+├── prisma/
+│   ├── schema.prisma     # Esquema de base de datos
+│   └── migrations/       # Migraciones
+├── test/                 # Tests E2E
+├── docker-compose.yml
+├── Dockerfile
+└── package.json
+```
+
+## 🔧 Tecnologías Principales
+
+- **Framework**: NestJS 11
+- **ORM**: Prisma 6
+- **Base de datos**: PostgreSQL
+- **Autenticación**: JWT + Passport
+- **Validación**: class-validator, class-transformer
+- **Documentación**: Swagger/OpenAPI
+- **Emails**: SendGrid / Nodemailer
+- **Contenedores**: Docker + Dockerode
+
+## 🧪 Testing
+
+```bash
+# Tests unitarios
+pnpm run test
+
+# Tests en modo watch
+pnpm run test:watch
+
+# Coverage de tests
+pnpm run test:cov
+
+# Tests E2E
+pnpm run test:e2e
+```
+
+## 📊 Base de Datos
+
+### Gestión con Prisma
+
+```bash
+# Crear una nueva migración
+npx prisma migrate dev --name <nombre-migracion>
+
+# Aplicar migraciones en producción
+npx prisma migrate deploy
+
+# Abrir Prisma Studio (interfaz visual)
+npx prisma studio
+
+# Resetear base de datos (solo desarrollo)
+npx prisma migrate reset
+```
+
+### Modelos Principales
+
+- **User**: Usuarios del sistema
+- **Leccion**: Lecciones de aprendizaje
+- **Reto**: Desafíos dentro de lecciones
+- **Comando**: Comandos Linux esperados
+- **Progreso**: Seguimiento de progreso
+- **Item**: Items de gamificación
+
+## 🔑 Variables de Entorno
+
+### Con Docker
+
+Las variables de entorno se configuran en el archivo `docker-compose.dev.yml` o `docker-compose.yml`.
+
+Las más importantes ya están configuradas:
+- `DATABASE_URL`: Apunta al contenedor de PostgreSQL
+- `JWT_SECRET`: Usa el valor por defecto o configura uno propio
+- `PORT`: 3000 (ya configurado)
+
+Para variables opcionales (como email), puedes:
+
+**Opción 1: Archivo .env en la raíz del proyecto**
+```env
+JWT_SECRET=tu-secreto-super-seguro
+SENDGRID_API_KEY=tu-sendgrid-api-key
+```
+
+**Opción 2: Directamente en docker-compose.dev.yml**
+```yaml
+environment:
+  JWT_SECRET: tu-secreto-aqui
+  SENDGRID_API_KEY: tu-api-key-aqui
+```
+
+### Sin Docker
+
+Crea un archivo `.env` en la carpeta Backend:
+
+```env
+# Base de datos (asegúrate de tener PostgreSQL corriendo)
+DATABASE_URL="postgresql://user:password@localhost:5432/penguinpath?schema=public"
+
+# JWT - Autenticación
+JWT_SECRET="change-this-to-a-random-secret-key-in-production"
+JWT_EXPIRES_IN="7d"
+
+# Email - SendGrid (Opción 1)
+SENDGRID_API_KEY="your-sendgrid-api-key-here"
+EMAIL_FROM="noreply@penguinpath.com"
+
+# Frontend URL - Para CORS
+FRONTEND_URL="http://localhost:5173"
+
+# Puerto del servidor
+PORT=3000
+
+# Entorno
+NODE_ENV="development"
+```
+
+## 📝 Scripts Disponibles
+
+```json
+{
+  "start": "nest start",
+  "start:dev": "nest start --watch",
+  "start:debug": "nest start --debug --watch",
+  "start:prod": "node dist/main",
+  "build": "nest build",
+  "test": "jest",
+  "test:watch": "jest --watch",
+  "test:cov": "jest --coverage",
+  "test:e2e": "jest --config ./test/jest-e2e.json",
+  "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+  "format": "prettier --write \"src/**/*.ts\"",
+  "docker:build": "docker-compose build",
+  "docker:up": "docker-compose up -d",
+  "docker:down": "docker-compose down",
+  "docker:logs": "docker-compose logs -f"
+}
+```
+
+## 🌐 Endpoints Principales
+
+### Autenticación
+- `POST /auth/register` - Registrar usuario
+- `POST /auth/login` - Iniciar sesión
+- `GET /auth/confirm-email?token=` - Confirmar email
+
+### Usuarios
+- `GET /users` - Lista de usuarios
+- `GET /users/ranking` - Ranking por experiencia
+- `GET /users/:id` - Obtener usuario
+
+### Lecciones
+- `GET /lessons` - Lista de lecciones
+- `POST /lessons` - Crear lección
+- `GET /lessons/:id` - Obtener lección
+
+### Retos
+- `GET /challenges` - Lista de retos
+- `POST /challenges` - Crear reto
+
+### Progreso
+- `GET /progress` - Obtener progresos
+- `POST /progress` - Crear progreso
+
+## 🔒 Seguridad
+
+- ✅ Autenticación JWT
+- ✅ Validación de datos con class-validator
+- ✅ Encriptación de contraseñas con bcrypt
+- ✅ CORS configurado
+- ✅ Rate limiting (próximamente)
+- ✅ Helmet para headers de seguridad (próximamente)
+
+## 📦 Despliegue
+
+### Producción
+
+```bash
+# Build de producción
+pnpm run build
+
+# Ejecutar en producción
+pnpm run start:prod
+
+# Con PM2 (recomendado)
+pm2 start dist/main.js --name penguinpath-api
+```
+
+### Docker en Producción
+
+```bash
+# Usar docker-compose.prod.yml
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+## 🤝 Contribuir
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/amazing-feature`)
+3. Commit tus cambios (`git commit -m 'Add amazing feature'`)
+4. Push a la rama (`git push origin feature/amazing-feature`)
+5. Abre un Pull Request
+
+## 📄 Licencia
+
+Este proyecto está bajo la licencia MIT.
+
+## 👥 Equipo
+
+- **Equipo PenguinPath** - [penguinpath.duckdns.org](http://penguinpath.duckdns.org)
+
+## 📞 Soporte
+
+- 📧 Email: contact@penguinpath.com
+- 🌐 Website: http://penguinpath.duckdns.org
+- 📚 Docs: http://localhost:3000/api
+
+---
+
+Construido con ❤️ usando [NestJS](https://nestjs.com/)
+

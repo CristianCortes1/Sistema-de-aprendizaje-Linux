@@ -1,0 +1,19 @@
+# Asegurar finales de línea correctos para scripts de shell
+*.sh text eol=lf
+docker-entrypoint.sh text eol=lf
+
+# Otros archivos de texto
+*.js text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Archivos binarios
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
