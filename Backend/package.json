@@ -32,6 +32,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.6",
+    "@nestjs/swagger": "^11.2.1",
     "@nestjs/websockets": "^11.1.6",
     "@prisma/client": "6.17.1",
     "@sendgrid/mail": "^8.1.6",
@@ -94,6 +95,10 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1",
+      "^generated/(.*)$": "<rootDir>/../generated/$1"
+    }
   }
 }

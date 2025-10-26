@@ -1,22 +1,7 @@
 import { ref } from 'vue'
 
 const tokenKey = 'token'
-const guestIdKey = 'guestId'
 const isLogged = ref(!!localStorage.getItem(tokenKey))
-
-function getOrCreateGuestId(): string {
-    // Verificar si ya existe un guestId en localStorage
-    let guestId = localStorage.getItem(guestIdKey)
-    
-    if (!guestId) {
-        // Crear un nuevo guestId único
-        guestId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        localStorage.setItem(guestIdKey, guestId)
-        console.log('Created new guest ID:', guestId)
-    }
-    
-    return guestId
-}
 
 function setToken(token: string) {
     localStorage.setItem(tokenKey, token)
@@ -30,32 +15,26 @@ function getToken(): string | null {
 function getUserId(): string | null {
     const token = getToken()
     if (!token) {
-        // Si no hay token, generar o recuperar un guestId persistente
-        return getOrCreateGuestId()
+        // ❌ Sin token = sin acceso
+        return null
     }
 
     try {
         // Decodificar el JWT (payload está en la segunda parte)
         const parts = token.split('.')
-        if (parts.length !== 3) return getOrCreateGuestId()
+        if (parts.length !== 3) return null
         
         const payload = JSON.parse(atob(parts[1]))
-        return payload.sub || payload.userId || payload.id || getOrCreateGuestId()
+        return payload.sub || payload.userId || payload.id || null
     } catch (error) {
         console.error('Error decoding token:', error)
-        return getOrCreateGuestId()
+        return null
     }
 }
 
 function logout() {
     localStorage.removeItem(tokenKey)
-    // NO eliminar el guestId para mantener la persistencia
     isLogged.value = false
-}
-
-function clearGuestId() {
-    // Método opcional para limpiar el guestId si es necesario
-    localStorage.removeItem(guestIdKey)
 }
 
 function isAuthenticated(): boolean {
@@ -67,7 +46,6 @@ export default {
     getToken,
     getUserId,
     logout,
-    clearGuestId,
     isAuthenticated,
     isLogged
 }

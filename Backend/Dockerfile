@@ -19,6 +19,10 @@ RUN pnpm install --frozen-lockfile
 # Copiar el código fuente
 COPY . .
 
+# Asegurar que docker-entrypoint.sh tenga permisos correctos y finales de línea Unix
+RUN chmod +x docker-entrypoint.sh && \
+    dos2unix docker-entrypoint.sh || sed -i 's/\r$//' docker-entrypoint.sh || true
+
 # Generar Prisma Client
 RUN npx prisma generate
 
@@ -49,10 +53,10 @@ RUN pnpm install --prod --frozen-lockfile
 # Copiar archivos compilados desde builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
-# Crear script de inicio que ejecute migraciones
-COPY docker-entrypoint.sh /app/
-RUN chmod +x /app/docker-entrypoint.sh
+# Asegurar permisos de ejecución
+RUN chmod +x ./docker-entrypoint.sh
 
 # Crear directorio para Prisma Client y dar permisos al usuario node
 RUN mkdir -p /app/generated && chown -R node:node /app
