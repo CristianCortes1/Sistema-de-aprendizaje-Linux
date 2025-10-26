@@ -2,7 +2,7 @@
 
 Este es el frontend de la aplicación Sistema de Aprendizaje Linux, una plataforma interactiva para aprender comandos y conceptos de Linux.
 
-## 🚀 Características
+## Características
 
 - **Sistema de Autenticación**: Login, registro y confirmación de email
 - **Dashboard Interactivo**: Vista principal con módulos de aprendizaje
@@ -12,7 +12,7 @@ Este es el frontend de la aplicación Sistema de Aprendizaje Linux, una platafor
 - **Perfil y Configuración**: Gestión de cuenta y preferencias
 - **Panel de Administración**: Gestión de usuarios y lecciones
 
-## 🛠️ Tecnologías Utilizadas
+## Tecnologías Utilizadas
 
 - **Vue.js 3**: Framework principal
 - **TypeScript**: Soporte de tipado
@@ -21,7 +21,7 @@ Este es el frontend de la aplicación Sistema de Aprendizaje Linux, una platafor
 - **xterm.js**: Emulador de terminal web
 - **Vite**: Bundler y herramienta de desarrollo
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 src/
@@ -72,7 +72,7 @@ pnpm dev
 pnpm build
 ```
 
-## 🌐 Rutas de la Aplicación
+## Rutas de la Aplicación
 
 - `/`: Página de login
 - `/registro`: Registro de nuevos usuarios
@@ -83,12 +83,12 @@ pnpm build
 - `/leccion/:id`: Visualización de lecciones
 - `/admin`: Panel de administración
 
-## 👥 Roles de Usuario
+## Roles de Usuario
 
 - **Usuario Regular**: Acceso a lecciones, biblioteca y ranking
 - **Administrador**: Gestión de usuarios y contenido del sistema
 
-## 📱 Características de la Interfaz
+## Características de la Interfaz
 
 - Diseño responsivo
 - Tema oscuro/claro
