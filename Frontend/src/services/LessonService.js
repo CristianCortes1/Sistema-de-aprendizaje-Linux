@@ -1,9 +1,9 @@
 import AuthService from './AuthService';
-const API_BASE = 'https://sistema-de-aprendizaje-linux-production.up.railway.app';
+import { API_URL } from '../config/api';
 export default {
     async create(payload) {
         const token = AuthService.getToken();
-        const res = await fetch(`${API_BASE}/lessons`, {
+        const res = await fetch(`${API_URL}/lessons`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

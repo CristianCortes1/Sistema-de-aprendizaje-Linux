@@ -8,7 +8,7 @@ import { EmailModule } from '../email/email.module';
 @Module({
   imports: [
     JwtModule.register({
-      secret: "kahskldjhjkefrjkew78483753478dhyu8fyew895784yf867485y8dyu8f", // 🔐 ponla en .env después
+      secret: 'kahskldjhjkefrjkew78483753478dhyu8fyew895784yf867485y8dyu8f', // 🔐 ponla en .env después
       signOptions: { expiresIn: '1d' },
     }),
     EmailModule,

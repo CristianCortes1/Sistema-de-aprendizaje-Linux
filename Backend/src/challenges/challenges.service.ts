@@ -5,7 +5,6 @@ import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class ChallengesService {
-
   constructor(private prisma: PrismaService) {}
 
   create(createChallengeDto: CreateChallengeDto) {

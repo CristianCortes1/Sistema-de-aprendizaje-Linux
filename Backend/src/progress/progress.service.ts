@@ -5,7 +5,6 @@ import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class ProgressService {
-
   constructor(private prisma: PrismaService) {}
 
   create(createProgressDto: CreateProgressDto) {

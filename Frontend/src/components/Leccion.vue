@@ -9,6 +9,28 @@ import 'xterm/css/xterm.css'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
 
+// Función para obtener userId del token JWT
+function getUserIdForTerminal(): string | null {
+    const token = localStorage.getItem('token')
+    
+    if (!token) {
+        // ❌ Sin token = sin acceso al terminal
+        return null
+    }
+    
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        if (payload && payload.sub) {
+            // Convertir a string por si el ID viene como número
+            return String(payload.sub)
+        }
+    } catch (error) {
+        console.error('Error decoding token:', error)
+    }
+    
+    return null
+}
+
 export default defineComponent({
     name: 'Leccion',
     components: { Header, Footer },
@@ -16,15 +38,13 @@ export default defineComponent({
         const router = useRouter()
         const route = useRoute()
 
-        // Terminal
-        const socket = io('https://sistema-de-aprendizaje-linux-production.up.railway.app')
-        const terminalContainer = ref<HTMLElement | null>(null)
-        let terminal: Terminal | null = null
-        let fitAddon: FitAddon | null = null
-        
+        // Obtener userId del token (REQUERIDO para terminal)
+        const userId = getUserIdForTerminal()
+
         // Estado de la terminal
         const isConnected = ref(false)
         const terminalTitle = ref('Conectando...')
+        const terminalContainer = ref<HTMLElement | null>(null)
 
         // UI state (lesson, hints, progress)
         const showHint = ref(false)
@@ -39,6 +59,42 @@ export default defineComponent({
                 directory: '~'
             }
         })
+
+        // ❌ Redirigir a login si no está autenticado
+        if (!userId) {
+            console.warn('No authenticated user - redirecting to login')
+            router.push('/login')
+            
+            // Retornar objeto mínimo para evitar errores
+            return {
+                terminalContainer,
+                showHint,
+                toggleHint: () => {},
+                progress,
+                lesson,
+                goBack: () => {},
+                goInicio: () => {},
+                goBiblioteca: () => {},
+                goRanking: () => {},
+                goConfig: () => {},
+                isConnected,
+                terminalTitle,
+                clearTerminal: () => {},
+            }
+        }
+
+        // API URL usando la configuración centralizada
+        const WS_URL = import.meta.env.MODE === 'production' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+
+        // Terminal - conectar con autenticación
+        const socket = io(WS_URL, {
+            auth: {
+                userId: userId
+            }
+        })
+        
+        let terminal: Terminal | null = null
+        let fitAddon: FitAddon | null = null
 
         onMounted(async () => {
             await nextTick()
@@ -95,14 +151,12 @@ export default defineComponent({
             socket.on('connect', () => {
                 isConnected.value = true
                 terminalTitle.value = 'Terminal SSH'
-                terminal?.writeln('\x1b[1;32m✓ Conectado al servidor SSH\x1b[0m')
             })
 
             // Desconexión
             socket.on('disconnect', () => {
                 isConnected.value = false
                 terminalTitle.value = 'Desconectado'
-                terminal?.writeln('\x1b[1;31m✗ Desconectado del servidor\x1b[0m')
             })
 
             // Recibir output del servidor
@@ -201,9 +255,6 @@ export default defineComponent({
                             </div>
                         </div>
                         <div ref="terminalContainer" class="terminal-container"></div>
-                    </div>
-                    <div class="terminal-help">
-                        <span class="help-item">Terminal real con soporte completo para nano, vim, htop y más</span>
                     </div>
                 </div>
 
@@ -367,23 +418,6 @@ export default defineComponent({
 
 .terminal-container :deep(.xterm-viewport) {
     overflow-y: auto;
-}
-
-.terminal-help {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    font-size: 12px;
-}
-
-.help-item {
-    color: rgba(255, 255, 255, 0.7);
-    display: flex;
-    align-items: center;
-    gap: 5px;
 }
 
 .challenge-section {

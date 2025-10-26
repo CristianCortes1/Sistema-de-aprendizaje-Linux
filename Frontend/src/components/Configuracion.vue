@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import AuthService from '../services/AuthService'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
+import { API_URL } from '../config/api'
 
 export default {
   name: 'Configuracion',
@@ -75,7 +76,7 @@ export default {
 
       try {
         const token = AuthService.getToken()
-        const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users/update', {
+        const response = await fetch(`${API_URL}/users/update`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -111,7 +112,7 @@ export default {
 
       try {
         const token = AuthService.getToken()
-        const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users/change-password', {
+        const response = await fetch(`${API_URL}/users/change-password`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
