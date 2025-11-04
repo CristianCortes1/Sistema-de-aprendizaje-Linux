@@ -1,3 +1,5 @@
+CONFIGURACION
+
 <script>
 import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
@@ -6,133 +8,101 @@ import Header from './Header.vue'
 import Footer from './Footer.vue'
 import { API_URL } from '../config/api'
 
+const AVATAR_COLORS = ['FF6B6B', '4ECDC4', '45B7D1', 'FFA07A', '98D8C8', 'F7DC6F', 'BB8FCE']
+const AVATAR_OPTIONS = ['/Assets/Avatar1.svg', '/Assets/Avatar2.svg', '/Assets/Avatar3.svg']
+
 export default {
   name: 'Configuracion',
-  components: {
-    Header,
-    Footer
-  },
+  components: { Header, Footer },
   setup() {
     const router = useRouter()
-    const localUser = ref({
-      username: '',
-      correo: '',
-      racha: 0,
-      experiencia: 0,
-      avatar: ""
-    })
-
+    const localUser = ref({ username: '', correo: '', racha: 0, experiencia: 0, avatar: '' })
     const selectedAvatar = ref('')
     const newUsername = ref('')
-    const passwordData = ref({
-      current: '',
-      new: '',
-      confirm: ''
-    })
+    const passwordData = ref({ current: '', new: '', confirm: '' })
+    const avatarOptions = ref(AVATAR_OPTIONS)
 
-    // Opciones de avatares
-    const avatarOptions = ref([
-      'https://ui-avatars.com/api/?name=Avatar1&background=FF6B6B&color=fff&size=128&bold=true',
-      'https://ui-avatars.com/api/?name=Avatar2&background=4ECDC4&color=fff&size=128&bold=true',
-      'https://ui-avatars.com/api/?name=Avatar3&background=45B7D1&color=fff&size=128&bold=true',
-      'https://ui-avatars.com/api/?name=Avatar4&background=FFA07A&color=fff&size=128&bold=true',
-      'https://ui-avatars.com/api/?name=Avatar5&background=98D8C8&color=fff&size=128&bold=true',
-      'https://ui-avatars.com/api/?name=Avatar6&background=F7DC6F&color=fff&size=128&bold=true'
-    ])
+    // Utilidad para actualizar localStorage y estado local
+    const updateLocalUser = (fields) => {
+      localUser.value = { ...localUser.value, ...fields }
+      localStorage.setItem('user', JSON.stringify(localUser.value))
+    }
 
     onMounted(() => {
       document.title = 'Configuración - Sistema de Aprendizaje Linux'
-      
       const storedUser = localStorage.getItem('user')
       if (storedUser) {
-        const parsed = JSON.parse(storedUser)
-        localUser.value = {
-          username: parsed.username || '',
-          correo: parsed.correo || '',
-          racha: parsed.racha || 0,
-          experiencia: parsed.experiencia || 0,
-          avatar: parsed.avatar || ''
-        }
-        selectedAvatar.value = parsed.avatar || ''
-        newUsername.value = parsed.username || ''
+        Object.assign(localUser.value, JSON.parse(storedUser))
+        selectedAvatar.value = localUser.value.avatar || ''
+        newUsername.value = localUser.value.username || ''
       }
     })
 
-    const displayUser = computed(() => {
-      return localUser.value
-    })
+    const displayUser = computed(() => localUser.value)
 
     const getDefaultAvatar = (username) => {
-      const colors = ['FF6B6B', '4ECDC4', '45B7D1', 'FFA07A', '98D8C8', 'F7DC6F', 'BB8FCE']
-      const colorIndex = username.length % colors.length
-      return `https://ui-avatars.com/api/?name=${username}&background=${colors[colorIndex]}&color=fff&size=128&bold=true`
+      const color = AVATAR_COLORS[username.length % AVATAR_COLORS.length]
+      return `https://ui-avatars.com/api/?name=${username}&background=${color}&color=fff&size=128&bold=true`
+    }
+
+    const fetchUpdate = async (endpoint, body) => {
+      const token = AuthService.getToken()
+      if (!token) throw new Error('No hay token de autenticación')
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      })
+      return res
     }
 
     const updateUsername = async () => {
-      if (!newUsername.value.trim()) {
-        alert('Por favor ingresa un nombre de usuario')
-        return
-      }
-
+      if (!newUsername.value.trim()) return alert('Por favor ingresa un nombre de usuario')
       try {
-        const token = AuthService.getToken()
-        const response = await fetch(`${API_URL}/users/update`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ username: newUsername.value })
-        })
-
-        if (response.ok) {
-          const updatedUser = { ...localUser.value, username: newUsername.value }
-          localUser.value = updatedUser
-          localStorage.setItem('user', JSON.stringify(updatedUser))
+        const res = await fetchUpdate('/users/update', { username: newUsername.value })
+        if (res.ok) {
+          updateLocalUser({ username: newUsername.value })
           alert('Nombre de usuario actualizado correctamente')
         } else {
           alert('Error al actualizar el nombre de usuario')
         }
-      } catch (error) {
-        console.error('Error:', error)
+      } catch (e) {
         alert('Error al actualizar el nombre de usuario')
       }
     }
 
     const updatePassword = async () => {
-      if (!passwordData.value.current || !passwordData.value.new || !passwordData.value.confirm) {
-        alert('Por favor completa todos los campos')
-        return
-      }
-
-      if (passwordData.value.new !== passwordData.value.confirm) {
-        alert('Las contraseñas no coinciden')
-        return
-      }
-
+      const { current, new: newPass, confirm } = passwordData.value
+      if (!current || !newPass || !confirm) return alert('Por favor completa todos los campos')
+      if (newPass !== confirm) return alert('Las contraseñas no coinciden')
       try {
-        const token = AuthService.getToken()
-        const response = await fetch(`${API_URL}/users/change-password`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            currentPassword: passwordData.value.current,
-            newPassword: passwordData.value.new
-          })
-        })
-
-        if (response.ok) {
+        const res = await fetchUpdate('/users/change-password', { currentPassword: current, newPassword: newPass })
+        if (res.ok) {
           alert('Contraseña actualizada correctamente')
           passwordData.value = { current: '', new: '', confirm: '' }
         } else {
           alert('Error al actualizar la contraseña. Verifica tu contraseña actual.')
         }
-      } catch (error) {
-        console.error('Error:', error)
+      } catch (e) {
         alert('Error al actualizar la contraseña')
+      }
+    }
+
+    const updateAvatar = async () => {
+      if (!selectedAvatar.value) return alert('Por favor selecciona un avatar')
+      try {
+        const res = await fetchUpdate('/users/update', { avatar: selectedAvatar.value, username: localUser.value.username })
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}))
+          throw new Error(errorData.message || 'Error al actualizar el avatar')
+        }
+        updateLocalUser({ avatar: selectedAvatar.value })
+        alert('Avatar actualizado con éxito')
+      } catch (e) {
+        alert(e instanceof Error ? e.message : 'Error al actualizar el avatar')
       }
     }
 
@@ -152,6 +122,7 @@ export default {
       getDefaultAvatar,
       updateUsername,
       updatePassword,
+      updateAvatar,
       handleLogout
     }
   }
@@ -213,6 +184,9 @@ export default {
             <img :src="avatar" :alt="`Avatar ${index + 1}`" />
           </div>
         </div>
+        <button @click="updateAvatar" class="btn-primary">
+            Guardar selección
+          </button>
       </div>
 
       <!-- Cambiar nombre de usuario -->
