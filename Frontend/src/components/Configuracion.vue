@@ -9,7 +9,7 @@ import Footer from './Footer.vue'
 import { API_URL } from '../config/api'
 
 const AVATAR_COLORS = ['FF6B6B', '4ECDC4', '45B7D1', 'FFA07A', '98D8C8', 'F7DC6F', 'BB8FCE']
-const AVATAR_OPTIONS = ['/Assets/Avatar1.svg', '/Assets/Avatar2.svg', '/Assets/Avatar3.svg']
+const AVATAR_OPTIONS = ['Assets/Avatar1.svg', 'Assets/Avatar2.svg', 'Assets/Avatar3.svg']
 
 export default {
   name: 'Configuracion',
