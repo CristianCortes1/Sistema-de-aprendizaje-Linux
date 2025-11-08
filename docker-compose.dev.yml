@@ -30,9 +30,9 @@ services:
     user: root
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/penguinpath?schema=public
-      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      JWT_SECRET: ${JWT_SECRET}
       PORT: 3000
-      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
       DOCKER_HOST: unix:///var/run/docker.sock
     volumes:
       # Docker socket para crear contenedores
