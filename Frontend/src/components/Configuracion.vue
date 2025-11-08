@@ -1,5 +1,3 @@
-CONFIGURACION
-
 <script>
 import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
@@ -8,101 +6,133 @@ import Header from './Header.vue'
 import Footer from './Footer.vue'
 import { API_URL } from '../config/api'
 
-const AVATAR_COLORS = ['FF6B6B', '4ECDC4', '45B7D1', 'FFA07A', '98D8C8', 'F7DC6F', 'BB8FCE']
-const AVATAR_OPTIONS = ['Assets/Avatar1.svg', 'Assets/Avatar2.svg', 'Assets/Avatar3.svg']
-
 export default {
   name: 'Configuracion',
-  components: { Header, Footer },
+  components: {
+    Header,
+    Footer
+  },
   setup() {
     const router = useRouter()
-    const localUser = ref({ username: '', correo: '', racha: 0, experiencia: 0, avatar: '' })
+    const localUser = ref({
+      username: '',
+      correo: '',
+      racha: 0,
+      experiencia: 0,
+      avatar: ""
+    })
+
     const selectedAvatar = ref('')
     const newUsername = ref('')
-    const passwordData = ref({ current: '', new: '', confirm: '' })
-    const avatarOptions = ref(AVATAR_OPTIONS)
+    const passwordData = ref({
+      current: '',
+      new: '',
+      confirm: ''
+    })
 
-    // Utilidad para actualizar localStorage y estado local
-    const updateLocalUser = (fields) => {
-      localUser.value = { ...localUser.value, ...fields }
-      localStorage.setItem('user', JSON.stringify(localUser.value))
-    }
+    // Opciones de avatares
+    const avatarOptions = ref([
+      '/Assets/Avatar1.svg',
+      '/Assets/Avatar2.svg',
+      '/Assets/Avatar3.svg'
+    ])
 
     onMounted(() => {
       document.title = 'Configuración - Sistema de Aprendizaje Linux'
+      
       const storedUser = localStorage.getItem('user')
       if (storedUser) {
-        Object.assign(localUser.value, JSON.parse(storedUser))
-        selectedAvatar.value = localUser.value.avatar || ''
-        newUsername.value = localUser.value.username || ''
+        const parsed = JSON.parse(storedUser)
+        localUser.value = {
+          username: parsed.username || '',
+          correo: parsed.correo || '',
+          racha: parsed.racha || 0,
+          experiencia: parsed.experiencia || 0,
+          avatar: parsed.avatar || ''
+        }
+        selectedAvatar.value = parsed.avatar || ''
+        newUsername.value = parsed.username || ''
       }
     })
 
-    const displayUser = computed(() => localUser.value)
+    const displayUser = computed(() => {
+      return localUser.value
+    })
 
     const getDefaultAvatar = (username) => {
-      const color = AVATAR_COLORS[username.length % AVATAR_COLORS.length]
-      return `https://ui-avatars.com/api/?name=${username}&background=${color}&color=fff&size=128&bold=true`
-    }
-
-    const fetchUpdate = async (endpoint, body) => {
-      const token = AuthService.getToken()
-      if (!token) throw new Error('No hay token de autenticación')
-      const res = await fetch(`${API_URL}${endpoint}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      })
-      return res
+      const colors = ['FF6B6B', '4ECDC4', '45B7D1', 'FFA07A', '98D8C8', 'F7DC6F', 'BB8FCE']
+      const colorIndex = username.length % colors.length
+      return `https://ui-avatars.com/api/?name=${username}&background=${colors[colorIndex]}&color=fff&size=128&bold=true`
     }
 
     const updateUsername = async () => {
-      if (!newUsername.value.trim()) return alert('Por favor ingresa un nombre de usuario')
+      if (!newUsername.value.trim()) {
+        alert('Por favor ingresa un nombre de usuario')
+        return
+      }
+
       try {
-        const res = await fetchUpdate('/users/update', { username: newUsername.value })
-        if (res.ok) {
-          updateLocalUser({ username: newUsername.value })
+        const token = AuthService.getToken()
+        const userInfo = JSON.parse(atob(token.split('.')[1]));
+        const userId = userInfo.sub;
+        
+        const response = await fetch(`${API_URL}/users/${userId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username: newUsername.value })
+        })
+
+        if (response.ok) {
+          const updatedUser = { ...localUser.value, username: newUsername.value }
+          localUser.value = updatedUser
+          localStorage.setItem('user', JSON.stringify(updatedUser))
           alert('Nombre de usuario actualizado correctamente')
         } else {
           alert('Error al actualizar el nombre de usuario')
         }
-      } catch (e) {
+      } catch (error) {
+        console.error('Error:', error)
         alert('Error al actualizar el nombre de usuario')
       }
     }
 
     const updatePassword = async () => {
-      const { current, new: newPass, confirm } = passwordData.value
-      if (!current || !newPass || !confirm) return alert('Por favor completa todos los campos')
-      if (newPass !== confirm) return alert('Las contraseñas no coinciden')
+      if (!passwordData.value.current || !passwordData.value.new || !passwordData.value.confirm) {
+        alert('Por favor completa todos los campos')
+        return
+      }
+
+      if (passwordData.value.new !== passwordData.value.confirm) {
+        alert('Las contraseñas no coinciden')
+        return
+      }
+
       try {
-        const res = await fetchUpdate('/users/change-password', { currentPassword: current, newPassword: newPass })
-        if (res.ok) {
+        const token = AuthService.getToken()
+        const response = await fetch(`${API_URL}/users/change-password`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            currentPassword: passwordData.value.current,
+            newPassword: passwordData.value.new
+          })
+        })
+
+        if (response.ok) {
           alert('Contraseña actualizada correctamente')
           passwordData.value = { current: '', new: '', confirm: '' }
         } else {
           alert('Error al actualizar la contraseña. Verifica tu contraseña actual.')
         }
-      } catch (e) {
+      } catch (error) {
+        console.error('Error:', error)
         alert('Error al actualizar la contraseña')
-      }
-    }
-
-    const updateAvatar = async () => {
-      if (!selectedAvatar.value) return alert('Por favor selecciona un avatar')
-      try {
-        const res = await fetchUpdate('/users/update', { avatar: selectedAvatar.value, username: localUser.value.username })
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}))
-          throw new Error(errorData.message || 'Error al actualizar el avatar')
-        }
-        updateLocalUser({ avatar: selectedAvatar.value })
-        alert('Avatar actualizado con éxito')
-      } catch (e) {
-        alert(e instanceof Error ? e.message : 'Error al actualizar el avatar')
       }
     }
 
@@ -111,6 +141,67 @@ export default {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       router.push('/')
+    }
+
+    const updateAvatar = async () => {
+      if (!selectedAvatar.value) {
+        alert('Por favor selecciona un avatar')
+        return
+      }
+
+      try {
+        const token = AuthService.getToken()
+        if (!token) {
+          throw new Error('No hay token de autenticación')
+        }
+
+        // Obtener el ID del usuario del token decodificado
+        const userInfo = JSON.parse(atob(token.split('.')[1]));
+        const userId = userInfo.sub; // El ID del usuario está en el campo 'sub' del token JWT
+
+        console.log('Enviando actualización de avatar:', {
+          selectedAvatar: selectedAvatar.value,
+          token: token,
+          url: `${API_URL}/users/${userId}`
+        })
+
+        const response = await fetch(`${API_URL}/users/${userId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            avatar: selectedAvatar.value
+          })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          console.error('Error response:', errorData)
+          throw new Error(errorData.message || 'Error al actualizar el avatar')
+        }
+
+        const data = await response.json()
+        console.log('Respuesta exitosa:', data)
+
+        // Actualizar localStorage y estado local
+        const storedUser = localStorage.getItem('user')
+        if (storedUser) {
+          const userData = JSON.parse(storedUser)
+          userData.avatar = selectedAvatar.value
+          localStorage.setItem('user', JSON.stringify(userData))
+        }
+
+        localUser.value.avatar = selectedAvatar.value
+        alert('Avatar actualizado con éxito')
+        
+        // Forzar actualización del componente
+        localUser.value = { ...localUser.value }
+      } catch (error) {
+        console.error('Error detallado:', error)
+        alert(error instanceof Error ? error.message : 'Error al actualizar el avatar')
+      }
     }
 
     return {
