@@ -74,7 +74,7 @@ export default defineComponent({
                 <span>{{ displayUser.experiencia }} XP</span>
             </div>
             <div class="perfil">
-                <img :src="displayUser.avatar" alt="Perfil" />
+                <img :src="displayUser.avatar || '/Assets/Avatar1.svg'" alt="Perfil" />
                 <span>{{ displayUser.username }}</span>
                 <button class="logout-btn" @click="handleLogout">
                 </button>
