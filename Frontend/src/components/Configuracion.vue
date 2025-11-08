@@ -37,6 +37,7 @@ export default {
       '/Assets/Avatar3.svg'
     ])
 
+    
     onMounted(() => {
       document.title = 'Configuración - Sistema de Aprendizaje Linux'
       
