@@ -26,6 +26,9 @@ export class UsersService {
 
   findAllForExperience() {
     return this.prisma.user.findMany({
+      where: {
+        rol: { not: 'admin' }, // Excluir usuarios con rol admin
+      },
       orderBy: { experiencia: 'desc' },
     });
   }

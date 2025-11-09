@@ -16,9 +16,19 @@ export class AuthService {
   ) {}
 
   async validateUser(username: string, password: string) {
+    // Limpiar y normalizar entrada
+    const credential = username.trim().toLowerCase();
+    
+    // Buscar por username o correo (case-insensitive)
     const user = await this.prisma.user.findFirst({
-      where: { username },
+      where: {
+        OR: [
+          { username: { equals: credential, mode: 'insensitive' } },
+          { correo: { equals: credential, mode: 'insensitive' } },
+        ],
+      },
     });
+
     if (user && (await bcrypt.compare(password, user.contraseña))) {
       if (!user.activo) {
         throw new UnauthorizedException(
@@ -82,6 +92,32 @@ export class AuthService {
     }
   }
   async register(username: string, correo: string, password: string) {
+    // Limpiar y normalizar entrada
+    const cleanUsername = username.trim();
+    const cleanEmail = correo.trim().toLowerCase();
+    
+    // Verificar si ya existe un usuario con el mismo username (case-insensitive)
+    const existingUsername = await this.prisma.user.findFirst({
+      where: {
+        username: { equals: cleanUsername, mode: 'insensitive' },
+      },
+    });
+
+    if (existingUsername) {
+      throw new UnauthorizedException('Username already exists');
+    }
+
+    // Verificar si ya existe un usuario con el mismo correo (case-insensitive)
+    const existingEmail = await this.prisma.user.findFirst({
+      where: {
+        correo: { equals: cleanEmail, mode: 'insensitive' },
+      },
+    });
+
+    if (existingEmail) {
+      throw new UnauthorizedException('Email already exists');
+    }
+    
     const hashed = await bcrypt.hash(password, 10);
     const confirmationToken = crypto.randomBytes(32).toString('hex');
 
@@ -100,8 +136,8 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
-        username,
-        correo,
+        username: cleanUsername,
+        correo: cleanEmail,
         contraseña: hashed,
         avatar: DEFAULT_AVATAR,
         activo: false, // Usuario debe confirmar email
@@ -111,9 +147,9 @@ export class AuthService {
 
     // Enviar email de confirmación con SendGrid
     await this.emailService.sendConfirmationEmail(
-      correo,
+      cleanEmail,
       confirmationToken,
-      username,
+      cleanUsername,
     );
 
     const { contraseña, confirmationToken: token, ...result } = user;
