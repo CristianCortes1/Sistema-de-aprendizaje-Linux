@@ -9,6 +9,9 @@ import Ranking from '../components/Ranking.vue';
 import Configuracion from '../components/Configuracion.vue';
 import Leccion from '../components/Leccion.vue';
 import AdminDashboard from '../components/AdminDashboard.vue';
+import PrivacyPolicy from '../components/PrivacyPolicy.vue';
+import TermsConditions from '../components/TermsConditions.vue';
+
 const routes = [
     {
         path: '/',
@@ -21,6 +24,16 @@ const routes = [
         name: 'Registro',
         component: Registro,
         meta: { guestOnly: true }
+    },
+    {
+        path: '/privacy-policy',
+        name: 'PrivacyPolicy',
+        component: PrivacyPolicy
+    },
+    {
+        path: '/terms',
+        name: 'TermsConditions',
+        component: TermsConditions
     },
     {
         path: '/confirm-email',
