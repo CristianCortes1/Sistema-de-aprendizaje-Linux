@@ -2,17 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma.service';
-
+import * as bcrypt from 'bcryptjs';
+  
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto) {
+    const saltRounds = parseInt(process.env.BCRYPT_SALT || '10', 10);
+    const hashedPassword = await bcrypt.hash(createUserDto.password, saltRounds);
+
     return this.prisma.user.create({
       data: {
         username: createUserDto.username,
         correo: createUserDto.email,
-        contraseña: createUserDto.password,
+        contraseña: hashedPassword,
         avatar: createUserDto.avatar,
         rol: createUserDto.rol,
         activo: createUserDto.activo,
@@ -36,17 +40,23 @@ export class UsersService {
     });
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  async update(id: number, updateUserDto: UpdateUserDto) {
+    const data: any = {
+      username: updateUserDto.username,
+      correo: updateUserDto.email,
+      avatar: updateUserDto.avatar,
+      rol: updateUserDto.rol,
+      activo: updateUserDto.activo,
+    };
+
+    if (updateUserDto.password) {
+      const saltRounds = parseInt(process.env.BCRYPT_SALT || '10', 10);
+      data.contraseña = await bcrypt.hash(updateUserDto.password, saltRounds);
+    }
+
     return this.prisma.user.update({
       where: { id_Usuario: id },
-      data: {
-        username: updateUserDto.username,
-        correo: updateUserDto.email,
-        contraseña: updateUserDto.password,
-        avatar: updateUserDto.avatar,
-        rol: updateUserDto.rol,
-        activo: updateUserDto.activo,
-      },
+      data,
     });
   }
 
