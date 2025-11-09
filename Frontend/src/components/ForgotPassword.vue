@@ -131,6 +131,12 @@ const handleForgotPassword = async () => {
 </template>
 
 <style scoped>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .forgot-password-container {
   min-height: 100vh;
   display: flex;
@@ -139,6 +145,12 @@ const handleForgotPassword = async () => {
   background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
   padding: 20px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .forgot-password-card {

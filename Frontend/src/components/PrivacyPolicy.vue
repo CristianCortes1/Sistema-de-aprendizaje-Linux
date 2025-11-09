@@ -87,10 +87,23 @@ export default defineComponent({
 </template>
 
 <style scoped>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 .legal-page {
     min-height: 100vh;
     background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
     padding: 40px 20px;
+    margin: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
 }
 
 .container {

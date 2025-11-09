@@ -156,7 +156,7 @@ export default defineComponent({
                         <input type="checkbox" v-model="acceptedPrivacy" required />
                         <span>
                             He leído y acepto la 
-                            <router-link to="/privacy-policy" target="_blank" class="inline-link">Política de Privacidad</router-link>
+                            <router-link to="/privacy-policy" class="inline-link">Política de Privacidad</router-link>
                         </span>
                     </label>
                 </div>
@@ -166,7 +166,7 @@ export default defineComponent({
                         <input type="checkbox" v-model="acceptedTerms" required />
                         <span>
                             He leído y acepto los 
-                            <router-link to="/terms" target="_blank" class="inline-link">Términos y Condiciones</router-link>
+                            <router-link to="/terms" class="inline-link">Términos y Condiciones</router-link>
                         </span>
                     </label>
                 </div>
