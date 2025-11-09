@@ -174,20 +174,30 @@ const openAddLesson = () => {
     modalVisible.value = true
 }
 
-const editLesson = (id: number) => {
-    const leccion = lecciones.value.find(l => l.id === id)
-    if (leccion) {
-        modalTitle.value = 'Editar Lección'
-        modalType.value = 'leccion'
-        modalData.value = {
-            titulo: leccion.titulo,
-            descripcion: leccion.descripcion,
-            comandos: '',
-            retroalimentacion: ''
+const editLesson = async (id: number) => {
+    try {
+        // Obtener los detalles completos de la lección
+        const response = await fetch(`${API_URL}/lessons/${id}`)
+        if (!response.ok) throw new Error('Error al cargar la lección')
+        
+        const leccion = await response.json()
+        console.log('Lección cargada para editar:', leccion)
+        
+        // Mapear los datos al formato del formulario
+        newLesson.value = {
+            title: leccion.Titulo,
+            challenges: leccion.retos.map((reto: any) => ({
+                description: reto.descripcion,
+                feedback: reto.Retroalimentacion || '',
+                commands: reto.comandos.map((cmd: any) => ({ comando: cmd.comando }))
+            }))
         }
-        currentContext = 'lecciones'
+        
         currentItemId = id
-        modalVisible.value = true
+        showAddLesson.value = true
+    } catch (err) {
+        console.error('Error cargando lección:', err)
+        alert('Error al cargar la lección para editar')
     }
 }
 
@@ -366,8 +376,25 @@ const saveLesson = async () => {
     try {
         const payload = toRequestPayload()
         console.log('Enviando payload:', JSON.stringify(payload, null, 2))
-        await LessonService.create(payload)
-        saveSuccess.value = 'Lección creada correctamente.'
+        
+        if (currentItemId) {
+            // Editar lección existente
+            const response = await fetch(`${API_URL}/lessons/${currentItemId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            
+            if (!response.ok) throw new Error('Error al actualizar la lección')
+            saveSuccess.value = 'Lección actualizada correctamente.'
+        } else {
+            // Crear nueva lección
+            await LessonService.create(payload)
+            saveSuccess.value = 'Lección creada correctamente.'
+        }
+        
         await fetchLessons()
         
         // Reset form
@@ -379,10 +406,11 @@ const saveLesson = async () => {
                 commands: [{ comando: '' }] 
             }] 
         }
+        currentItemId = null
         showAddLesson.value = false
     } catch (err: any) {
-        console.error('Error creating lesson:', err)
-        saveError.value = err.message || 'Error al crear la lección.'
+        console.error('Error saving lesson:', err)
+        saveError.value = err.message || 'Error al guardar la lección.'
     } finally {
         isSaving.value = false
     }
@@ -504,11 +532,11 @@ const saveLesson = async () => {
         </main>
 
         <!-- Modal: Add Lesson con Challenges (mantener original) -->
-        <div v-if="showAddLesson" class="modal-overlay" @click="showAddLesson = false">
+        <div v-if="showAddLesson" class="modal-overlay" @click="showAddLesson = false; currentItemId = null">
             <div class="modal-content" @click.stop>
                 <div class="modal-header">
-                    <h3>Agregar Lección</h3>
-                    <button class="btn-close" @click="showAddLesson = false">×</button>
+                    <h3>{{ currentItemId ? 'Editar Lección' : 'Agregar Lección' }}</h3>
+                    <button class="btn-close" @click="showAddLesson = false; currentItemId = null">×</button>
                 </div>
 
                 <div class="modal-body">
@@ -563,9 +591,9 @@ const saveLesson = async () => {
                             {{ saveSuccess }}
                         </div>
                         <div style="display:flex; gap:12px; justify-content:flex-end;">
-                            <button class="btn-cancel" @click="showAddLesson = false">Cancelar</button>
+                            <button class="btn-cancel" @click="showAddLesson = false; currentItemId = null">Cancelar</button>
                             <button class="btn-save" @click="saveLesson" :disabled="isSaving">
-                                {{ isSaving ? 'Guardando...' : 'Guardar Lección' }}
+                                {{ isSaving ? 'Guardando...' : (currentItemId ? 'Actualizar Lección' : 'Guardar Lección') }}
                             </button>
                         </div>
                     </div>

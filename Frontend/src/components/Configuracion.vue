@@ -354,8 +354,8 @@ export default {
       <div class="footer-info">
         <span>© 2024 Penguin Path. Todos los derechos reservados.</span>
         <div class="footer-links">
-          <a href="#">Términos de servicio</a>
-          <a href="#">Política de privacidad</a>
+          <router-link to="/terms">Términos de servicio</router-link>
+          <router-link to="/privacy-policy">Política de privacidad</router-link>
         </div>
       </div>
     </div>
