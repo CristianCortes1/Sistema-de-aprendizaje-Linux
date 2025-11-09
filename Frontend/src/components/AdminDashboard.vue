@@ -35,8 +35,11 @@ const isLoadingLessons = ref(false)
 const showAddLesson = ref(false)
 const newLesson = ref<any>({
     title: '',
-    description: '',
-    challenges: [{ title: '', command: '', feedback: '' }]
+    challenges: [{ 
+        description: '', 
+        feedback: '', 
+        commands: [{ comando: '' }] 
+    }]
 })
 
 const filteredUsuarios = computed(() => {
@@ -297,9 +300,13 @@ const confirmarEliminacion = async () => {
     }
 }
 
-// Funciones para el modal de agregar lección con challenges (mantener original)
+// Funciones para el modal de agregar lección con challenges
 const addChallenge = () => {
-    newLesson.value.challenges.push({ title: '', command: '', feedback: '' })
+    newLesson.value.challenges.push({ 
+        description: '', 
+        feedback: '', 
+        commands: [{ comando: '' }] 
+    })
 }
 
 const addCommand = (challengeIndex: number) => {
@@ -326,9 +333,9 @@ const toRequestPayload = () => {
     return {
         titulo: newLesson.value.title,
         retos: newLesson.value.challenges.map((c: any) => ({
-            descripcion: c.title,
+            descripcion: c.description,
             Retroalimentacion: c.feedback || null,
-            comandos: (c.commands || (c.command ? [{ comando: c.command }] : [])).map((cmd: any) => ({ comando: cmd.comando ?? cmd.command }))
+            comandos: c.commands.map((cmd: any) => ({ comando: cmd.comando }))
         }))
     }
 }
@@ -336,18 +343,42 @@ const toRequestPayload = () => {
 const saveLesson = async () => {
     saveError.value = ''
     saveSuccess.value = ''
+    
+    // Validación
     if (!newLesson.value.title || newLesson.value.challenges.length === 0) {
         saveError.value = 'El título y al menos un reto son obligatorios.'
         return
     }
 
+    // Validar que cada reto tenga al menos un comando
+    for (const challenge of newLesson.value.challenges) {
+        if (!challenge.description) {
+            saveError.value = 'Todos los retos deben tener una descripción.'
+            return
+        }
+        if (!challenge.commands || challenge.commands.length === 0 || !challenge.commands[0].comando) {
+            saveError.value = 'Cada reto debe tener al menos un comando válido.'
+            return
+        }
+    }
+
     isSaving.value = true
     try {
         const payload = toRequestPayload()
+        console.log('Enviando payload:', JSON.stringify(payload, null, 2))
         await LessonService.create(payload)
         saveSuccess.value = 'Lección creada correctamente.'
         await fetchLessons()
-        newLesson.value = { title: '', description: '', challenges: [{ title: '', command: '', feedback: '' }] }
+        
+        // Reset form
+        newLesson.value = { 
+            title: '', 
+            challenges: [{ 
+                description: '', 
+                feedback: '', 
+                commands: [{ comando: '' }] 
+            }] 
+        }
         showAddLesson.value = false
     } catch (err: any) {
         console.error('Error creating lesson:', err)
@@ -482,51 +513,60 @@ const saveLesson = async () => {
 
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Título</label>
-                        <input type="text" v-model="newLesson.title" placeholder="Dominando lineas de comando." class="form-input" />
+                        <label>Título de la Lección</label>
+                        <input type="text" v-model="newLesson.title" placeholder="Ej: Comandos básicos de listado" class="form-input" />
                     </div>
 
                     <div class="form-group">
-                        <label>Descripción</label>
-                        <textarea v-model="newLesson.description" placeholder="Un pequeño resumen de que cubre la lección." rows="4" class="form-textarea"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <div class="challenges-header" style="display:flex; justify-content:space-between; align-items:center;">
-                            <label style="color:white">Retos</label>
-                            <button class="btn-add-challenge btn-add" @click="addChallenge">Añade un reto</button>
+                        <div class="challenges-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <label style="color:white; margin:0;">Retos</label>
+                            <button class="btn-add" @click="addChallenge">+ Añadir Reto</button>
                         </div>
 
                         <div class="challenges-list">
-                            <div v-for="(challenge, index) in newLesson.challenges" :key="index" class="challenge-item" style="margin-top:12px;">
-                                <div style="display:flex; gap:8px;">
-                                    <input type="text" v-model="challenge.title" placeholder="Crea una carpeta" class="challenge-input form-input" />
-                                    <input type="text" v-model="challenge.command" placeholder="mkdir my_folder" class="challenge-input form-input mono" />
-                                </div>
-                                <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-                                    <textarea v-model="challenge.feedback" placeholder="Mensaje de retroalimentación." class="form-textarea" style="flex:1"></textarea>
-                                </div>
-                                <div style="margin-top:8px; display:flex; gap:8px;">
-                                    <button class="btn-add" @click.prevent="addCommand(index)">Añade un comando</button>
-                                    <button class="btn-delete" @click.prevent="removeChallenge(index)">Elimina un reto</button>
+                            <div v-for="(challenge, index) in newLesson.challenges" :key="index" class="challenge-item" style="background: rgba(255, 255, 255, 0.1); padding: 16px; border-radius: 10px; margin-bottom: 12px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                    <label style="color:white; font-weight:600; margin:0;">Reto {{ index + 1 }}</label>
+                                    <button class="btn-delete" @click.prevent="removeChallenge(index)" style="padding: 4px 12px; font-size: 12px;">Eliminar Reto</button>
                                 </div>
 
-                                <div v-if="challenge.commands && challenge.commands.length" style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
-                                    <div v-for="(cmd, ci) in challenge.commands" :key="ci" style="display:flex; gap:8px; align-items:center;">
-                                        <input v-model="cmd.comando" placeholder="Comando" class="form-input" />
-                                        <button class="btn-delete" @click.prevent="removeCommand(index, ci)">Eliminar</button>
+                                <div class="form-group" style="margin-bottom:12px;">
+                                    <label style="font-size:13px;">Descripción del Reto</label>
+                                    <input type="text" v-model="challenge.description" placeholder="Ej: Lista todos los archivos del directorio actual" class="form-input" />
+                                </div>
+
+                                <div class="form-group" style="margin-bottom:12px;">
+                                    <label style="font-size:13px;">Retroalimentación (opcional)</label>
+                                    <textarea v-model="challenge.feedback" placeholder="Ej: ¡Excelente! Has usado el comando correcto" rows="2" class="form-textarea"></textarea>
+                                </div>
+
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                        <label style="font-size:13px; margin:0;">Comandos Válidos</label>
+                                        <button class="btn-add" @click.prevent="addCommand(index)" style="padding: 4px 10px; font-size: 12px;">+ Comando</button>
+                                    </div>
+
+                                    <div v-for="(cmd, ci) in challenge.commands" :key="ci" style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+                                        <input v-model="cmd.comando" placeholder="Ej: ls -la" class="form-input mono" style="flex:1;" />
+                                        <button v-if="challenge.commands.length > 1" class="btn-delete" @click.prevent="removeCommand(index, ci)" style="padding: 8px 12px; font-size: 12px;">×</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div style="margin-top:12px;">
-                        <div v-if="saveError" style="color: #ffbdbd; margin-bottom:8px">{{ saveError }}</div>
-                        <div v-if="saveSuccess" style="color: #bdf5bd; margin-bottom:8px">{{ saveSuccess }}</div>
-                        <div style="display:flex; gap:8px; justify-content:flex-end;">
-                            <button class="btn-cancel" @click="showAddLesson = false">Cancel</button>
-                            <button class="btn-save" @click="saveLesson" :disabled="isSaving">{{ isSaving ? 'Saving...' : 'Save Lesson' }}</button>
+                    <div style="margin-top:20px;">
+                        <div v-if="saveError" style="color: #ffbdbd; margin-bottom:12px; padding:12px; background: rgba(239, 68, 68, 0.2); border-radius:8px; border: 1px solid rgba(239, 68, 68, 0.4);">
+                            {{ saveError }}
+                        </div>
+                        <div v-if="saveSuccess" style="color: #bdf5bd; margin-bottom:12px; padding:12px; background: rgba(34, 197, 94, 0.2); border-radius:8px; border: 1px solid rgba(34, 197, 94, 0.4);">
+                            {{ saveSuccess }}
+                        </div>
+                        <div style="display:flex; gap:12px; justify-content:flex-end;">
+                            <button class="btn-cancel" @click="showAddLesson = false">Cancelar</button>
+                            <button class="btn-save" @click="saveLesson" :disabled="isSaving">
+                                {{ isSaving ? 'Guardando...' : 'Guardar Lección' }}
+                            </button>
                         </div>
                     </div>
                 </div>
