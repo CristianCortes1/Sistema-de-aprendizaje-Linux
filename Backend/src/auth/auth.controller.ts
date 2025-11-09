@@ -8,6 +8,9 @@ import {
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/create-auth.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -130,6 +133,97 @@ export class AuthController {
       message: 'Email confirmed successfully',
       user,
     };
+  }
+
+  @Post('change-password')
+  @ApiOperation({
+    summary: 'Cambiar contraseña',
+    description: 'Permite a un usuario cambiar su contraseña',
+  })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña actualizada exitosamente',
+    schema: {
+      example: {
+        message: 'Contraseña actualizada exitosamente',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no encontrado o contraseña actual incorrecta',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'La contraseña actual es incorrecta',
+        error: 'Unauthorized',
+      },
+    },
+  })
+  async changePassword(@Body() changePasswordDto: ChangePasswordDto) {
+    return this.authService.changePassword(
+      changePasswordDto.email,
+      changePasswordDto.currentPassword,
+      changePasswordDto.newPassword,
+    );
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({
+    summary: 'Solicitar recuperación de contraseña',
+    description:
+      'Envía un correo electrónico con un link para restablecer la contraseña',
+  })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Si el correo existe, se enviará un link de recuperación',
+    schema: {
+      example: {
+        message:
+          'Si el correo existe en nuestro sistema, recibirás instrucciones para restablecer tu contraseña',
+      },
+    },
+  })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Post('reset-password')
+  @ApiOperation({
+    summary: 'Restablecer contraseña',
+    description:
+      'Restablece la contraseña usando el token recibido por correo',
+  })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña restablecida exitosamente',
+    schema: {
+      example: {
+        message: 'Contraseña restablecida exitosamente',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token inválido o expirado',
+    schema: {
+      example: {
+        statusCode: 401,
+        message:
+          'Token inválido o expirado. Por favor solicita un nuevo enlace de recuperación.',
+        error: 'Unauthorized',
+      },
+    },
+  })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
   }
 
 }

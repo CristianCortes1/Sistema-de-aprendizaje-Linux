@@ -112,7 +112,7 @@ async function handleLogin() {
             </button>
 
             <div class="links">
-                <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                <router-link to="/forgot-password" class="forgot-password">¿Olvidaste tu contraseña?</router-link>
                 <p class="register-text">
                     ¿No tienes cuenta?
                     <router-link to="/registro" class="register-link">Regístrate</router-link>

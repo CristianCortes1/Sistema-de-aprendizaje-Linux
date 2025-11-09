@@ -1,0 +1,362 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { API_URL } from '../config/api';
+
+const router = useRouter();
+const route = useRoute();
+
+const token = ref('');
+const newPassword = ref('');
+const confirmNewPassword = ref('');
+const errorMessage = ref('');
+const successMessage = ref('');
+const isLoading = ref(false);
+
+onMounted(() => {
+  // Obtener el token de la URL
+  token.value = (route.query.token as string) || '';
+  
+  if (!token.value) {
+    errorMessage.value = 'Token de recuperación no válido. Por favor solicita un nuevo enlace.';
+  }
+});
+
+const handleResetPassword = async () => {
+  errorMessage.value = '';
+  successMessage.value = '';
+
+  // Validaciones
+  if (!token.value) {
+    errorMessage.value = 'Token de recuperación no válido';
+    return;
+  }
+
+  if (!newPassword.value || !confirmNewPassword.value) {
+    errorMessage.value = 'Por favor completa todos los campos';
+    return;
+  }
+
+  if (newPassword.value.length < 6) {
+    errorMessage.value = 'La nueva contraseña debe tener al menos 6 caracteres';
+    return;
+  }
+
+  if (newPassword.value !== confirmNewPassword.value) {
+    errorMessage.value = 'Las contraseñas no coinciden';
+    return;
+  }
+
+  isLoading.value = true;
+
+  try {
+    const response = await fetch(`${API_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: token.value,
+        newPassword: newPassword.value,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      successMessage.value = '¡Contraseña restablecida exitosamente! Redirigiendo al inicio de sesión...';
+      
+      // Limpiar el formulario
+      newPassword.value = '';
+      confirmNewPassword.value = '';
+      
+      // Redirigir después de 3 segundos
+      setTimeout(() => {
+        router.push('/');
+      }, 3000);
+    } else {
+      if (data.message && data.message.includes('Token inválido o expirado')) {
+        errorMessage.value = 'El enlace de recuperación ha expirado o no es válido. Por favor solicita uno nuevo.';
+      } else {
+        errorMessage.value = data.message || 'Error al restablecer la contraseña';
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    errorMessage.value = 'Error de conexión. Por favor intenta nuevamente más tarde.';
+  } finally {
+    isLoading.value = false;
+  }
+};
+</script>
+
+<template>
+  <div class="reset-password-container">
+    <div class="reset-password-card">
+      <router-link to="/" class="back-button">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Volver
+      </router-link>
+
+      <div class="logo">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Penguin Path Logo" />
+      </div>
+
+      <h1 class="title">Restablecer contraseña</h1>
+      <p class="subtitle">
+        Ingresa tu nueva contraseña para recuperar el acceso a tu cuenta.
+      </p>
+
+      <form @submit.prevent="handleResetPassword">
+        <div class="form-group">
+          <label for="newPassword">Nueva contraseña</label>
+          <input
+            id="newPassword"
+            v-model="newPassword"
+            type="password"
+            placeholder="Mínimo 6 caracteres"
+            :disabled="isLoading || !token"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="confirmNewPassword">Confirmar nueva contraseña</label>
+          <input
+            id="confirmNewPassword"
+            v-model="confirmNewPassword"
+            type="password"
+            placeholder="Repite tu nueva contraseña"
+            :disabled="isLoading || !token"
+          />
+        </div>
+
+        <div v-if="errorMessage" class="error-message">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+          <span>{{ errorMessage }}</span>
+        </div>
+
+        <div v-if="successMessage" class="success-message">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>{{ successMessage }}</span>
+        </div>
+
+        <button type="submit" class="submit-button" :disabled="isLoading || !token">
+          {{ isLoading ? 'Restableciendo...' : 'Restablecer contraseña' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.reset-password-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.reset-password-card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  transition: color 0.3s;
+}
+
+.back-button:hover {
+  color: #333;
+}
+
+.logo {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.logo img {
+  width: 80px;
+  height: 80px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: #666;
+  text-align: center;
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  transition: all 0.3s;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #ef9c6c;
+  box-shadow: 0 0 0 3px rgba(239, 156, 108, 0.1);
+}
+
+.form-group input:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fee;
+  border-left: 4px solid #f44336;
+  border-radius: 8px;
+  color: #c62828;
+  font-size: 14px;
+  margin-bottom: 20px;
+  animation: slideIn 0.3s ease;
+}
+
+.success-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #e8f5e9;
+  border-left: 4px solid #4caf50;
+  border-radius: 8px;
+  color: #2e7d32;
+  font-size: 14px;
+  margin-bottom: 20px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.submit-button {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 156, 108, 0.4);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .reset-password-card {
+    padding: 30px 24px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+}
+</style>

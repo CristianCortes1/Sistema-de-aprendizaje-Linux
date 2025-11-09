@@ -170,4 +170,69 @@ export class EmailService implements OnModuleInit {
     if (preview) console.log(`🔍 Preview email: ${preview}`);
     return result;
   }
+
+  async sendPasswordResetEmail(
+    email: string,
+    resetToken: string,
+    username: string,
+  ) {
+    this.ensureReady();
+
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    const from =
+      process.env.AWS_SES_FROM_EMAIL ||
+      process.env.EMAIL_FROM ||
+      '"Penguin Path 🐧" <noreply@penguinpath.app>';
+
+    const html = `
+        <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+          <div style="background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">🐧 Penguin Path</h1>
+            <p style="color: white; margin: 10px 0 0 0;">Sistema de Aprendizaje Linux</p>
+          </div>
+          <div style="padding: 30px; background: #f8f9fa;">
+            <h2 style="color: #333; margin-top: 0;">¡Hola ${username}!</h2>
+            <p style="color: #666; line-height: 1.6;">
+              Hemos recibido una solicitud para restablecer la contraseña de tu cuenta.
+            </p>
+            <p style="color: #666; line-height: 1.6;">
+              Si no realizaste esta solicitud, puedes ignorar este correo. Tu contraseña no será modificada.
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}"
+                 style="background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
+                        color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
+                Restablecer mi contraseña
+              </a>
+            </div>
+            <p style="color: #999; font-size: 14px; margin-top: 30px;">
+              Este enlace es válido por 1 hora. Si no puedes hacer clic, copia este enlace: <a href="${resetUrl}">${resetUrl}</a>
+            </p>
+          </div>
+          <div style="background: #333; color: white; padding: 20px; text-align: center; font-size: 14px;">
+            <p style="margin: 0;">© 2025 Penguin Path - Aprende Linux paso a paso</p>
+          </div>
+        </div>
+      `;
+
+    if (this.useSendgrid) {
+      const res = await sgMail.send({
+        to: email,
+        from,
+        subject: 'Recuperación de contraseña - Penguin Path',
+        html,
+      });
+      return res;
+    }
+
+    const result = await this.transporter.sendMail({
+      from,
+      to: email,
+      subject: 'Recuperación de contraseña - Penguin Path',
+      html,
+    });
+    const preview = nodemailer.getTestMessageUrl(result);
+    if (preview) console.log(`🔍 Preview email: ${preview}`);
+    return result;
+  }
 }

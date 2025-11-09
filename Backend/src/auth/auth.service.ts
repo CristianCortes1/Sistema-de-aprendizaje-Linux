@@ -185,4 +185,118 @@ export class AuthService {
       'TestUser',
     );
   }
+
+  async changePassword(
+    email: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    // Buscar usuario por email (case-insensitive)
+    const user = await this.prisma.user.findFirst({
+      where: {
+        correo: { equals: email.trim().toLowerCase(), mode: 'insensitive' },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    // Verificar contraseña actual
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.contraseña,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('La contraseña actual es incorrecta');
+    }
+
+    // Hash de la nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Actualizar contraseña
+    await this.prisma.user.update({
+      where: { id_Usuario: user.id_Usuario },
+      data: { contraseña: hashedPassword },
+    });
+
+    return { message: 'Contraseña actualizada exitosamente' };
+  }
+
+  async forgotPassword(email: string) {
+    // Buscar usuario por email (case-insensitive)
+    const user = await this.prisma.user.findFirst({
+      where: {
+        correo: { equals: email.trim().toLowerCase(), mode: 'insensitive' },
+      },
+    });
+
+    if (!user) {
+      // No revelar si el usuario existe o no por seguridad
+      return {
+        message:
+          'Si el correo existe en nuestro sistema, recibirás instrucciones para restablecer tu contraseña',
+      };
+    }
+
+    // Generar token de recuperación
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date();
+    resetExpires.setHours(resetExpires.getHours() + 1); // Token válido por 1 hora
+
+    // Guardar token en la base de datos
+    await this.prisma.user.update({
+      where: { id_Usuario: user.id_Usuario },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordExpires: resetExpires,
+      },
+    });
+
+    // Enviar correo con el link de recuperación
+    await this.emailService.sendPasswordResetEmail(
+      user.correo,
+      resetToken,
+      user.username,
+    );
+
+    return {
+      message:
+        'Si el correo existe en nuestro sistema, recibirás instrucciones para restablecer tu contraseña',
+    };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    // Buscar usuario con el token válido y que no haya expirado
+    const user = await this.prisma.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: {
+          gt: new Date(), // Token no expirado
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException(
+        'Token inválido o expirado. Por favor solicita un nuevo enlace de recuperación.',
+      );
+    }
+
+    // Hash de la nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Actualizar contraseña y limpiar tokens de recuperación
+    await this.prisma.user.update({
+      where: { id_Usuario: user.id_Usuario },
+      data: {
+        contraseña: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    return { message: 'Contraseña restablecida exitosamente' };
+  }
 }

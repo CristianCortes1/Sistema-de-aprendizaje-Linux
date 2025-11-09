@@ -111,25 +111,37 @@ export default {
         return
       }
 
+      if (passwordData.value.new.length < 6) {
+        alert('La nueva contraseña debe tener al menos 6 caracteres')
+        return
+      }
+
       try {
         const token = AuthService.getToken()
-        const response = await fetch(`${API_URL}/users/change-password`, {
-          method: 'PUT',
+        const response = await fetch(`${API_URL}/auth/change-password`, {
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
+            email: localUser.value.correo,
             currentPassword: passwordData.value.current,
             newPassword: passwordData.value.new
           })
         })
 
+        const data = await response.json()
+
         if (response.ok) {
           alert('Contraseña actualizada correctamente')
           passwordData.value = { current: '', new: '', confirm: '' }
         } else {
-          alert('Error al actualizar la contraseña. Verifica tu contraseña actual.')
+          if (data.message && data.message.includes('contraseña actual es incorrecta')) {
+            alert('La contraseña actual es incorrecta')
+          } else {
+            alert('Error al actualizar la contraseña')
+          }
         }
       } catch (error) {
         console.error('Error:', error)
