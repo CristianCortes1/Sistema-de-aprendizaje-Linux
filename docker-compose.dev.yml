@@ -11,7 +11,6 @@ services:
       POSTGRES_DB: penguinpath
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./Backend/db/init:/docker-entrypoint-initdb.d
     networks:
       - penguinpath-network
     restart: unless-stopped

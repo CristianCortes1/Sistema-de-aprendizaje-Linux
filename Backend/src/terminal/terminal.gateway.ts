@@ -8,7 +8,12 @@ import {
 import { Server, Socket } from 'socket.io';
 import { DockerService } from './docker.service';
 
-@WebSocketGateway({ cors: { origin: '*' } })
+@WebSocketGateway({ 
+  cors: { 
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true 
+  } 
+})
 export class TerminalGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {

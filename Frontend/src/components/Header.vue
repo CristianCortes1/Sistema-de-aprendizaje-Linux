@@ -1,6 +1,3 @@
-HEADER
-
-
 <script lang="ts">
 import { defineComponent, PropType, computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
