@@ -515,9 +515,9 @@ export default defineComponent({
                 <h1 class="lesson-title">{{ lessonData?.Titulo || 'Cargando lección...' }}</h1>
             </div>
 
-            <div class="lesson-content">
-                <!-- Terminal -->
-                <div class="terminal-section">
+            <div class="lesson-content" :class="{ 'no-terminal': currentReto?.tipo === 'explicacion' }">
+                <!-- Terminal (oculta en explicaciones) -->
+                <div class="terminal-section" v-if="currentReto?.tipo === 'reto'">
                     <div class="terminal-wrapper">
                         <div class="terminal-header">
                             <div class="terminal-controls">
@@ -704,6 +704,16 @@ export default defineComponent({
     grid-template-columns: 1fr 400px;
     gap: 30px;
     align-items: start;
+}
+
+/* Ancho completo cuando no hay terminal (explicación) */
+.lesson-content.no-terminal {
+    grid-template-columns: 1fr;
+}
+
+/* Cuando no hay terminal (explicación), usar ancho completo */
+.leccion .lesson-content:has(.terminal-section[style*="display: none"], .terminal-section[hidden]) {
+    grid-template-columns: 1fr;
 }
 
 .terminal-section {
