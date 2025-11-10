@@ -9,6 +9,10 @@ import Ranking from '../components/Ranking.vue';
 import Configuracion from '../components/Configuracion.vue';
 import Leccion from '../components/Leccion.vue';
 import AdminDashboard from '../components/AdminDashboard.vue';
+import PrivacyPolicy from '../components/PrivacyPolicy.vue';
+import TermsConditions from '../components/TermsConditions.vue';
+import ForgotPassword from '../components/ForgotPassword.vue';
+import ResetPassword from '../components/ResetPassword.vue';
 const routes = [
     {
         path: '/',
@@ -27,6 +31,26 @@ const routes = [
         name: 'ConfirmEmail',
         component: ConfirmEmail,
         meta: { guestOnly: true }
+    },
+    {
+        path: '/forgot-password',
+        name: 'ForgotPassword',
+        component: ForgotPassword
+    },
+    {
+        path: '/reset-password',
+        name: 'ResetPassword',
+        component: ResetPassword
+    },
+    {
+        path: '/privacy-policy',
+        name: 'PrivacyPolicy',
+        component: PrivacyPolicy
+    },
+    {
+        path: '/terms',
+        name: 'TermsConditions',
+        component: TermsConditions
     },
     {
         path: '/dashboard',

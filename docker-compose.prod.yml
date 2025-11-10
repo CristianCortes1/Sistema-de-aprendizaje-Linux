@@ -71,8 +71,7 @@ services:
       - penguinpath-network
     restart: unless-stopped
     volumes:
-      # Para SSL certificates (opcional, si usas Let's Encrypt)
-      - ./ssl:/etc/nginx/ssl:ro
+      - /etc/letsencrypt/archive/penguinpath.duckdns.org:/etc/nginx/ssl:ro
 
 volumes:
   postgres_data:

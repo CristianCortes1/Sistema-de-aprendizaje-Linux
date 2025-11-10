@@ -22,6 +22,8 @@ model User {
   rol                String      @default("usuario")
   activo             Boolean     @default(false)
   confirmationToken  String?     @db.VarChar(100)
+  resetPasswordToken String?     @db.VarChar(100)
+  resetPasswordExpires DateTime?
   avatar             String?     @db.Text
   racha              Int         @default(0)
   ultimoLogin        DateTime?   

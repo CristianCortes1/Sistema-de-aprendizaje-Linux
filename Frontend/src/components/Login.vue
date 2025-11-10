@@ -7,11 +7,15 @@ import { API_URL } from '../config/api'
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
+const errorMessage = ref('')
 const router = useRouter()
 
 async function handleLogin() {
+    // Limpiar mensaje de error previo
+    errorMessage.value = ''
+
     if (!email.value || !password.value) {
-        alert('Por favor llena todos los campos')
+        errorMessage.value = 'Por favor llena todos los campos'
         return
     }
 
@@ -26,9 +30,23 @@ async function handleLogin() {
             })
         })
 
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
+        const data = await response.json()
 
-    const data = await response.json()
+        if (!response.ok) {
+            // Manejar errores específicos del backend
+            if (data.message) {
+                if (data.message.includes('Account not activated') || data.message.includes('not activated')) {
+                    errorMessage.value = 'Tu cuenta aún no está activada. Por favor revisa tu correo para confirmar tu cuenta.'
+                } else if (data.message.includes('Invalid credentials') || data.message.includes('Unauthorized')) {
+                    errorMessage.value = 'Usuario o contraseña incorrectos'
+                } else {
+                    errorMessage.value = data.message
+                }
+            } else {
+                errorMessage.value = 'Error al iniciar sesión. Por favor intenta de nuevo.'
+            }
+            return
+        }
 
         // Guardar token y datos del usuario en localStorage
         // La API de Nest devuelve access_token; mantenemos compat con token
@@ -53,7 +71,7 @@ async function handleLogin() {
         }
     } catch (err) {
         console.error('❌ Error en login:', err)
-        alert('Credenciales incorrectas o error en el servidor')
+        errorMessage.value = 'Error de conexión. Por favor verifica tu internet e intenta de nuevo.'
     } finally {
         loading.value = false
     }
@@ -68,6 +86,16 @@ async function handleLogin() {
             <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Mi logo" />
             <h1>Bienvenido a Penguin Path</h1>
             <p>La mejor plataforma para aprender linux paso a paso.</p><br>
+
+            <!-- Mensaje de error -->
+            <div v-if="errorMessage" class="message error-message">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                {{ errorMessage }}
+            </div>
 
             <div class="form-group">
                 <label class="label-left">Apodo</label>
@@ -84,7 +112,7 @@ async function handleLogin() {
             </button>
 
             <div class="links">
-                <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                <router-link to="/forgot-password" class="forgot-password">¿Olvidaste tu contraseña?</router-link>
                 <p class="register-text">
                     ¿No tienes cuenta?
                     <router-link to="/registro" class="register-link">Regístrate</router-link>
@@ -179,6 +207,51 @@ button {
     margin-top: 10px;
     border-radius: 5px;
     cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+button:hover:not(:disabled) {
+    background-color: #e55b00;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    animation: slideIn 0.3s ease;
+    text-align: left;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.error-message {
+    background: #fee;
+    color: #c33;
+    border: 1px solid #fcc;
+}
+
+.error-message svg {
+    color: #c33;
+    flex-shrink: 0;
 }
 
 .links {

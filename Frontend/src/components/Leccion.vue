@@ -131,6 +131,8 @@ export default defineComponent({
                     brightWhite: '#eeeeec'
                 },
                 allowProposedApi: true,
+                scrollback: 1000,
+                convertEol: true,
             })
 
             // Addons
@@ -140,6 +142,13 @@ export default defineComponent({
 
             // Montar terminal en el DOM
             terminal.open(terminalContainer.value)
+            
+            // Ajustar tamaño según pantalla
+            if (window.innerWidth <= 768) {
+                // Móvil: reducir fuente para más columnas
+                terminal.options.fontSize = 9
+            }
+            
             fitAddon.fit()
 
             // Manejar input del usuario
@@ -167,24 +176,32 @@ export default defineComponent({
             // Redimensionar terminal cuando cambia el tamaño de la ventana
             const handleResize = () => {
                 if (fitAddon && terminal) {
-                    fitAddon.fit()
-                    // Enviar nuevo tamaño al servidor
-                    socket.emit('resize', {
-                        cols: terminal.cols,
-                        rows: terminal.rows
-                    })
+                    // Pequeño delay para que el DOM se actualice primero
+                    setTimeout(() => {
+                        fitAddon?.fit()
+                        // Enviar nuevo tamaño al servidor
+                        if (terminal) {
+                            socket.emit('resize', {
+                                cols: terminal.cols,
+                                rows: terminal.rows
+                            })
+                        }
+                    }, 100)
                 }
             }
 
             window.addEventListener('resize', handleResize)
 
-            // Enviar tamaño inicial al servidor
-            if (terminal) {
-                socket.emit('resize', {
-                    cols: terminal.cols,
-                    rows: terminal.rows
-                })
-            }
+            // Enviar tamaño inicial al servidor (con delay para asegurar renderizado)
+            setTimeout(() => {
+                if (fitAddon && terminal) {
+                    fitAddon.fit()
+                    socket.emit('resize', {
+                        cols: terminal.cols,
+                        rows: terminal.rows
+                    })
+                }
+            }, 200)
 
             // Cleanup
             onUnmounted(() => {
@@ -200,6 +217,30 @@ export default defineComponent({
 
         const clearTerminal = () => {
             terminal?.clear()
+        }
+
+        const sendTab = () => {
+            socket.emit('input', '\t')
+        }
+
+        const sendCtrlC = () => {
+            socket.emit('input', '\x03') // Ctrl+C - interrumpir proceso
+        }
+
+        const sendCtrlX = () => {
+            socket.emit('input', '\x18') // Ctrl+X - salir de nano
+        }
+
+        const sendCtrlS = () => {
+            socket.emit('input', '\x13') // Ctrl+S - guardar (en algunos editores)
+        }
+
+        const sendCtrlZ = () => {
+            socket.emit('input', '\x1a') // Ctrl+Z - suspender proceso
+        }
+
+        const sendCtrlD = () => {
+            socket.emit('input', '\x04') // Ctrl+D - EOF / salir shell
         }
 
         // Navegación
@@ -223,6 +264,12 @@ export default defineComponent({
             isConnected,
             terminalTitle,
             clearTerminal,
+            sendTab,
+            sendCtrlC,
+            sendCtrlX,
+            sendCtrlS,
+            sendCtrlZ,
+            sendCtrlD,
         }
     },
 })
@@ -255,6 +302,51 @@ export default defineComponent({
                             </div>
                         </div>
                         <div ref="terminalContainer" class="terminal-container"></div>
+                        
+                        <!-- Botones táctiles para móvil -->
+                        <div class="mobile-controls">
+                            <button class="mobile-btn" @click="sendTab" title="Tab - Autocompletar">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                                Tab
+                            </button>
+                            <button 
+                                class="mobile-btn shortcut-btn" 
+                                @click="sendCtrlC" 
+                                title="Ctrl+C - Interrumpir proceso"
+                            >
+                                ^C
+                            </button>
+                            <button 
+                                class="mobile-btn shortcut-btn" 
+                                @click="sendCtrlX" 
+                                title="Ctrl+X - Salir de nano"
+                            >
+                                ^X
+                            </button>
+                            <button 
+                                class="mobile-btn shortcut-btn" 
+                                @click="sendCtrlS" 
+                                title="Ctrl+S - Guardar"
+                            >
+                                ^S
+                            </button>
+                            <button 
+                                class="mobile-btn shortcut-btn" 
+                                @click="sendCtrlZ" 
+                                title="Ctrl+Z - Suspender proceso"
+                            >
+                                ^Z
+                            </button>
+                            <button 
+                                class="mobile-btn shortcut-btn" 
+                                @click="sendCtrlD" 
+                                title="Ctrl+D - EOF / Salir"
+                            >
+                                ^D
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -300,6 +392,8 @@ export default defineComponent({
     background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
 }
 
 .content {
@@ -409,15 +503,88 @@ export default defineComponent({
     min-height: 500px;
     max-height: 600px;
     overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Estilos para xterm.js */
 .terminal-container :deep(.xterm) {
     height: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 .terminal-container :deep(.xterm-viewport) {
     overflow-y: auto;
+    overflow-x: hidden;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.terminal-container :deep(.xterm-screen) {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.terminal-container :deep(.xterm-rows) {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.terminal-container :deep(canvas) {
+    max-width: 100% !important;
+}
+
+/* Botones táctiles para móvil */
+.mobile-controls {
+    display: none; /* Oculto por defecto en desktop */
+    background: #2c001e;
+    padding: 8px;
+    gap: 6px;
+    border-top: 1px solid rgba(0, 0, 0, 0.3);
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+.mobile-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #d3d7cf;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: 'Ubuntu Mono', 'Courier New', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: center;
+    touch-action: manipulation;
+    user-select: none;
+    flex: 0 0 auto;
+}
+
+.mobile-btn:active {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(0.95);
+}
+
+.mobile-btn.shortcut-btn {
+    min-width: 50px;
+    padding: 8px 10px;
+    background: rgba(76, 175, 80, 0.15);
+    border-color: rgba(76, 175, 80, 0.3);
+    color: #8ae234;
+}
+
+.mobile-btn.shortcut-btn:active {
+    background: rgba(76, 175, 80, 0.3);
+}
+
+.mobile-btn svg {
+    width: 14px;
+    height: 14px;
 }
 
 .challenge-section {
@@ -523,23 +690,213 @@ export default defineComponent({
 }
 
 @media (max-width: 768px) {
+    .leccion {
+        overflow-x: hidden !important;
+    }
+
+    .content {
+        padding: 6px;
+        padding-top: 10px;
+        padding-bottom: 85px;
+        max-width: 100vw;
+        width: 100vw;
+        margin: 0;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+
     .lesson-content {
         grid-template-columns: 1fr;
-        gap: 20px;
+        gap: 12px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
     }
 
     .lesson-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 15px;
+        gap: 10px;
+        margin-bottom: 12px;
     }
 
     .lesson-title {
-        font-size: 24px;
+        font-size: 18px;
+        word-break: break-word;
+        line-height: 1.3;
+    }
+
+    .terminal-section {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    .terminal-wrapper {
+        border-radius: 8px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    .terminal-header {
+        padding: 5px 8px;
+    }
+
+    .terminal-controls {
+        gap: 5px;
+    }
+
+    .control {
+        width: 9px;
+        height: 9px;
+    }
+
+    .terminal-title {
+        font-size: 10px;
+    }
+
+    .status-indicator {
+        width: 6px;
+        height: 6px;
     }
 
     .terminal-container {
-        min-height: 400px;
+        min-height: 250px;
+        max-height: 320px;
+        padding: 3px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden !important;
+        box-sizing: border-box;
+    }
+
+    .terminal-container :deep(.xterm) {
+        font-size: 9px;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    .terminal-container :deep(.xterm-viewport) {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    .terminal-container :deep(.xterm-screen) {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    .terminal-container :deep(.xterm-rows) {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    .terminal-container :deep(canvas) {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    /* Forzar que ningún elemento hijo exceda el ancho */
+    .terminal-container :deep(*) {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Mostrar botones táctiles en móvil */
+    .mobile-controls {
+        display: flex;
+        padding: 5px;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+
+    .mobile-btn {
+        font-size: 10px;
+        padding: 5px 7px;
+        min-width: 42px;
+        flex: 0 0 auto;
+    }
+
+    .mobile-btn svg {
+        width: 11px;
+        height: 11px;
+    }
+
+    .challenge-section {
+        width: 100%;
+        gap: 12px;
+        max-width: 100%;
+    }
+
+    .challenge-panel {
+        padding: 12px;
+        border-radius: 10px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+    }
+
+    .challenge-title {
+        font-size: 16px;
+        margin-bottom: 10px;
+        line-height: 1.3;
+    }
+
+    .challenge-description {
+        font-size: 12px;
+        line-height: 1.4;
+        margin-bottom: 12px;
+    }
+
+    .hint-section {
+        gap: 7px;
+    }
+
+    .hint-btn {
+        font-size: 11px;
+        padding: 6px 10px;
+    }
+
+    .hint {
+        font-size: 11px;
+        padding: 8px;
+    }
+
+    .hint code {
+        font-size: 10px;
+        padding: 2px 4px;
+    }
+
+    .progress-section {
+        padding: 12px;
+        border-radius: 10px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+    }
+
+    .progress-label {
+        font-size: 13px;
+        margin-bottom: 7px;
+    }
+
+    .progress-bar {
+        height: 5px;
+        margin-bottom: 5px;
+    }
+
+    .progress-text {
+        font-size: 12px;
     }
 }
 </style>

@@ -16,9 +16,19 @@ export class AuthService {
   ) {}
 
   async validateUser(username: string, password: string) {
+    // Limpiar y normalizar entrada
+    const credential = username.trim().toLowerCase();
+    
+    // Buscar por username o correo (case-insensitive)
     const user = await this.prisma.user.findFirst({
-      where: { username },
+      where: {
+        OR: [
+          { username: { equals: credential, mode: 'insensitive' } },
+          { correo: { equals: credential, mode: 'insensitive' } },
+        ],
+      },
     });
+
     if (user && (await bcrypt.compare(password, user.contraseña))) {
       if (!user.activo) {
         throw new UnauthorizedException(
@@ -82,6 +92,32 @@ export class AuthService {
     }
   }
   async register(username: string, correo: string, password: string) {
+    // Limpiar y normalizar entrada
+    const cleanUsername = username.trim();
+    const cleanEmail = correo.trim().toLowerCase();
+    
+    // Verificar si ya existe un usuario con el mismo username (case-insensitive)
+    const existingUsername = await this.prisma.user.findFirst({
+      where: {
+        username: { equals: cleanUsername, mode: 'insensitive' },
+      },
+    });
+
+    if (existingUsername) {
+      throw new UnauthorizedException('Username already exists');
+    }
+
+    // Verificar si ya existe un usuario con el mismo correo (case-insensitive)
+    const existingEmail = await this.prisma.user.findFirst({
+      where: {
+        correo: { equals: cleanEmail, mode: 'insensitive' },
+      },
+    });
+
+    if (existingEmail) {
+      throw new UnauthorizedException('Email already exists');
+    }
+    
     const hashed = await bcrypt.hash(password, 10);
     const confirmationToken = crypto.randomBytes(32).toString('hex');
 
@@ -100,8 +136,8 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
-        username,
-        correo,
+        username: cleanUsername,
+        correo: cleanEmail,
         contraseña: hashed,
         avatar: DEFAULT_AVATAR,
         activo: false, // Usuario debe confirmar email
@@ -111,9 +147,9 @@ export class AuthService {
 
     // Enviar email de confirmación con SendGrid
     await this.emailService.sendConfirmationEmail(
-      correo,
+      cleanEmail,
       confirmationToken,
-      username,
+      cleanUsername,
     );
 
     const { contraseña, confirmationToken: token, ...result } = user;
@@ -148,5 +184,119 @@ export class AuthService {
       'test-token-123',
       'TestUser',
     );
+  }
+
+  async changePassword(
+    email: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    // Buscar usuario por email (case-insensitive)
+    const user = await this.prisma.user.findFirst({
+      where: {
+        correo: { equals: email.trim().toLowerCase(), mode: 'insensitive' },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    // Verificar contraseña actual
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.contraseña,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('La contraseña actual es incorrecta');
+    }
+
+    // Hash de la nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Actualizar contraseña
+    await this.prisma.user.update({
+      where: { id_Usuario: user.id_Usuario },
+      data: { contraseña: hashedPassword },
+    });
+
+    return { message: 'Contraseña actualizada exitosamente' };
+  }
+
+  async forgotPassword(email: string) {
+    // Buscar usuario por email (case-insensitive)
+    const user = await this.prisma.user.findFirst({
+      where: {
+        correo: { equals: email.trim().toLowerCase(), mode: 'insensitive' },
+      },
+    });
+
+    if (!user) {
+      // No revelar si el usuario existe o no por seguridad
+      return {
+        message:
+          'Si el correo existe en nuestro sistema, recibirás instrucciones para restablecer tu contraseña',
+      };
+    }
+
+    // Generar token de recuperación
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date();
+    resetExpires.setHours(resetExpires.getHours() + 1); // Token válido por 1 hora
+
+    // Guardar token en la base de datos
+    await this.prisma.user.update({
+      where: { id_Usuario: user.id_Usuario },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordExpires: resetExpires,
+      },
+    });
+
+    // Enviar correo con el link de recuperación
+    await this.emailService.sendPasswordResetEmail(
+      user.correo,
+      resetToken,
+      user.username,
+    );
+
+    return {
+      message:
+        'Si el correo existe en nuestro sistema, recibirás instrucciones para restablecer tu contraseña',
+    };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    // Buscar usuario con el token válido y que no haya expirado
+    const user = await this.prisma.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: {
+          gt: new Date(), // Token no expirado
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException(
+        'Token inválido o expirado. Por favor solicita un nuevo enlace de recuperación.',
+      );
+    }
+
+    // Hash de la nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Actualizar contraseña y limpiar tokens de recuperación
+    await this.prisma.user.update({
+      where: { id_Usuario: user.id_Usuario },
+      data: {
+        contraseña: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    return { message: 'Contraseña restablecida exitosamente' };
   }
 }

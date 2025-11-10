@@ -126,20 +126,17 @@ export class DockerService implements OnModuleDestroy {
           'PS1=\\[\\033[01;32m\\]penguinpath\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ ',
         ],
         HostConfig: {
-          // Limitar recursos
-          Memory: 512 * 1024 * 1024, // 512 MB
-          MemorySwap: 512 * 1024 * 1024, // Sin swap adicional
-          CpuQuota: 50000, // 50% de un CPU
+          Memory: 512 * 1024 * 1024, 
+          MemorySwap: 512 * 1024 * 1024,
+          CpuQuota: 50000, 
           CpuPeriod: 100000,
-          PidsLimit: 100, // Limitar procesos
-          // Seguridad: sin privilegios
+          PidsLimit: 100,
           Privileged: false,
           ReadonlyRootfs: false,
-          // Restricciones de red (cambia a 'bridge' si necesitas acceso a internet)
-          NetworkMode: 'none', // Sin acceso a red externa por seguridad
-          AutoRemove: false, // NO auto-eliminar para persistencia
+          NetworkMode: 'none', 
+          AutoRemove: false, 
         },
-        // Labels para identificar fácilmente (deben ser strings)
+
         Labels: {
           'penguinpath.user': String(effectiveUserId),
           'penguinpath.created': new Date().toISOString(),

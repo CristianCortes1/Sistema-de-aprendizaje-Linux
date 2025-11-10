@@ -32,14 +32,12 @@ export default {
 
     // Opciones de avatares
     const avatarOptions = ref([
-      'https://ui-avatars.com/api/?name=Avatar1&background=FF6B6B&color=fff&size=128&bold=true',
-      'https://ui-avatars.com/api/?name=Avatar2&background=4ECDC4&color=fff&size=128&bold=true',
-      'https://ui-avatars.com/api/?name=Avatar3&background=45B7D1&color=fff&size=128&bold=true',
-      'https://ui-avatars.com/api/?name=Avatar4&background=FFA07A&color=fff&size=128&bold=true',
-      'https://ui-avatars.com/api/?name=Avatar5&background=98D8C8&color=fff&size=128&bold=true',
-      'https://ui-avatars.com/api/?name=Avatar6&background=F7DC6F&color=fff&size=128&bold=true'
+      '/Assets/Avatar1.svg',
+      '/Assets/Avatar2.svg',
+      '/Assets/Avatar3.svg'
     ])
 
+    
     onMounted(() => {
       document.title = 'Configuración - Sistema de Aprendizaje Linux'
       
@@ -76,8 +74,11 @@ export default {
 
       try {
         const token = AuthService.getToken()
-        const response = await fetch(`${API_URL}/users/update`, {
-          method: 'PUT',
+        const userInfo = JSON.parse(atob(token.split('.')[1]));
+        const userId = userInfo.sub;
+        
+        const response = await fetch(`${API_URL}/users/${userId}`, {
+          method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -110,25 +111,37 @@ export default {
         return
       }
 
+      if (passwordData.value.new.length < 6) {
+        alert('La nueva contraseña debe tener al menos 6 caracteres')
+        return
+      }
+
       try {
         const token = AuthService.getToken()
-        const response = await fetch(`${API_URL}/users/change-password`, {
-          method: 'PUT',
+        const response = await fetch(`${API_URL}/auth/change-password`, {
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
+            email: localUser.value.correo,
             currentPassword: passwordData.value.current,
             newPassword: passwordData.value.new
           })
         })
 
+        const data = await response.json()
+
         if (response.ok) {
           alert('Contraseña actualizada correctamente')
           passwordData.value = { current: '', new: '', confirm: '' }
         } else {
-          alert('Error al actualizar la contraseña. Verifica tu contraseña actual.')
+          if (data.message && data.message.includes('contraseña actual es incorrecta')) {
+            alert('La contraseña actual es incorrecta')
+          } else {
+            alert('Error al actualizar la contraseña')
+          }
         }
       } catch (error) {
         console.error('Error:', error)
@@ -143,6 +156,67 @@ export default {
       router.push('/')
     }
 
+    const updateAvatar = async () => {
+      if (!selectedAvatar.value) {
+        alert('Por favor selecciona un avatar')
+        return
+      }
+
+      try {
+        const token = AuthService.getToken()
+        if (!token) {
+          throw new Error('No hay token de autenticación')
+        }
+
+        // Obtener el ID del usuario del token decodificado
+        const userInfo = JSON.parse(atob(token.split('.')[1]));
+        const userId = userInfo.sub; // El ID del usuario está en el campo 'sub' del token JWT
+
+        console.log('Enviando actualización de avatar:', {
+          selectedAvatar: selectedAvatar.value,
+          token: token,
+          url: `${API_URL}/users/${userId}`
+        })
+
+        const response = await fetch(`${API_URL}/users/${userId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            avatar: selectedAvatar.value
+          })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          console.error('Error response:', errorData)
+          throw new Error(errorData.message || 'Error al actualizar el avatar')
+        }
+
+        const data = await response.json()
+        console.log('Respuesta exitosa:', data)
+
+        // Actualizar localStorage y estado local
+        const storedUser = localStorage.getItem('user')
+        if (storedUser) {
+          const userData = JSON.parse(storedUser)
+          userData.avatar = selectedAvatar.value
+          localStorage.setItem('user', JSON.stringify(userData))
+        }
+
+        localUser.value.avatar = selectedAvatar.value
+        alert('Avatar actualizado con éxito')
+        
+        // Forzar actualización del componente
+        localUser.value = { ...localUser.value }
+      } catch (error) {
+        console.error('Error detallado:', error)
+        alert(error instanceof Error ? error.message : 'Error al actualizar el avatar')
+      }
+    }
+
     return {
       displayUser,
       selectedAvatar,
@@ -152,6 +226,7 @@ export default {
       getDefaultAvatar,
       updateUsername,
       updatePassword,
+      updateAvatar,
       handleLogout
     }
   }
@@ -213,6 +288,9 @@ export default {
             <img :src="avatar" :alt="`Avatar ${index + 1}`" />
           </div>
         </div>
+        <button @click="updateAvatar" class="btn-primary">
+            Guardar selección
+          </button>
       </div>
 
       <!-- Cambiar nombre de usuario -->
@@ -276,8 +354,8 @@ export default {
       <div class="footer-info">
         <span>© 2024 Penguin Path. Todos los derechos reservados.</span>
         <div class="footer-links">
-          <a href="#">Términos de servicio</a>
-          <a href="#">Política de privacidad</a>
+          <router-link to="/terms">Términos de servicio</router-link>
+          <router-link to="/privacy-policy">Política de privacidad</router-link>
         </div>
       </div>
     </div>
