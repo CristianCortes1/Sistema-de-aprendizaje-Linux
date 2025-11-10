@@ -11,15 +11,15 @@ export default {
     },
     setup() {
         const router = useRouter()
-        
+
         const goInicio = () => router.push('/dashboard')
-        const goBiblioteca = () => router.push('/biblioteca') 
+        const goBiblioteca = () => router.push('/biblioteca')
         const goRanking = () => router.push('/ranking')
         const goConfig = () => router.push('/configuracion')
 
         return {
             goInicio,
-            goBiblioteca, 
+            goBiblioteca,
             goRanking,
             goConfig
         }
@@ -161,25 +161,8 @@ export default {
                 </div>
             </div>
         </div>
-
-        <footer class="footer">
-            <div class="barra-inicio">
-                <button @click="goInicio">
-                    <img src="/Assets/Inicio.svg" alt="Inicio" />Inicio</button>
-            </div>
-            <div class="barra">
-                <button @click="goBiblioteca">
-                    <img src="/Assets/Biblioteca.svg" alt="Biblioteca" />Biblioteca</button>
-            </div>
-            <div class="barra">
-                <button @click="goRanking">
-                    <img src="/Assets/Ranking.svg" alt="Ranking" />Ranking</button>
-            </div>
-            <div class="barra">
-                <button @click="goConfig">
-                    <img src="/Assets/Configuración.svg" alt="Configuración" />Configuración</button>
-            </div>
-        </footer>
+        <Footer :goInicio="() => $router.push('/dashboard')" :goBiblioteca="() => $router.push('/biblioteca')"
+            :goRanking="() => $router.push('/ranking')" :goConfig="() => $router.push('/configuracion')" />
     </div>
 </template>
 

@@ -134,9 +134,16 @@ export default defineComponent({
     background-color: white;
     border-radius: 90%;
     padding: 4px;
-    width: 45px;
-    height: 45px;
+    width: 40px;
+    height: 40px;
     backdrop-filter: blur(10px);
+}
+.perfil span {
+    max-width: 140px; /* ancho razonable en desktop */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
 }
 .logout-btn {
     background: none;
@@ -167,17 +174,20 @@ export default defineComponent({
         height: 32px;
     }
     .brand {
-        font-size: 18px;
+        font-size: 10px;
     }
     .status {
         gap: 10px;
-        font-size: 11px;
+        font-size: 10px;
     }
     .perfil {
         display: flex;
         align-items: center;
         gap: 5px;
         font-size: 0.8rem;
+    }
+    .perfil span {
+        max-width: 90px; /* más estrecho en móvil */
     }
 }
 </style>
