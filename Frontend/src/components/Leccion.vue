@@ -8,6 +8,7 @@ import { WebLinksAddon } from 'xterm-addon-web-links'
 import 'xterm/css/xterm.css'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
+import { API_URL } from '../config/api'
 
 // Función para obtener userId del token JWT
 function getUserIdForTerminal(): string | null {
@@ -31,6 +32,24 @@ function getUserIdForTerminal(): string | null {
     return null
 }
 
+interface Comando {
+    id_Comando: number
+    comando: string
+}
+
+interface Reto {
+    id_Reto: number
+    descripcion: string
+    Retroalimentacion: string
+    comandos: Comando[]
+}
+
+interface Leccion {
+    id_Leccion: number
+    Titulo: string
+    retos: Reto[]
+}
+
 export default defineComponent({
     name: 'Leccion',
     components: { Header, Footer },
@@ -48,17 +67,17 @@ export default defineComponent({
 
         // UI state (lesson, hints, progress)
         const showHint = ref(false)
-        const progress = ref(30)
-        const lesson = ref({
-            title: 'Leccion 1: comandos basicos',
-            challenge: {
-                title: 'Challenge 1: Change Directory',
-                description: 'Use the cd command to navigate to the "documents" directory. Type your command in the terminal and press "Run" to check your answer.',
-                hint: 'The command is cd documents',
-                correctCommand: 'cd documents',
-                directory: '~'
-            }
-        })
+        const progress = ref(0)
+        const lessonData = ref<Leccion | null>(null)
+        const currentRetoIndex = ref(0)
+        const commandHistory = ref<string[]>([])
+        const lastCommand = ref('')
+        const isVerifying = ref(false)
+        const showSuccess = ref(false)
+        const successMessage = ref('')
+        const showError = ref(false)
+        const errorMessage = ref('')
+        const userProgress = ref(0)
 
         // ❌ Redirigir a login si no está autenticado
         if (!userId) {
@@ -71,7 +90,8 @@ export default defineComponent({
                 showHint,
                 toggleHint: () => {},
                 progress,
-                lesson,
+                lessonData,
+                currentReto: ref(null),
                 goBack: () => {},
                 goInicio: () => {},
                 goBiblioteca: () => {},
@@ -80,6 +100,199 @@ export default defineComponent({
                 isConnected,
                 terminalTitle,
                 clearTerminal: () => {},
+                verifyCommand: () => {},
+                nextChallenge: () => {},
+                showSuccess,
+                successMessage,
+                showError,
+                errorMessage,
+                isVerifying,
+            }
+        }
+
+        // Computed: Reto actual
+        const currentReto = ref<Reto | null>(null)
+
+        // Cargar lección desde el backend
+        const loadLesson = async () => {
+            try {
+                const lessonId = route.params.id
+                const response = await fetch(`${API_URL}/lessons/${lessonId}`)
+                
+                if (!response.ok) {
+                    throw new Error('Error loading lesson')
+                }
+                
+                const data = await response.json()
+                lessonData.value = data
+                
+                if (data.retos && data.retos.length > 0) {
+                    currentReto.value = data.retos[0]
+                }
+
+                // Cargar progreso del usuario
+                await loadUserProgress()
+            } catch (error) {
+                console.error('Error loading lesson:', error)
+                errorMessage.value = 'No se pudo cargar la lección'
+                showError.value = true
+                setTimeout(() => showError.value = false, 3000)
+            }
+        }
+
+        // Cargar progreso del usuario
+        const loadUserProgress = async () => {
+            try {
+                const response = await fetch(`${API_URL}/progress?userId=${userId}&lessonId=${route.params.id}`)
+                
+                if (response.ok) {
+                    const progressData = await response.json()
+                    if (progressData && progressData.length > 0) {
+                        userProgress.value = progressData[0].progreso
+                        progress.value = progressData[0].progreso
+                        
+                        // Si hay progreso, calcular qué reto mostrar
+                        const retosCompletados = Math.floor((userProgress.value / 100) * (lessonData.value?.retos.length || 1))
+                        currentRetoIndex.value = Math.min(retosCompletados, (lessonData.value?.retos.length || 1) - 1)
+                        
+                        if (lessonData.value && lessonData.value.retos[currentRetoIndex.value]) {
+                            currentReto.value = lessonData.value.retos[currentRetoIndex.value]
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading progress:', error)
+            }
+        }
+
+        // Capturar último comando ejecutado
+        const captureCommand = (data: string) => {
+            if (data === '\r') {
+                // Enter pressed - comando completo
+                const cmd = lastCommand.value.trim()
+                if (cmd) {
+                    commandHistory.value.push(cmd)
+                    
+                    // Verificar automáticamente cuando presiona Enter
+                    setTimeout(() => {
+                        verifyCommand()
+                    }, 500) // Pequeño delay para dar tiempo a la terminal de procesar
+                }
+                lastCommand.value = ''
+            } else if (data === '\x7F') {
+                // Backspace
+                lastCommand.value = lastCommand.value.slice(0, -1)
+            } else if (data.charCodeAt(0) >= 32 && data.charCodeAt(0) <= 126) {
+                // Caracter imprimible
+                lastCommand.value += data
+            }
+        }
+
+        // Verificar comando
+        const verifyCommand = async () => {
+            if (!currentReto.value || isVerifying.value || showSuccess.value) return
+            
+            isVerifying.value = true
+            
+            // Obtener el último comando ejecutado
+            const lastCmd = commandHistory.value[commandHistory.value.length - 1]
+            if (!lastCmd) {
+                isVerifying.value = false
+                return
+            }
+            
+            const expectedCommands = currentReto.value.comandos.map(c => c.comando.toLowerCase().trim())
+            
+            // Verificar si el último comando coincide
+            const cmdClean = lastCmd.toLowerCase().trim()
+            const isCorrect = expectedCommands.some(expected => 
+                cmdClean === expected || cmdClean.includes(expected)
+            )
+            
+            if (isCorrect) {
+                successMessage.value = currentReto.value.Retroalimentacion || '¡Correcto! Comando ejecutado exitosamente.'
+                showSuccess.value = true
+                showError.value = false
+                
+                // Actualizar progreso en el backend
+                await updateProgress()
+            } else {
+                // No mostrar error, solo quedarse en silencio
+                // El usuario puede intentar de nuevo
+            }
+            
+            isVerifying.value = false
+        }
+
+        // Actualizar progreso en el backend
+        const updateProgress = async () => {
+            try {
+                if (!lessonData.value) return
+                
+                const totalRetos = lessonData.value.retos.length
+                const retosCompletados = currentRetoIndex.value + 1
+                const newProgress = Math.round((retosCompletados / totalRetos) * 100)
+                
+                const response = await fetch(`${API_URL}/progress`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: parseInt(userId!),
+                        lessonId: parseInt(route.params.id as string),
+                        progress: newProgress,
+                    }),
+                })
+                
+                if (response.ok) {
+                    progress.value = newProgress
+                    userProgress.value = newProgress
+                }
+            } catch (error) {
+                console.error('Error updating progress:', error)
+            }
+        }
+
+        // Continuar al siguiente reto
+        const nextChallenge = async () => {
+            if (!lessonData.value) return
+            
+            showSuccess.value = false
+            currentRetoIndex.value++
+            
+            if (currentRetoIndex.value < lessonData.value.retos.length) {
+                currentReto.value = lessonData.value.retos[currentRetoIndex.value]
+                commandHistory.value = []
+            } else {
+                // Lección completada - Asegurar que se guarde al 100%
+                try {
+                    const response = await fetch(`${API_URL}/progress`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            userId: parseInt(userId!),
+                            lessonId: parseInt(route.params.id as string),
+                            progress: 100,
+                        }),
+                    })
+                    
+                    if (response.ok) {
+                        progress.value = 100
+                        userProgress.value = 100
+                    }
+                } catch (error) {
+                    console.error('Error updating final progress:', error)
+                }
+                
+                successMessage.value = '¡Felicidades! Has completado toda la lección al 100%.'
+                showSuccess.value = true
+                
+                setTimeout(() => {
+                    router.push('/dashboard')
+                }, 3000)
             }
         }
 
@@ -97,6 +310,9 @@ export default defineComponent({
         let fitAddon: FitAddon | null = null
 
         onMounted(async () => {
+            // Cargar lección primero
+            await loadLesson()
+            
             await nextTick()
             
             if (!terminalContainer.value) return
@@ -153,6 +369,7 @@ export default defineComponent({
 
             // Manejar input del usuario
             terminal.onData((data) => {
+                captureCommand(data)
                 socket.emit('input', data)
             })
 
@@ -255,7 +472,8 @@ export default defineComponent({
             showHint,
             toggleHint,
             progress,
-            lesson,
+            lessonData,
+            currentReto,
             goBack,
             goInicio,
             goBiblioteca,
@@ -270,6 +488,13 @@ export default defineComponent({
             sendCtrlS,
             sendCtrlZ,
             sendCtrlD,
+            verifyCommand,
+            nextChallenge,
+            showSuccess,
+            successMessage,
+            showError,
+            errorMessage,
+            isVerifying,
         }
     },
 })
@@ -283,7 +508,7 @@ export default defineComponent({
         <div class="content">
             <!-- Título de la lección -->
             <div class="lesson-header">
-                <h1 class="lesson-title">{{ lesson.title }}</h1>
+                <h1 class="lesson-title">{{ lessonData?.Titulo || 'Cargando lección...' }}</h1>
             </div>
 
             <div class="lesson-content">
@@ -352,23 +577,54 @@ export default defineComponent({
 
                 <!-- Challenge Panel -->
                 <div class="challenge-section">
-                    <div class="challenge-panel">
-                        <h2 class="challenge-title">{{ lesson.challenge.title }}</h2>
-                        <p class="challenge-description">{{ lesson.challenge.description }}</p>
+                    <div class="challenge-panel" v-if="currentReto">
+                        <h2 class="challenge-title">Reto {{ (lessonData?.retos.findIndex(r => r.id_Reto === currentReto?.id_Reto) || 0) + 1 }} de {{ lessonData?.retos.length || 0 }}</h2>
+                        <p class="challenge-description">{{ currentReto.descripcion }}</p>
 
                         <div class="hint-section">
                             <button class="hint-btn" @click="toggleHint">
                                 {{ showHint ? 'Ocultar pista' : 'Mostrar pista' }} 💡
                             </button>
                             <div v-if="showHint" class="hint">
-                                Pista: El comando es <code>{{ lesson.challenge.hint }}</code>
+                                Comandos esperados:
+                                <code v-for="cmd in currentReto.comandos" :key="cmd.id_Comando">
+                                    {{ cmd.comando }}
+                                </code>
                             </div>
                         </div>
+
+                        <!-- Mensajes de éxito/error -->
+                        <div v-if="showSuccess" class="success-message">
+                            ✅ {{ successMessage }}
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="action-buttons">
+                            <button 
+                                v-if="showSuccess" 
+                                class="continue-btn" 
+                                @click="nextChallenge"
+                            >
+                                Continuar →
+                            </button>
+                            <button 
+                                v-else
+                                class="verify-btn manual" 
+                                @click="verifyCommand"
+                                :disabled="isVerifying"
+                                title="También se verifica automáticamente al presionar Enter"
+                            >
+                                {{ isVerifying ? 'Verificando...' : 'Verificar comando ✓' }}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="challenge-panel" v-else>
+                        <p class="challenge-description">Cargando reto...</p>
                     </div>
 
                     <!-- Progress -->
                     <div class="progress-section">
-                        <div class="progress-label">Progress</div>
+                        <div class="progress-label">Progreso de la Lección</div>
                         <div class="progress-bar">
                             <div class="progress-fill" :style="`width: ${progress}%`"></div>
                         </div>
@@ -652,6 +908,116 @@ export default defineComponent({
     border-radius: 4px;
     font-family: 'Courier New', monospace;
     color: #00ff88;
+    display: block;
+    margin: 4px 0;
+}
+
+.success-message {
+    background: rgba(76, 175, 80, 0.15);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    color: #66bb6a;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 15px;
+    font-size: 14px;
+    animation: slideIn 0.3s ease;
+}
+
+.error-message {
+    background: rgba(244, 67, 54, 0.2);
+    border: 1px solid rgba(244, 67, 54, 0.4);
+    color: #f44336;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 15px;
+    font-size: 14px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.verify-btn,
+.continue-btn {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.verify-btn {
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.verify-btn.manual {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+    box-shadow: none;
+    font-size: 13px;
+}
+
+.verify-btn.manual:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.verify-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4);
+}
+
+.verify-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.continue-btn {
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    animation: pulse 2s infinite;
+}
+
+.continue-btn:hover {
+    background: linear-gradient(135deg, #45a049 0%, #388e3c 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 20px rgba(76, 175, 80, 0.5);
+    }
 }
 
 .progress-section {
@@ -874,6 +1240,25 @@ export default defineComponent({
     .hint code {
         font-size: 10px;
         padding: 2px 4px;
+    }
+
+    .success-message,
+    .error-message {
+        font-size: 11px;
+        padding: 8px;
+        margin-top: 10px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .verify-btn,
+    .continue-btn {
+        padding: 10px 18px;
+        font-size: 13px;
     }
 
     .progress-section {

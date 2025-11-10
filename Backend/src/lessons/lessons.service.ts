@@ -97,4 +97,60 @@ export class LessonsService {
       return deleted;
     });
   }
+
+  /**
+   * Obtiene todas las lecciones con su estado de bloqueo para un usuario específico
+   * Lógica:
+   * - Lección 1 (id_Leccion = 1) siempre desbloqueada
+   * - Lección N desbloqueada si existe progreso >= 100 en lección N-1
+   */
+  async findAllWithLockStatus(userId: number) {
+    // Obtener todas las lecciones ordenadas por ID
+    const lecciones = await this.prisma.lecciones.findMany({
+      orderBy: { id_Leccion: 'asc' },
+      select: {
+        id_Leccion: true,
+        Titulo: true,
+      },
+    });
+
+    // Obtener todos los progresos del usuario
+    const progresos = await this.prisma.progresos.findMany({
+      where: { Usuarios_id_Usuario: userId },
+      select: {
+        Lecciones_id_Leccion: true,
+        progreso: true,
+      },
+    });
+
+    // Crear mapa de progreso por lección
+    const progresoMap = new Map(
+      progresos.map((p) => [p.Lecciones_id_Leccion, p.progreso]),
+    );
+
+    // Determinar estado de bloqueo para cada lección
+    const leccionesConEstado = lecciones.map((leccion, index) => {
+      let locked = false;
+      let progreso = progresoMap.get(leccion.id_Leccion) || 0;
+
+      // La primera lección siempre está desbloqueada
+      if (index === 0) {
+        locked = false;
+      } else {
+        // Lección N desbloqueada si la anterior (N-1) tiene progreso >= 100
+        const leccionAnteriorId = lecciones[index - 1].id_Leccion;
+        const progresoAnterior = progresoMap.get(leccionAnteriorId) || 0;
+        locked = progresoAnterior < 100;
+      }
+
+      return {
+        id: leccion.id_Leccion,
+        titulo: leccion.Titulo,
+        locked,
+        progreso,
+      };
+    });
+
+    return leccionesConEstado;
+  }
 }

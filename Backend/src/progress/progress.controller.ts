@@ -19,13 +19,13 @@ export class ProgressController {
 
   @Post()
   @ApiOperation({
-    summary: 'Crear registro de progreso',
+    summary: 'Crear o actualizar registro de progreso',
     description:
-      'Crea un nuevo registro de progreso para un usuario en una lección específica',
+      'Crea un nuevo registro de progreso o actualiza uno existente para un usuario en una lección específica. Solo actualiza si el nuevo progreso es mayor.',
   })
   @ApiResponse({
     status: 201,
-    description: 'Progreso creado exitosamente',
+    description: 'Progreso creado/actualizado exitosamente',
     schema: {
       example: {
         id: 1,
@@ -38,7 +38,7 @@ export class ProgressController {
   })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   create(@Body() createProgressDto: CreateProgressDto) {
-    return this.progressService.create(createProgressDto);
+    return this.progressService.createOrUpdate(createProgressDto);
   }
 
   @Get()

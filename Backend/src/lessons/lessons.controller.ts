@@ -72,6 +72,47 @@ export class LessonsController {
     return this.lessonsService.findAll();
   }
 
+  @Get('user/:userId/available')
+  @ApiOperation({
+    summary: 'Obtener lecciones disponibles para un usuario',
+    description:
+      'Obtiene todas las lecciones con su estado de bloqueo basado en el progreso del usuario. La primera lección siempre está desbloqueada, las siguientes se desbloquean al completar la anterior (progreso >= 100).',
+  })
+  @ApiParam({
+    name: 'userId',
+    description: 'ID del usuario',
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de lecciones con estado de bloqueo',
+    schema: {
+      example: [
+        {
+          id: 1,
+          titulo: 'Introducción a Linux',
+          locked: false,
+          progreso: 100,
+        },
+        {
+          id: 2,
+          titulo: 'Comandos básicos',
+          locked: false,
+          progreso: 50,
+        },
+        {
+          id: 3,
+          titulo: 'Gestión de archivos',
+          locked: true,
+          progreso: 0,
+        },
+      ],
+    },
+  })
+  findAllWithLockStatus(@Param('userId') userId: string) {
+    return this.lessonsService.findAllWithLockStatus(+userId);
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Obtener lección por ID',

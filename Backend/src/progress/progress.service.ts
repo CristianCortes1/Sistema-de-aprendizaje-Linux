@@ -17,6 +17,39 @@ export class ProgressService {
     });
   }
 
+  async createOrUpdate(createProgressDto: CreateProgressDto) {
+    // Buscar si ya existe un progreso para este usuario y lección
+    const existing = await this.prisma.progresos.findFirst({
+      where: {
+        Usuarios_id_Usuario: createProgressDto.userId,
+        Lecciones_id_Leccion: createProgressDto.lessonId,
+      },
+    });
+
+    if (existing) {
+      // Si existe, actualizar solo si el nuevo progreso es mayor
+      if (createProgressDto.progress > existing.progreso) {
+        return this.prisma.progresos.update({
+          where: { id: existing.id },
+          data: {
+            progreso: createProgressDto.progress,
+          },
+        });
+      }
+      // Si el progreso es menor o igual, devolver el existente
+      return existing;
+    } else {
+      // Si no existe, crear uno nuevo
+      return this.prisma.progresos.create({
+        data: {
+          progreso: createProgressDto.progress,
+          Usuarios_id_Usuario: createProgressDto.userId,
+          Lecciones_id_Leccion: createProgressDto.lessonId,
+        },
+      });
+    }
+  }
+
   findAll() {
     return this.prisma.progresos.findMany();
   }

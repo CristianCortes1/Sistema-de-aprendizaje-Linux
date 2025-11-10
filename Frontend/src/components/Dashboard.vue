@@ -14,7 +14,8 @@ export default defineComponent({
             correo: '',
             racha: 0,
             experiencia: 0,
-            avatar: ""
+            avatar: "",
+            id: 0
         })
 
         const modules = ref<any[]>([])
@@ -30,19 +31,26 @@ export default defineComponent({
 
         const fetchLessons = async () => {
             try {
-                const res = await fetch(`${API_URL}/lessons`, {
+                const userId = user.value.id
+                if (!userId) {
+                    console.error('No user ID found')
+                    return
+                }
+
+                const res = await fetch(`${API_URL}/lessons/user/${userId}/available`, {
                     headers: { 'Content-Type': 'application/json' }
                 })
                 if (!res.ok) throw new Error(`HTTP ${res.status}`)
                 const data = await res.json()
-                modules.value = (Array.isArray(data) ? data : []).map((l: any) => {
-                    const id = l.id ?? l.id_Leccion
-                    const titulo = l.titulo ?? l.Titulo ?? 'Lección'
-                    return { id, name: titulo, icon: pickIcon(titulo) }
-                })
+                modules.value = (Array.isArray(data) ? data : []).map((l: any) => ({
+                    id: l.id,
+                    name: l.titulo,
+                    icon: pickIcon(l.titulo),
+                    locked: l.locked,
+                    progreso: l.progreso || 0
+                }))
             } catch (e) {
                 console.error('Error cargando lecciones:', e)
-                // Fallback mínimo si falla la carga
                 modules.value = []
             }
         }
@@ -56,16 +64,15 @@ export default defineComponent({
                 user.value.experiencia = parsed.experiencia
                 user.value.avatar = parsed.avatar
                 user.value.correo = parsed.correo
+                user.value.id = parsed.id_Usuario || parsed.id
             }
-        })
 
-        // Cargar lecciones desde la API
-        onMounted(() => {
+            // Cargar lecciones después de obtener el usuario
             fetchLessons()
         })
 
         const logout = () => {
-            AuthService.logout() // limpiar token del backend si es necesario
+            AuthService.logout()
             localStorage.removeItem('token')
             localStorage.removeItem('user')
             window.location.href = '/'
@@ -75,7 +82,11 @@ export default defineComponent({
         const goBiblioteca = () => router.push('/biblioteca')
         const goRanking = () => router.push('/ranking')
         const goConfig = () => router.push('/configuracion')
-        const goLeccion = (id: number) => router.push(`/leccion/${id}`)
+        const goLeccion = (module: any) => {
+            if (!module.locked) {
+                router.push(`/leccion/${module.id}`)
+            }
+        }
 
     return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion }
     },
@@ -95,11 +106,13 @@ export default defineComponent({
         <p class="subtitulo">Domina la línea de comandos paso a paso</p>
 
         <div class="form-group">
-            <div class="card" v-for="(module, index) in modules" :key="module.name">
-                <button type="button" @click="index === 0 ? goLeccion(1) : null" :disabled="index > 1">
+            <div class="card" v-for="module in modules" :key="module.id" :class="{ 'locked': module.locked }">
+                <button type="button" @click="goLeccion(module)" :disabled="module.locked">
                     <img v-if="module.icon" :src="module.icon" :alt="module.name" />
                     <span v-else>>_</span>
                     <span>{{ module.name }}</span>
+                    <span v-if="module.locked" class="lock-icon">🔒</span>
+                    <span v-if="!module.locked && module.progreso > 0" class="progress-indicator">{{ module.progreso }}%</span>
                 </button>
             </div>
         </div>
@@ -237,88 +250,46 @@ export default defineComponent({
     min-height: 120px;
 }
 
-.form-group .card:nth-child(1) button {
-    /* background: #1e88e5;
-    border: 2px solid #bdbdbd; */
-
-    background: rgb(68, 148, 201);
-}
-
-.form-group .card:nth-child(1) button::after {
-    content: "✓";
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(30, 109, 188, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    color: white;
-}
-
-.form-group .card:nth-child(2) button {
-    /* background: #fbc02d;
-    color: #333;
-    border: 2px solid #bdbdbd; */
-    background: linear-gradient(135deg, rgba(255, 107, 53, 0.9), rgba(247, 147, 30, 0.8));
-}
-
-.form-group .card:nth-child(3) button {
-    /* background: #424242;
-    border: 2px solid #bdbdbd; */
-
-    background: rgba(55, 65, 81, 0.8);
-    opacity: 0.7;
-}
-
-.form-group .card:nth-child(3) button::after {
-    content: "🔒";
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(107, 114, 128, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-}
-
-.form-group .card:nth-child(4) button {
-    /* background: #424242;
-    border: 2px solid #bdbdbd; */
-
-    background: rgba(55, 65, 81, 0.8);
-    opacity: 0.7;
-}
-
-.form-group .card:nth-child(4) button::after {
-    content: "🔒";
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(107, 114, 128, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
+/* Estilos para lecciones desbloqueadas (por defecto) */
+.form-group button {
+    background: linear-gradient(135deg, rgba(68, 148, 201, 0.9), rgba(30, 136, 229, 0.8));
 }
 
 .form-group button:hover {
-    /* transform: scale(1.05);
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); */
-
     transform: translateY(-4px);
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+}
+
+/* Estilos para lecciones bloqueadas */
+.form-group .card.locked button {
+    background: rgba(55, 65, 81, 0.8);
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.form-group .card.locked button:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.lock-icon {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 20px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.progress-indicator {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(76, 175, 80, 0.9);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
 }
 
 .form-group button img {
