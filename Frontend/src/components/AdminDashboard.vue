@@ -36,7 +36,9 @@ const showAddLesson = ref(false)
 const newLesson = ref<any>({
     title: '',
     challenges: [{ 
+        tipo: 'reto',
         description: '', 
+        contenido: '',
         feedback: '', 
         commands: [{ comando: '' }] 
     }]
@@ -313,7 +315,9 @@ const confirmarEliminacion = async () => {
 // Funciones para el modal de agregar lección con challenges
 const addChallenge = () => {
     newLesson.value.challenges.push({ 
+        tipo: 'reto',
         description: '', 
+        contenido: '',
         feedback: '', 
         commands: [{ comando: '' }] 
     })
@@ -343,9 +347,11 @@ const toRequestPayload = () => {
     return {
         titulo: newLesson.value.title,
         retos: newLesson.value.challenges.map((c: any) => ({
+            tipo: c.tipo || 'reto',
             descripcion: c.description,
+            contenido: c.contenido || null,
             Retroalimentacion: c.feedback || null,
-            comandos: c.commands.map((cmd: any) => ({ comando: cmd.comando }))
+            comandos: c.tipo === 'explicacion' ? [] : c.commands.map((cmd: any) => ({ comando: cmd.comando }))
         }))
     }
 }
@@ -356,18 +362,22 @@ const saveLesson = async () => {
     
     // Validación
     if (!newLesson.value.title || newLesson.value.challenges.length === 0) {
-        saveError.value = 'El título y al menos un reto son obligatorios.'
+        saveError.value = 'El título y al menos un reto/explicación son obligatorios.'
         return
     }
 
-    // Validar que cada reto tenga al menos un comando
+    // Validar que cada reto tenga al menos un comando (solo si es tipo "reto")
     for (const challenge of newLesson.value.challenges) {
         if (!challenge.description) {
-            saveError.value = 'Todos los retos deben tener una descripción.'
+            saveError.value = 'Todos los elementos deben tener una descripción/título.'
             return
         }
-        if (!challenge.commands || challenge.commands.length === 0 || !challenge.commands[0].comando) {
+        if (challenge.tipo === 'reto' && (!challenge.commands || challenge.commands.length === 0 || !challenge.commands[0].comando)) {
             saveError.value = 'Cada reto debe tener al menos un comando válido.'
+            return
+        }
+        if (challenge.tipo === 'explicacion' && !challenge.contenido) {
+            saveError.value = 'Cada explicación debe tener contenido.'
             return
         }
     }
@@ -380,14 +390,18 @@ const saveLesson = async () => {
         if (currentItemId) {
             // Editar lección existente
             const response = await fetch(`${API_URL}/lessons/${currentItemId}`, {
-                method: 'PUT',
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
             })
             
-            if (!response.ok) throw new Error('Error al actualizar la lección')
+            if (!response.ok) {
+                const errorData = await response.json()
+                console.error('Error del servidor:', errorData)
+                throw new Error(errorData.message || 'Error al actualizar la lección')
+            }
             saveSuccess.value = 'Lección actualizada correctamente.'
         } else {
             // Crear nueva lección
@@ -547,38 +561,57 @@ const saveLesson = async () => {
 
                     <div class="form-group">
                         <div class="challenges-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                            <label style="color:white; margin:0;">Retos</label>
-                            <button class="btn-add" @click="addChallenge">+ Añadir Reto</button>
+                            <label style="color:white; margin:0;">Contenido de la Lección</label>
+                            <button class="btn-add" @click="addChallenge">+ Añadir Elemento</button>
                         </div>
 
                         <div class="challenges-list">
                             <div v-for="(challenge, index) in newLesson.challenges" :key="index" class="challenge-item" style="background: rgba(255, 255, 255, 0.1); padding: 16px; border-radius: 10px; margin-bottom: 12px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                                    <label style="color:white; font-weight:600; margin:0;">Reto {{ index + 1 }}</label>
-                                    <button class="btn-delete" @click.prevent="removeChallenge(index)" style="padding: 4px 12px; font-size: 12px;">Eliminar Reto</button>
+                                    <label style="color:white; font-weight:600; margin:0;">Elemento {{ index + 1 }}</label>
+                                    <button class="btn-delete" @click.prevent="removeChallenge(index)" style="padding: 4px 12px; font-size: 12px;">Eliminar</button>
+                                </div>
+
+                                <!-- Selector de tipo -->
+                                <div class="form-group" style="margin-bottom:12px;">
+                                    <label style="font-size:13px;">Tipo de Contenido</label>
+                                    <select v-model="challenge.tipo" class="form-input" style="background: rgba(0,0,0,0.2); color: white;">
+                                        <option value="explicacion">📚 Explicación (Solo lectura)</option>
+                                        <option value="reto">🎯 Reto (Terminal interactiva)</option>
+                                    </select>
                                 </div>
 
                                 <div class="form-group" style="margin-bottom:12px;">
-                                    <label style="font-size:13px;">Descripción del Reto</label>
-                                    <input type="text" v-model="challenge.description" placeholder="Ej: Lista todos los archivos del directorio actual" class="form-input" />
+                                    <label style="font-size:13px;">{{ challenge.tipo === 'explicacion' ? 'Título de la Explicación' : 'Descripción del Reto' }}</label>
+                                    <input type="text" v-model="challenge.description" :placeholder="challenge.tipo === 'explicacion' ? 'Ej: ¿Qué es la terminal de Linux?' : 'Ej: Lista todos los archivos del directorio actual'" class="form-input" />
                                 </div>
 
-                                <div class="form-group" style="margin-bottom:12px;">
-                                    <label style="font-size:13px;">Retroalimentación (opcional)</label>
-                                    <textarea v-model="challenge.feedback" placeholder="Ej: ¡Excelente! Has usado el comando correcto" rows="2" class="form-textarea"></textarea>
+                                <!-- Contenido extenso para explicaciones -->
+                                <div v-if="challenge.tipo === 'explicacion'" class="form-group" style="margin-bottom:12px;">
+                                    <label style="font-size:13px;">Contenido de la Explicación</label>
+                                    <textarea v-model="challenge.contenido" placeholder="Puedes usar HTML o Markdown. Ej: <h2>La Terminal</h2><p>Es una interfaz...</p>" rows="6" class="form-textarea"></textarea>
+                                    <small style="color: rgba(255,255,255,0.6); font-size:11px;">Soporta HTML básico: h1-h6, p, strong, em, ul, ol, li, code, pre</small>
                                 </div>
 
-                                <div class="form-group" style="margin-bottom:0;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                        <label style="font-size:13px; margin:0;">Comandos Válidos</label>
-                                        <button class="btn-add" @click.prevent="addCommand(index)" style="padding: 4px 10px; font-size: 12px;">+ Comando</button>
+                                <!-- Campos solo para retos -->
+                                <template v-if="challenge.tipo === 'reto'">
+                                    <div class="form-group" style="margin-bottom:12px;">
+                                        <label style="font-size:13px;">Retroalimentación (opcional)</label>
+                                        <textarea v-model="challenge.feedback" placeholder="Ej: ¡Excelente! Has usado el comando correcto" rows="2" class="form-textarea"></textarea>
                                     </div>
 
-                                    <div v-for="(cmd, ci) in challenge.commands" :key="ci" style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
-                                        <input v-model="cmd.comando" placeholder="Ej: ls -la" class="form-input mono" style="flex:1;" />
-                                        <button v-if="challenge.commands.length > 1" class="btn-delete" @click.prevent="removeCommand(index, ci)" style="padding: 8px 12px; font-size: 12px;">×</button>
+                                    <div class="form-group" style="margin-bottom:0;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                            <label style="font-size:13px; margin:0;">Comandos Válidos</label>
+                                            <button class="btn-add" @click.prevent="addCommand(index)" style="padding: 4px 10px; font-size: 12px;">+ Comando</button>
+                                        </div>
+
+                                        <div v-for="(cmd, ci) in challenge.commands" :key="ci" style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+                                            <input v-model="cmd.comando" placeholder="Ej: ls -la" class="form-input mono" style="flex:1;" />
+                                            <button v-if="challenge.commands.length > 1" class="btn-delete" @click.prevent="removeCommand(index, ci)" style="padding: 8px 12px; font-size: 12px;">×</button>
+                                        </div>
                                     </div>
-                                </div>
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -1107,6 +1140,12 @@ const saveLesson = async () => {
 .form-textarea {
     resize: vertical;
     min-height: 80px;
+}
+
+.mono {
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 13px;
+    letter-spacing: 0.5px;
 }
 
 .form-row {

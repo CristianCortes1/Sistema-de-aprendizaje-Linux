@@ -39,7 +39,9 @@ interface Comando {
 
 interface Reto {
     id_Reto: number
+    tipo: string // 'reto' o 'explicacion'
     descripcion: string
+    contenido?: string // Solo para tipo='explicacion'
     Retroalimentacion: string
     comandos: Comando[]
 }
@@ -188,9 +190,11 @@ export default defineComponent({
             }
         }
 
-        // Verificar comando
+        // Verificar comando (solo para tipo='reto')
         const verifyCommand = async () => {
-            if (!currentReto.value || isVerifying.value || showSuccess.value) return
+            // No verificar si es una explicación
+            if (!currentReto.value || currentReto.value.tipo === 'explicacion') return
+            if (isVerifying.value || showSuccess.value) return
             
             isVerifying.value = true
             
@@ -578,48 +582,69 @@ export default defineComponent({
                 <!-- Challenge Panel -->
                 <div class="challenge-section">
                     <div class="challenge-panel" v-if="currentReto">
-                        <h2 class="challenge-title">Reto {{ (lessonData?.retos.findIndex(r => r.id_Reto === currentReto?.id_Reto) || 0) + 1 }} de {{ lessonData?.retos.length || 0 }}</h2>
-                        <p class="challenge-description">{{ currentReto.descripcion }}</p>
+                        <!-- Contador de elementos -->
+                        <h2 class="challenge-title">
+                            {{ currentReto.tipo === 'explicacion' ? '📚' : '🎯' }}
+                            {{ currentReto.tipo === 'explicacion' ? 'Explicación' : 'Reto' }} 
+                            {{ (lessonData?.retos.findIndex(r => r.id_Reto === currentReto?.id_Reto) || 0) + 1 }} de {{ lessonData?.retos.length || 0 }}
+                        </h2>
 
-                        <div class="hint-section">
-                            <button class="hint-btn" @click="toggleHint">
-                                {{ showHint ? 'Ocultar pista' : 'Mostrar pista' }} 💡
-                            </button>
-                            <div v-if="showHint" class="hint">
-                                Comandos esperados:
-                                <code v-for="cmd in currentReto.comandos" :key="cmd.id_Comando">
-                                    {{ cmd.comando }}
-                                </code>
+                        <!-- VISTA DE EXPLICACIÓN -->
+                        <template v-if="currentReto.tipo === 'explicacion'">
+                            <h3 class="explicacion-title">{{ currentReto.descripcion }}</h3>
+                            <div class="explicacion-content" v-html="currentReto.contenido"></div>
+                            
+                            <div class="action-buttons" style="margin-top: 24px;">
+                                <button class="continue-btn" @click="nextChallenge">
+                                    Continuar →
+                                </button>
                             </div>
-                        </div>
+                        </template>
 
-                        <!-- Mensajes de éxito/error -->
-                        <div v-if="showSuccess" class="success-message">
-                            ✅ {{ successMessage }}
-                        </div>
+                        <!-- VISTA DE RETO (terminal interactiva) -->
+                        <template v-else>
+                            <p class="challenge-description">{{ currentReto.descripcion }}</p>
 
-                        <!-- Botones de acción -->
-                        <div class="action-buttons">
-                            <button 
-                                v-if="showSuccess" 
-                                class="continue-btn" 
-                                @click="nextChallenge"
-                            >
-                                Continuar →
-                            </button>
-                            <button 
-                                v-else
-                                class="verify-btn manual" 
-                                @click="verifyCommand"
-                                :disabled="isVerifying"
-                                title="También se verifica automáticamente al presionar Enter"
-                            >
-                                {{ isVerifying ? 'Verificando...' : 'Verificar comando ✓' }}
-                            </button>
-                        </div>
+                            <div class="hint-section">
+                                <button class="hint-btn" @click="toggleHint">
+                                    {{ showHint ? 'Ocultar pista' : 'Mostrar pista' }} 💡
+                                </button>
+                                <div v-if="showHint" class="hint">
+                                    Comandos esperados:
+                                    <code v-for="cmd in currentReto.comandos" :key="cmd.id_Comando">
+                                        {{ cmd.comando }}
+                                    </code>
+                                </div>
+                            </div>
+
+                            <!-- Mensajes de éxito/error -->
+                            <div v-if="showSuccess" class="success-message">
+                                ✅ {{ successMessage }}
+                            </div>
+
+                            <!-- Botones de acción -->
+                            <div class="action-buttons">
+                                <button 
+                                    v-if="showSuccess" 
+                                    class="continue-btn" 
+                                    @click="nextChallenge"
+                                >
+                                    Continuar →
+                                </button>
+                                <button 
+                                    v-else
+                                    class="verify-btn manual" 
+                                    @click="verifyCommand"
+                                    :disabled="isVerifying"
+                                    title="También se verifica automáticamente al presionar Enter"
+                                >
+                                    {{ isVerifying ? 'Verificando...' : 'Verificar comando ✓' }}
+                                </button>
+                            </div>
+                        </template>
                     </div>
                     <div class="challenge-panel" v-else>
-                        <p class="challenge-description">Cargando reto...</p>
+                        <p class="challenge-description">Cargando contenido...</p>
                     </div>
 
                     <!-- Progress -->
@@ -869,6 +894,85 @@ export default defineComponent({
     line-height: 1.6;
     margin-bottom: 20px;
     font-size: 14px;
+}
+
+/* Estilos para pantallas de explicación */
+.explicacion-title {
+    color: #ffc107;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(255, 193, 7, 0.3);
+}
+
+.explicacion-content {
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.8;
+    font-size: 15px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    border-left: 4px solid #ffc107;
+}
+
+.explicacion-content h1,
+.explicacion-content h2,
+.explicacion-content h3,
+.explicacion-content h4 {
+    color: #ffc107;
+    margin-top: 20px;
+    margin-bottom: 12px;
+}
+
+.explicacion-content h2 { font-size: 20px; }
+.explicacion-content h3 { font-size: 18px; }
+.explicacion-content h4 { font-size: 16px; }
+
+.explicacion-content p {
+    margin-bottom: 14px;
+}
+
+.explicacion-content code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: #66bb6a;
+}
+
+.explicacion-content pre {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 16px 0;
+}
+
+.explicacion-content pre code {
+    background: none;
+    padding: 0;
+}
+
+.explicacion-content ul,
+.explicacion-content ol {
+    margin-left: 24px;
+    margin-bottom: 14px;
+}
+
+.explicacion-content li {
+    margin-bottom: 8px;
+}
+
+.explicacion-content strong {
+    color: white;
+    font-weight: 600;
+}
+
+.explicacion-content em {
+    color: rgba(255, 255, 255, 0.8);
+    font-style: italic;
 }
 
 .hint-section {

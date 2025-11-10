@@ -10,10 +10,12 @@ export class LessonsService {
   create(createLessonDto: CreateLessonDto) {
     // Build nested create data for retos and comandos
     const retosData = createLessonDto.retos.map((reto) => ({
+      tipo: reto.tipo || 'reto',
       descripcion: reto.descripcion,
+      contenido: reto.contenido ?? null,
       Retroalimentacion: reto.Retroalimentacion ?? null,
       comandos: {
-        create: reto.comandos.map((c) => ({ comando: c.comando })),
+        create: reto.comandos?.map((c) => ({ comando: c.comando })) || [],
       },
     }));
 
@@ -54,11 +56,73 @@ export class LessonsService {
   }
 
   update(id: number, updateLessonDto: UpdateLessonDto) {
-    return this.prisma.lecciones.update({
-      where: { id_Leccion: id },
-      data: {
-        Titulo: updateLessonDto.titulo,
-      },
+    return this.prisma.$transaction(async (prisma) => {
+      // Actualizar título de la lección
+      await prisma.lecciones.update({
+        where: { id_Leccion: id },
+        data: {
+          Titulo: updateLessonDto.titulo,
+        },
+      });
+
+      if (updateLessonDto.retos && updateLessonDto.retos.length > 0) {
+        // Eliminar retos y comandos existentes
+        const retos = await prisma.retos.findMany({
+          where: { Lecciones_id_Leccion: id },
+        });
+        const retoIds = retos.map((r) => r.id_Reto);
+        if (retoIds.length) {
+          await prisma.comandos.deleteMany({
+            where: { Retos_id_Reto: { in: retoIds } },
+          });
+        }
+        await prisma.retos.deleteMany({ where: { Lecciones_id_Leccion: id } });
+
+        // Crear nuevos retos
+        const retosData = updateLessonDto.retos.map((reto) => ({
+          tipo: reto.tipo || 'reto',
+          descripcion: reto.descripcion,
+          contenido: reto.contenido ?? null,
+          Retroalimentacion: reto.Retroalimentacion ?? null,
+          Lecciones_id_Leccion: id,
+          comandos: {
+            create: reto.comandos?.map((c) => ({ comando: c.comando })) || [],
+          },
+        }));
+
+        await prisma.retos.createMany({
+          data: retosData.map(({ comandos, ...reto }) => reto),
+        });
+
+        // Obtener los IDs de los retos recién creados
+        const newRetos = await prisma.retos.findMany({
+          where: { Lecciones_id_Leccion: id },
+          orderBy: { id_Reto: 'asc' },
+        });
+
+        // Crear comandos para cada reto
+        for (let i = 0; i < newRetos.length; i++) {
+          const comandos = updateLessonDto.retos[i].comandos || [];
+          if (comandos.length > 0) {
+            await prisma.comandos.createMany({
+              data: comandos.map((c) => ({
+                comando: c.comando,
+                Retos_id_Reto: newRetos[i].id_Reto,
+              })),
+            });
+          }
+        }
+      }
+
+      // Retornar la lección actualizada con retos y comandos
+      return prisma.lecciones.findUnique({
+        where: { id_Leccion: id },
+        include: {
+          retos: {
+            include: { comandos: true },
+          },
+        },
+      });
     });
   }
 

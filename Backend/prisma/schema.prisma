@@ -46,15 +46,20 @@ model Progresos {
 
 model Lecciones {
   id_Leccion Int         @id @default(autoincrement())
-  Titulo     String      @db.VarChar(45)
+  // Ampliado de 45 a 150 para permitir títulos más descriptivos
+  Titulo     String      @db.VarChar(150)
   progresos  Progresos[]
   retos      Retos[]
 }
 
 model Retos {
   id_Reto              Int        @id @default(autoincrement())
-  descripcion          String     @db.VarChar(300)
-  Retroalimentacion    String?    @db.VarChar(100)
+  tipo                 String     @default("reto") @db.VarChar(20) // 'reto' o 'explicacion'
+  // Ampliado de 300 a 500 para permitir descripciones más completas
+  descripcion          String     @db.VarChar(500)
+  contenido            String?    @db.Text // Para explicaciones: contenido HTML/Markdown extenso
+  // Ampliado de 100 a 200 para retroalimentaciones más ricas
+  Retroalimentacion    String?    @db.VarChar(200)
   leccion              Lecciones  @relation(fields: [Lecciones_id_Leccion], references: [id_Leccion])
   Lecciones_id_Leccion Int
   comandos             Comandos[]
@@ -62,7 +67,8 @@ model Retos {
 
 model Comandos {
   id_Comando    Int    @id @default(autoincrement())
-  comando       String @db.VarChar(45)
+  // Ampliado de 45 a 100 para permitir comandos con múltiples flags
+  comando       String @db.VarChar(100)
   reto          Retos  @relation(fields: [Retos_id_Reto], references: [id_Reto])
   Retos_id_Reto Int
 }

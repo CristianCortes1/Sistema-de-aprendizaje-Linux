@@ -20,8 +20,18 @@ export class CreateComandoDto {
 }
 
 export class CreateRetoDto {
+  @ApiPropertyOptional({
+    description: 'Tipo de contenido: "reto" (con terminal) o "explicacion" (solo lectura)',
+    example: 'reto',
+    enum: ['reto', 'explicacion'],
+    default: 'reto',
+  })
+  @IsOptional()
+  @IsString()
+  tipo?: string;
+
   @ApiProperty({
-    description: 'Descripción del reto',
+    description: 'Descripción del reto o título de la explicación',
     example: 'Lista todos los archivos incluyendo los ocultos',
   })
   @IsString()
@@ -29,23 +39,31 @@ export class CreateRetoDto {
   descripcion: string;
 
   @ApiPropertyOptional({
-    description: 'Retroalimentación para el usuario',
+    description: 'Contenido extenso para explicaciones (HTML/Markdown). Solo para tipo="explicacion"',
+    example: '<h2>El comando ls</h2><p>El comando ls lista archivos...</p>',
+  })
+  @IsOptional()
+  @IsString()
+  contenido?: string;
+
+  @ApiPropertyOptional({
+    description: 'Retroalimentación para el usuario (solo para tipo="reto")',
     example: 'Bien hecho! El flag -a muestra archivos ocultos',
   })
   @IsOptional()
   @IsString()
   Retroalimentacion?: string;
 
-  @ApiProperty({
-    description: 'Lista de comandos válidos como solución',
+  @ApiPropertyOptional({
+    description: 'Lista de comandos válidos como solución (solo para tipo="reto")',
     type: [CreateComandoDto],
     example: [{ comando: 'ls -la' }, { comando: 'ls -al' }],
   })
+  @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => CreateComandoDto)
-  comandos: CreateComandoDto[];
+  comandos?: CreateComandoDto[];
 }
 
 export class CreateLessonDto {
