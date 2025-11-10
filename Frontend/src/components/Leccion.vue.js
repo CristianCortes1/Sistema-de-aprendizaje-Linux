@@ -7,6 +7,25 @@ import { WebLinksAddon } from 'xterm-addon-web-links';
 import 'xterm/css/xterm.css';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
+// Función para obtener userId del token JWT
+function getUserIdForTerminal() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        // ❌ Sin token = sin acceso al terminal
+        return null;
+    }
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload && payload.sub) {
+            // Convertir a string por si el ID viene como número
+            return String(payload.sub);
+        }
+    }
+    catch (error) {
+        console.error('Error decoding token:', error);
+    }
+    return null;
+}
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = defineComponent({
     name: 'Leccion',
@@ -14,14 +33,12 @@ const __VLS_export = defineComponent({
     setup() {
         const router = useRouter();
         const route = useRoute();
-        // Terminal
-        const socket = io('https://sistema-de-aprendizaje-linux-production.up.railway.app');
-        const terminalContainer = ref(null);
-        let terminal = null;
-        let fitAddon = null;
+        // Obtener userId del token (REQUERIDO para terminal)
+        const userId = getUserIdForTerminal();
         // Estado de la terminal
         const isConnected = ref(false);
         const terminalTitle = ref('Conectando...');
+        const terminalContainer = ref(null);
         // UI state (lesson, hints, progress)
         const showHint = ref(false);
         const progress = ref(30);
@@ -35,6 +52,37 @@ const __VLS_export = defineComponent({
                 directory: '~'
             }
         });
+        // ❌ Redirigir a login si no está autenticado
+        if (!userId) {
+            console.warn('No authenticated user - redirecting to login');
+            router.push('/login');
+            // Retornar objeto mínimo para evitar errores
+            return {
+                terminalContainer,
+                showHint,
+                toggleHint: () => { },
+                progress,
+                lesson,
+                goBack: () => { },
+                goInicio: () => { },
+                goBiblioteca: () => { },
+                goRanking: () => { },
+                goConfig: () => { },
+                isConnected,
+                terminalTitle,
+                clearTerminal: () => { },
+            };
+        }
+        // API URL usando la configuración centralizada
+        const WS_URL = import.meta.env.MODE === 'production' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000');
+        // Terminal - conectar con autenticación
+        const socket = io(WS_URL, {
+            auth: {
+                userId: userId
+            }
+        });
+        let terminal = null;
+        let fitAddon = null;
         onMounted(async () => {
             await nextTick();
             if (!terminalContainer.value)
@@ -69,6 +117,8 @@ const __VLS_export = defineComponent({
                     brightWhite: '#eeeeec'
                 },
                 allowProposedApi: true,
+                scrollback: 1000,
+                convertEol: true,
             });
             // Addons
             fitAddon = new FitAddon();
@@ -76,6 +126,11 @@ const __VLS_export = defineComponent({
             terminal.loadAddon(new WebLinksAddon());
             // Montar terminal en el DOM
             terminal.open(terminalContainer.value);
+            // Ajustar tamaño según pantalla
+            if (window.innerWidth <= 768) {
+                // Móvil: reducir fuente para más columnas
+                terminal.options.fontSize = 9;
+            }
             fitAddon.fit();
             // Manejar input del usuario
             terminal.onData((data) => {
@@ -85,13 +140,11 @@ const __VLS_export = defineComponent({
             socket.on('connect', () => {
                 isConnected.value = true;
                 terminalTitle.value = 'Terminal SSH';
-                terminal?.writeln('\x1b[1;32m✓ Conectado al servidor SSH\x1b[0m');
             });
             // Desconexión
             socket.on('disconnect', () => {
                 isConnected.value = false;
                 terminalTitle.value = 'Desconectado';
-                terminal?.writeln('\x1b[1;31m✗ Desconectado del servidor\x1b[0m');
             });
             // Recibir output del servidor
             socket.on('output', (data) => {
@@ -100,22 +153,30 @@ const __VLS_export = defineComponent({
             // Redimensionar terminal cuando cambia el tamaño de la ventana
             const handleResize = () => {
                 if (fitAddon && terminal) {
+                    // Pequeño delay para que el DOM se actualice primero
+                    setTimeout(() => {
+                        fitAddon?.fit();
+                        // Enviar nuevo tamaño al servidor
+                        if (terminal) {
+                            socket.emit('resize', {
+                                cols: terminal.cols,
+                                rows: terminal.rows
+                            });
+                        }
+                    }, 100);
+                }
+            };
+            window.addEventListener('resize', handleResize);
+            // Enviar tamaño inicial al servidor (con delay para asegurar renderizado)
+            setTimeout(() => {
+                if (fitAddon && terminal) {
                     fitAddon.fit();
-                    // Enviar nuevo tamaño al servidor
                     socket.emit('resize', {
                         cols: terminal.cols,
                         rows: terminal.rows
                     });
                 }
-            };
-            window.addEventListener('resize', handleResize);
-            // Enviar tamaño inicial al servidor
-            if (terminal) {
-                socket.emit('resize', {
-                    cols: terminal.cols,
-                    rows: terminal.rows
-                });
-            }
+            }, 200);
             // Cleanup
             onUnmounted(() => {
                 window.removeEventListener('resize', handleResize);
@@ -128,6 +189,24 @@ const __VLS_export = defineComponent({
         };
         const clearTerminal = () => {
             terminal?.clear();
+        };
+        const sendTab = () => {
+            socket.emit('input', '\t');
+        };
+        const sendCtrlC = () => {
+            socket.emit('input', '\x03'); // Ctrl+C - interrumpir proceso
+        };
+        const sendCtrlX = () => {
+            socket.emit('input', '\x18'); // Ctrl+X - salir de nano
+        };
+        const sendCtrlS = () => {
+            socket.emit('input', '\x13'); // Ctrl+S - guardar (en algunos editores)
+        };
+        const sendCtrlZ = () => {
+            socket.emit('input', '\x1a'); // Ctrl+Z - suspender proceso
+        };
+        const sendCtrlD = () => {
+            socket.emit('input', '\x04'); // Ctrl+D - EOF / salir shell
         };
         // Navegación
         const goBack = () => router.push('/dashboard');
@@ -149,6 +228,12 @@ const __VLS_export = defineComponent({
             isConnected,
             terminalTitle,
             clearTerminal,
+            sendTab,
+            sendCtrlC,
+            sendCtrlX,
+            sendCtrlS,
+            sendCtrlZ,
+            sendCtrlD,
         };
     },
 });
@@ -158,14 +243,12 @@ const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         const router = useRouter();
         const route = useRoute();
-        // Terminal
-        const socket = io('https://sistema-de-aprendizaje-linux-production.up.railway.app');
-        const terminalContainer = ref(null);
-        let terminal = null;
-        let fitAddon = null;
+        // Obtener userId del token (REQUERIDO para terminal)
+        const userId = getUserIdForTerminal();
         // Estado de la terminal
         const isConnected = ref(false);
         const terminalTitle = ref('Conectando...');
+        const terminalContainer = ref(null);
         // UI state (lesson, hints, progress)
         const showHint = ref(false);
         const progress = ref(30);
@@ -179,6 +262,37 @@ const __VLS_self = (await import('vue')).defineComponent({
                 directory: '~'
             }
         });
+        // ❌ Redirigir a login si no está autenticado
+        if (!userId) {
+            console.warn('No authenticated user - redirecting to login');
+            router.push('/login');
+            // Retornar objeto mínimo para evitar errores
+            return {
+                terminalContainer,
+                showHint,
+                toggleHint: () => { },
+                progress,
+                lesson,
+                goBack: () => { },
+                goInicio: () => { },
+                goBiblioteca: () => { },
+                goRanking: () => { },
+                goConfig: () => { },
+                isConnected,
+                terminalTitle,
+                clearTerminal: () => { },
+            };
+        }
+        // API URL usando la configuración centralizada
+        const WS_URL = import.meta.env.MODE === 'production' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000');
+        // Terminal - conectar con autenticación
+        const socket = io(WS_URL, {
+            auth: {
+                userId: userId
+            }
+        });
+        let terminal = null;
+        let fitAddon = null;
         onMounted(async () => {
             await nextTick();
             if (!terminalContainer.value)
@@ -213,6 +327,8 @@ const __VLS_self = (await import('vue')).defineComponent({
                     brightWhite: '#eeeeec'
                 },
                 allowProposedApi: true,
+                scrollback: 1000,
+                convertEol: true,
             });
             // Addons
             fitAddon = new FitAddon();
@@ -220,6 +336,11 @@ const __VLS_self = (await import('vue')).defineComponent({
             terminal.loadAddon(new WebLinksAddon());
             // Montar terminal en el DOM
             terminal.open(terminalContainer.value);
+            // Ajustar tamaño según pantalla
+            if (window.innerWidth <= 768) {
+                // Móvil: reducir fuente para más columnas
+                terminal.options.fontSize = 9;
+            }
             fitAddon.fit();
             // Manejar input del usuario
             terminal.onData((data) => {
@@ -229,13 +350,11 @@ const __VLS_self = (await import('vue')).defineComponent({
             socket.on('connect', () => {
                 isConnected.value = true;
                 terminalTitle.value = 'Terminal SSH';
-                terminal?.writeln('\x1b[1;32m✓ Conectado al servidor SSH\x1b[0m');
             });
             // Desconexión
             socket.on('disconnect', () => {
                 isConnected.value = false;
                 terminalTitle.value = 'Desconectado';
-                terminal?.writeln('\x1b[1;31m✗ Desconectado del servidor\x1b[0m');
             });
             // Recibir output del servidor
             socket.on('output', (data) => {
@@ -244,22 +363,30 @@ const __VLS_self = (await import('vue')).defineComponent({
             // Redimensionar terminal cuando cambia el tamaño de la ventana
             const handleResize = () => {
                 if (fitAddon && terminal) {
+                    // Pequeño delay para que el DOM se actualice primero
+                    setTimeout(() => {
+                        fitAddon?.fit();
+                        // Enviar nuevo tamaño al servidor
+                        if (terminal) {
+                            socket.emit('resize', {
+                                cols: terminal.cols,
+                                rows: terminal.rows
+                            });
+                        }
+                    }, 100);
+                }
+            };
+            window.addEventListener('resize', handleResize);
+            // Enviar tamaño inicial al servidor (con delay para asegurar renderizado)
+            setTimeout(() => {
+                if (fitAddon && terminal) {
                     fitAddon.fit();
-                    // Enviar nuevo tamaño al servidor
                     socket.emit('resize', {
                         cols: terminal.cols,
                         rows: terminal.rows
                     });
                 }
-            };
-            window.addEventListener('resize', handleResize);
-            // Enviar tamaño inicial al servidor
-            if (terminal) {
-                socket.emit('resize', {
-                    cols: terminal.cols,
-                    rows: terminal.rows
-                });
-            }
+            }, 200);
             // Cleanup
             onUnmounted(() => {
                 window.removeEventListener('resize', handleResize);
@@ -272,6 +399,24 @@ const __VLS_self = (await import('vue')).defineComponent({
         };
         const clearTerminal = () => {
             terminal?.clear();
+        };
+        const sendTab = () => {
+            socket.emit('input', '\t');
+        };
+        const sendCtrlC = () => {
+            socket.emit('input', '\x03'); // Ctrl+C - interrumpir proceso
+        };
+        const sendCtrlX = () => {
+            socket.emit('input', '\x18'); // Ctrl+X - salir de nano
+        };
+        const sendCtrlS = () => {
+            socket.emit('input', '\x13'); // Ctrl+S - guardar (en algunos editores)
+        };
+        const sendCtrlZ = () => {
+            socket.emit('input', '\x1a'); // Ctrl+Z - suspender proceso
+        };
+        const sendCtrlD = () => {
+            socket.emit('input', '\x04'); // Ctrl+D - EOF / salir shell
         };
         // Navegación
         const goBack = () => router.push('/dashboard');
@@ -293,6 +438,12 @@ const __VLS_self = (await import('vue')).defineComponent({
             isConnected,
             terminalTitle,
             clearTerminal,
+            sendTab,
+            sendCtrlC,
+            sendCtrlX,
+            sendCtrlS,
+            sendCtrlZ,
+            sendCtrlD,
         };
     },
 });
@@ -307,12 +458,54 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['status-indicator']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['hint-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['hint']} */ ;
+/** @type {__VLS_StyleScopedClasses['leccion']} */ ;
+/** @type {__VLS_StyleScopedClasses['content']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-content']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-title']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-wrapper']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-controls']} */ ;
+/** @type {__VLS_StyleScopedClasses['control']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-title']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-indicator']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['xterm']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['xterm-viewport']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['xterm-screen']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['xterm-rows']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-controls']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['challenge-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['challenge-panel']} */ ;
+/** @type {__VLS_StyleScopedClasses['challenge-title']} */ ;
+/** @type {__VLS_StyleScopedClasses['challenge-description']} */ ;
+/** @type {__VLS_StyleScopedClasses['hint-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['hint-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['hint']} */ ;
+/** @type {__VLS_StyleScopedClasses['hint']} */ ;
+/** @type {__VLS_StyleScopedClasses['progress-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['progress-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['progress-bar']} */ ;
+/** @type {__VLS_StyleScopedClasses['progress-text']} */ ;
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "leccion" },
 });
@@ -382,11 +575,61 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 // @ts-ignore
 [terminalContainer,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "terminal-help" },
+    ...{ class: "mobile-controls" },
 });
-__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-    ...{ class: "help-item" },
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendTab) },
+    ...{ class: "mobile-btn" },
+    title: "Tab - Autocompletar",
 });
+// @ts-ignore
+[sendTab,];
+__VLS_asFunctionalElement(__VLS_elements.svg, __VLS_elements.svg)({
+    width: "16",
+    height: "16",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    'stroke-width': "2",
+});
+__VLS_asFunctionalElement(__VLS_elements.path)({
+    d: "M5 12h14M12 5l7 7-7 7",
+});
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendCtrlC) },
+    ...{ class: "mobile-btn shortcut-btn" },
+    title: "Ctrl+C - Interrumpir proceso",
+});
+// @ts-ignore
+[sendCtrlC,];
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendCtrlX) },
+    ...{ class: "mobile-btn shortcut-btn" },
+    title: "Ctrl+X - Salir de nano",
+});
+// @ts-ignore
+[sendCtrlX,];
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendCtrlS) },
+    ...{ class: "mobile-btn shortcut-btn" },
+    title: "Ctrl+S - Guardar",
+});
+// @ts-ignore
+[sendCtrlS,];
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendCtrlZ) },
+    ...{ class: "mobile-btn shortcut-btn" },
+    title: "Ctrl+Z - Suspender proceso",
+});
+// @ts-ignore
+[sendCtrlZ,];
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendCtrlD) },
+    ...{ class: "mobile-btn shortcut-btn" },
+    title: "Ctrl+D - EOF / Salir",
+});
+// @ts-ignore
+[sendCtrlD,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "challenge-section" },
 });
@@ -488,8 +731,18 @@ const __VLS_7 = __VLS_6({
 /** @type {__VLS_StyleScopedClasses['status-indicator']} */ ;
 /** @type {__VLS_StyleScopedClasses['connected']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-help']} */ ;
-/** @type {__VLS_StyleScopedClasses['help-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-controls']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-panel']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-title']} */ ;

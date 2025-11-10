@@ -1,5 +1,6 @@
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { API_URL } from '../config/api';
 const router = useRouter();
 const route = useRoute();
 const loading = ref(true);
@@ -15,7 +16,7 @@ onMounted(async () => {
         return;
     }
     try {
-        const response = await fetch(`https://sistema-de-aprendizaje-linux-production.up.railway.app/auth/confirm-email?token=${token}`);
+        const response = await fetch(`${API_URL}/auth/confirm-email?token=${token}`);
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
         }

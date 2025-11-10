@@ -27,12 +27,6 @@ const routes = [
         meta: { guestOnly: true }
     },
     {
-        path: '/confirm-email',
-        name: 'ConfirmEmail',
-        component: ConfirmEmail,
-        meta: { guestOnly: true }
-    },
-    {
         path: '/forgot-password',
         name: 'ForgotPassword',
         component: ForgotPassword
@@ -51,6 +45,12 @@ const routes = [
         path: '/terms',
         name: 'TermsConditions',
         component: TermsConditions
+    },
+    {
+        path: '/confirm-email',
+        name: 'ConfirmEmail',
+        component: ConfirmEmail,
+        meta: { guestOnly: true }
     },
     {
         path: '/dashboard',

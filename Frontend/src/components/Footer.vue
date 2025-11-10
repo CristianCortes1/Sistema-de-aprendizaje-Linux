@@ -14,7 +14,7 @@ export default defineComponent({
 <template>
     <footer class="footer">
         <div class="barra-inicio">
-            <button type="button" @click="goInicio"><img src="/Assets/Inicio.svg" alt="Inicio">Inicio</button>
+            <button type="button" @click="goInicio"><img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Inicio">Inicio</button>
         </div>
         <div class="barra">
             <button @click="goBiblioteca">

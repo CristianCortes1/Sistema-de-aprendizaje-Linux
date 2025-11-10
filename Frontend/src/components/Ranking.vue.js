@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router';
 import AuthService from '../services/AuthService';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
+import { API_URL } from '../config/api';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = (await import('vue')).defineComponent({
     name: 'Ranking',
@@ -39,7 +40,7 @@ const __VLS_export = (await import('vue')).defineComponent({
         const fetchRanking = async () => {
             try {
                 const token = AuthService.getToken();
-                const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users/ranking', {
+                const response = await fetch(`${API_URL}/users/ranking`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -114,7 +115,7 @@ const __VLS_self = (await import('vue')).defineComponent({
         const fetchRanking = async () => {
             try {
                 const token = AuthService.getToken();
-                const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users/ranking', {
+                const response = await fetch(`${API_URL}/users/ranking`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'

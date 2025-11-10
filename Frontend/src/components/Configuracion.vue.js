@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router';
 import AuthService from '../services/AuthService';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
+import { API_URL } from '../config/api';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = (await import('vue')).defineComponent({
     name: 'Configuracion',
@@ -28,12 +29,9 @@ const __VLS_export = (await import('vue')).defineComponent({
         });
         // Opciones de avatares
         const avatarOptions = ref([
-            'https://ui-avatars.com/api/?name=Avatar1&background=FF6B6B&color=fff&size=128&bold=true',
-            'https://ui-avatars.com/api/?name=Avatar2&background=4ECDC4&color=fff&size=128&bold=true',
-            'https://ui-avatars.com/api/?name=Avatar3&background=45B7D1&color=fff&size=128&bold=true',
-            'https://ui-avatars.com/api/?name=Avatar4&background=FFA07A&color=fff&size=128&bold=true',
-            'https://ui-avatars.com/api/?name=Avatar5&background=98D8C8&color=fff&size=128&bold=true',
-            'https://ui-avatars.com/api/?name=Avatar6&background=F7DC6F&color=fff&size=128&bold=true'
+            '/Assets/Avatar1.svg',
+            '/Assets/Avatar2.svg',
+            '/Assets/Avatar3.svg'
         ]);
         onMounted(() => {
             document.title = 'Configuración - Sistema de Aprendizaje Linux';
@@ -66,8 +64,10 @@ const __VLS_export = (await import('vue')).defineComponent({
             }
             try {
                 const token = AuthService.getToken();
-                const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users/update', {
-                    method: 'PUT',
+                const userInfo = JSON.parse(atob(token.split('.')[1]));
+                const userId = userInfo.sub;
+                const response = await fetch(`${API_URL}/users/${userId}`, {
+                    method: 'PATCH',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -98,25 +98,36 @@ const __VLS_export = (await import('vue')).defineComponent({
                 alert('Las contraseñas no coinciden');
                 return;
             }
+            if (passwordData.value.new.length < 6) {
+                alert('La nueva contraseña debe tener al menos 6 caracteres');
+                return;
+            }
             try {
                 const token = AuthService.getToken();
-                const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users/change-password', {
-                    method: 'PUT',
+                const response = await fetch(`${API_URL}/auth/change-password`, {
+                    method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
+                        email: localUser.value.correo,
                         currentPassword: passwordData.value.current,
                         newPassword: passwordData.value.new
                     })
                 });
+                const data = await response.json();
                 if (response.ok) {
                     alert('Contraseña actualizada correctamente');
                     passwordData.value = { current: '', new: '', confirm: '' };
                 }
                 else {
-                    alert('Error al actualizar la contraseña. Verifica tu contraseña actual.');
+                    if (data.message && data.message.includes('contraseña actual es incorrecta')) {
+                        alert('La contraseña actual es incorrecta');
+                    }
+                    else {
+                        alert('Error al actualizar la contraseña');
+                    }
                 }
             }
             catch (error) {
@@ -130,6 +141,58 @@ const __VLS_export = (await import('vue')).defineComponent({
             localStorage.removeItem('user');
             router.push('/');
         };
+        const updateAvatar = async () => {
+            if (!selectedAvatar.value) {
+                alert('Por favor selecciona un avatar');
+                return;
+            }
+            try {
+                const token = AuthService.getToken();
+                if (!token) {
+                    throw new Error('No hay token de autenticación');
+                }
+                // Obtener el ID del usuario del token decodificado
+                const userInfo = JSON.parse(atob(token.split('.')[1]));
+                const userId = userInfo.sub; // El ID del usuario está en el campo 'sub' del token JWT
+                console.log('Enviando actualización de avatar:', {
+                    selectedAvatar: selectedAvatar.value,
+                    token: token,
+                    url: `${API_URL}/users/${userId}`
+                });
+                const response = await fetch(`${API_URL}/users/${userId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        avatar: selectedAvatar.value
+                    })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Error response:', errorData);
+                    throw new Error(errorData.message || 'Error al actualizar el avatar');
+                }
+                const data = await response.json();
+                console.log('Respuesta exitosa:', data);
+                // Actualizar localStorage y estado local
+                const storedUser = localStorage.getItem('user');
+                if (storedUser) {
+                    const userData = JSON.parse(storedUser);
+                    userData.avatar = selectedAvatar.value;
+                    localStorage.setItem('user', JSON.stringify(userData));
+                }
+                localUser.value.avatar = selectedAvatar.value;
+                alert('Avatar actualizado con éxito');
+                // Forzar actualización del componente
+                localUser.value = { ...localUser.value };
+            }
+            catch (error) {
+                console.error('Error detallado:', error);
+                alert(error instanceof Error ? error.message : 'Error al actualizar el avatar');
+            }
+        };
         return {
             displayUser,
             selectedAvatar,
@@ -139,6 +202,7 @@ const __VLS_export = (await import('vue')).defineComponent({
             getDefaultAvatar,
             updateUsername,
             updatePassword,
+            updateAvatar,
             handleLogout
         };
     }
@@ -167,12 +231,9 @@ const __VLS_self = (await import('vue')).defineComponent({
         });
         // Opciones de avatares
         const avatarOptions = ref([
-            'https://ui-avatars.com/api/?name=Avatar1&background=FF6B6B&color=fff&size=128&bold=true',
-            'https://ui-avatars.com/api/?name=Avatar2&background=4ECDC4&color=fff&size=128&bold=true',
-            'https://ui-avatars.com/api/?name=Avatar3&background=45B7D1&color=fff&size=128&bold=true',
-            'https://ui-avatars.com/api/?name=Avatar4&background=FFA07A&color=fff&size=128&bold=true',
-            'https://ui-avatars.com/api/?name=Avatar5&background=98D8C8&color=fff&size=128&bold=true',
-            'https://ui-avatars.com/api/?name=Avatar6&background=F7DC6F&color=fff&size=128&bold=true'
+            '/Assets/Avatar1.svg',
+            '/Assets/Avatar2.svg',
+            '/Assets/Avatar3.svg'
         ]);
         onMounted(() => {
             document.title = 'Configuración - Sistema de Aprendizaje Linux';
@@ -205,8 +266,10 @@ const __VLS_self = (await import('vue')).defineComponent({
             }
             try {
                 const token = AuthService.getToken();
-                const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users/update', {
-                    method: 'PUT',
+                const userInfo = JSON.parse(atob(token.split('.')[1]));
+                const userId = userInfo.sub;
+                const response = await fetch(`${API_URL}/users/${userId}`, {
+                    method: 'PATCH',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -237,25 +300,36 @@ const __VLS_self = (await import('vue')).defineComponent({
                 alert('Las contraseñas no coinciden');
                 return;
             }
+            if (passwordData.value.new.length < 6) {
+                alert('La nueva contraseña debe tener al menos 6 caracteres');
+                return;
+            }
             try {
                 const token = AuthService.getToken();
-                const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users/change-password', {
-                    method: 'PUT',
+                const response = await fetch(`${API_URL}/auth/change-password`, {
+                    method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
+                        email: localUser.value.correo,
                         currentPassword: passwordData.value.current,
                         newPassword: passwordData.value.new
                     })
                 });
+                const data = await response.json();
                 if (response.ok) {
                     alert('Contraseña actualizada correctamente');
                     passwordData.value = { current: '', new: '', confirm: '' };
                 }
                 else {
-                    alert('Error al actualizar la contraseña. Verifica tu contraseña actual.');
+                    if (data.message && data.message.includes('contraseña actual es incorrecta')) {
+                        alert('La contraseña actual es incorrecta');
+                    }
+                    else {
+                        alert('Error al actualizar la contraseña');
+                    }
                 }
             }
             catch (error) {
@@ -269,6 +343,58 @@ const __VLS_self = (await import('vue')).defineComponent({
             localStorage.removeItem('user');
             router.push('/');
         };
+        const updateAvatar = async () => {
+            if (!selectedAvatar.value) {
+                alert('Por favor selecciona un avatar');
+                return;
+            }
+            try {
+                const token = AuthService.getToken();
+                if (!token) {
+                    throw new Error('No hay token de autenticación');
+                }
+                // Obtener el ID del usuario del token decodificado
+                const userInfo = JSON.parse(atob(token.split('.')[1]));
+                const userId = userInfo.sub; // El ID del usuario está en el campo 'sub' del token JWT
+                console.log('Enviando actualización de avatar:', {
+                    selectedAvatar: selectedAvatar.value,
+                    token: token,
+                    url: `${API_URL}/users/${userId}`
+                });
+                const response = await fetch(`${API_URL}/users/${userId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        avatar: selectedAvatar.value
+                    })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Error response:', errorData);
+                    throw new Error(errorData.message || 'Error al actualizar el avatar');
+                }
+                const data = await response.json();
+                console.log('Respuesta exitosa:', data);
+                // Actualizar localStorage y estado local
+                const storedUser = localStorage.getItem('user');
+                if (storedUser) {
+                    const userData = JSON.parse(storedUser);
+                    userData.avatar = selectedAvatar.value;
+                    localStorage.setItem('user', JSON.stringify(userData));
+                }
+                localUser.value.avatar = selectedAvatar.value;
+                alert('Avatar actualizado con éxito');
+                // Forzar actualización del componente
+                localUser.value = { ...localUser.value };
+            }
+            catch (error) {
+                console.error('Error detallado:', error);
+                alert(error instanceof Error ? error.message : 'Error al actualizar el avatar');
+            }
+        };
         return {
             displayUser,
             selectedAvatar,
@@ -278,6 +404,7 @@ const __VLS_self = (await import('vue')).defineComponent({
             getDefaultAvatar,
             updateUsername,
             updatePassword,
+            updateAvatar,
             handleLogout
         };
     }
@@ -441,6 +568,12 @@ for (const [avatar, index] of __VLS_getVForSourceType((__VLS_ctx.avatarOptions))
         alt: (`Avatar ${index + 1}`),
     });
 }
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.updateAvatar) },
+    ...{ class: "btn-primary" },
+});
+// @ts-ignore
+[updateAvatar,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "section" },
 });
@@ -531,29 +664,49 @@ __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "footer-links" },
 });
-__VLS_asFunctionalElement(__VLS_elements.a, __VLS_elements.a)({
-    href: "#",
-});
-__VLS_asFunctionalElement(__VLS_elements.a, __VLS_elements.a)({
-    href: "#",
-});
-const __VLS_5 = {}.Footer;
+const __VLS_5 = {}.RouterLink;
+/** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ ;
+// @ts-ignore
+RouterLink;
+// @ts-ignore
+const __VLS_6 = __VLS_asFunctionalComponent(__VLS_5, new __VLS_5({
+    to: "/terms",
+}));
+const __VLS_7 = __VLS_6({
+    to: "/terms",
+}, ...__VLS_functionalComponentArgsRest(__VLS_6));
+const { default: __VLS_9 } = __VLS_8.slots;
+var __VLS_8;
+const __VLS_10 = {}.RouterLink;
+/** @type {[typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, typeof __VLS_components.RouterLink, typeof __VLS_components.routerLink, ]} */ ;
+// @ts-ignore
+RouterLink;
+// @ts-ignore
+const __VLS_11 = __VLS_asFunctionalComponent(__VLS_10, new __VLS_10({
+    to: "/privacy-policy",
+}));
+const __VLS_12 = __VLS_11({
+    to: "/privacy-policy",
+}, ...__VLS_functionalComponentArgsRest(__VLS_11));
+const { default: __VLS_14 } = __VLS_13.slots;
+var __VLS_13;
+const __VLS_15 = {}.Footer;
 /** @type {[typeof __VLS_components.Footer, ]} */ ;
 // @ts-ignore
 Footer;
 // @ts-ignore
-const __VLS_6 = __VLS_asFunctionalComponent(__VLS_5, new __VLS_5({
+const __VLS_16 = __VLS_asFunctionalComponent(__VLS_15, new __VLS_15({
     goInicio: (() => __VLS_ctx.$router.push('/dashboard')),
     goBiblioteca: (() => __VLS_ctx.$router.push('/biblioteca')),
     goRanking: (() => __VLS_ctx.$router.push('/ranking')),
     goConfig: (() => __VLS_ctx.$router.push('/configuracion')),
 }));
-const __VLS_7 = __VLS_6({
+const __VLS_17 = __VLS_16({
     goInicio: (() => __VLS_ctx.$router.push('/dashboard')),
     goBiblioteca: (() => __VLS_ctx.$router.push('/biblioteca')),
     goRanking: (() => __VLS_ctx.$router.push('/ranking')),
     goConfig: (() => __VLS_ctx.$router.push('/configuracion')),
-}, ...__VLS_functionalComponentArgsRest(__VLS_6));
+}, ...__VLS_functionalComponentArgsRest(__VLS_16));
 // @ts-ignore
 [$router, $router, $router, $router,];
 /** @type {__VLS_StyleScopedClasses['page']} */ ;
@@ -586,6 +739,7 @@ const __VLS_7 = __VLS_6({
 /** @type {__VLS_StyleScopedClasses['avatar-grid']} */ ;
 /** @type {__VLS_StyleScopedClasses['avatar-option']} */ ;
 /** @type {__VLS_StyleScopedClasses['selected']} */ ;
+/** @type {__VLS_StyleScopedClasses['btn-primary']} */ ;
 /** @type {__VLS_StyleScopedClasses['section']} */ ;
 /** @type {__VLS_StyleScopedClasses['section-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['section-subtitle']} */ ;

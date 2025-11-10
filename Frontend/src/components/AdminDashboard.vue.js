@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router';
 import AuthService from '../services/AuthService';
 import LessonService from '../services/LessonService';
 import Modales from './Modales.vue';
+import { API_URL } from '../config/api';
 const router = useRouter();
 const activeTab = ref('users');
 const searchTerm = ref('');
@@ -27,8 +28,11 @@ const isLoadingLessons = ref(false);
 const showAddLesson = ref(false);
 const newLesson = ref({
     title: '',
-    description: '',
-    challenges: [{ title: '', command: '', feedback: '' }]
+    challenges: [{
+            description: '',
+            feedback: '',
+            commands: [{ comando: '' }]
+        }]
 });
 const filteredUsuarios = computed(() => {
     return usuarios.value.filter(u => u.username.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
@@ -37,7 +41,7 @@ const filteredUsuarios = computed(() => {
 const fetchUsers = async () => {
     isLoadingUsers.value = true;
     try {
-        const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/users', {
+        const response = await fetch(`${API_URL}/users`, {
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -69,7 +73,7 @@ const fetchUsers = async () => {
 const fetchLessons = async () => {
     isLoadingLessons.value = true;
     try {
-        const response = await fetch('https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons', {
+        const response = await fetch(`${API_URL}/lessons`, {
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -150,20 +154,29 @@ const openAddLesson = () => {
     currentItemId = null;
     modalVisible.value = true;
 };
-const editLesson = (id) => {
-    const leccion = lecciones.value.find(l => l.id === id);
-    if (leccion) {
-        modalTitle.value = 'Editar Lección';
-        modalType.value = 'leccion';
-        modalData.value = {
-            titulo: leccion.titulo,
-            descripcion: leccion.descripcion,
-            comandos: '',
-            retroalimentacion: ''
+const editLesson = async (id) => {
+    try {
+        // Obtener los detalles completos de la lección
+        const response = await fetch(`${API_URL}/lessons/${id}`);
+        if (!response.ok)
+            throw new Error('Error al cargar la lección');
+        const leccion = await response.json();
+        console.log('Lección cargada para editar:', leccion);
+        // Mapear los datos al formato del formulario
+        newLesson.value = {
+            title: leccion.Titulo,
+            challenges: leccion.retos.map((reto) => ({
+                description: reto.descripcion,
+                feedback: reto.Retroalimentacion || '',
+                commands: reto.comandos.map((cmd) => ({ comando: cmd.comando }))
+            }))
         };
-        currentContext = 'lecciones';
         currentItemId = id;
-        modalVisible.value = true;
+        showAddLesson.value = true;
+    }
+    catch (err) {
+        console.error('Error cargando lección:', err);
+        alert('Error al cargar la lección para editar');
     }
 };
 const confirmDeleteUser = (id) => {
@@ -196,8 +209,8 @@ const guardarCambios = async (data) => {
     try {
         if (currentContext === 'usuarios') {
             const url = currentItemId
-                ? `https://sistema-de-aprendizaje-linux-production.up.railway.app/users/${currentItemId}`
-                : 'https://sistema-de-aprendizaje-linux-production.up.railway.app/users';
+                ? `${API_URL}/users/${currentItemId}`
+                : `${API_URL}/users`;
             const method = currentItemId ? 'PATCH' : 'POST';
             const response = await fetch(url, {
                 method,
@@ -218,8 +231,8 @@ const guardarCambios = async (data) => {
         }
         else {
             const url = currentItemId
-                ? `https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons/${currentItemId}`
-                : 'https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons';
+                ? `${API_URL}/lessons/${currentItemId}`
+                : `${API_URL}/lessons`;
             const method = currentItemId ? 'PUT' : 'POST';
             const response = await fetch(url, {
                 method,
@@ -246,8 +259,8 @@ const guardarCambios = async (data) => {
 const confirmarEliminacion = async () => {
     try {
         const endpoint = currentContext === 'usuarios'
-            ? `https://sistema-de-aprendizaje-linux-production.up.railway.app/users/${currentItemId}`
-            : `https://sistema-de-aprendizaje-linux-production.up.railway.app/lessons/${currentItemId}`;
+            ? `${API_URL}/users/${currentItemId}`
+            : `${API_URL}/lessons/${currentItemId}`;
         const response = await fetch(endpoint, {
             method: 'DELETE'
         });
@@ -265,9 +278,13 @@ const confirmarEliminacion = async () => {
         alert(`Error al eliminar: ${err.message}`);
     }
 };
-// Funciones para el modal de agregar lección con challenges (mantener original)
+// Funciones para el modal de agregar lección con challenges
 const addChallenge = () => {
-    newLesson.value.challenges.push({ title: '', command: '', feedback: '' });
+    newLesson.value.challenges.push({
+        description: '',
+        feedback: '',
+        commands: [{ comando: '' }]
+    });
 };
 const addCommand = (challengeIndex) => {
     const ch = newLesson.value.challenges[challengeIndex];
@@ -291,31 +308,69 @@ const toRequestPayload = () => {
     return {
         titulo: newLesson.value.title,
         retos: newLesson.value.challenges.map((c) => ({
-            descripcion: c.title,
+            descripcion: c.description,
             Retroalimentacion: c.feedback || null,
-            comandos: (c.commands || (c.command ? [{ comando: c.command }] : [])).map((cmd) => ({ comando: cmd.comando ?? cmd.command }))
+            comandos: c.commands.map((cmd) => ({ comando: cmd.comando }))
         }))
     };
 };
 const saveLesson = async () => {
     saveError.value = '';
     saveSuccess.value = '';
+    // Validación
     if (!newLesson.value.title || newLesson.value.challenges.length === 0) {
         saveError.value = 'El título y al menos un reto son obligatorios.';
         return;
     }
+    // Validar que cada reto tenga al menos un comando
+    for (const challenge of newLesson.value.challenges) {
+        if (!challenge.description) {
+            saveError.value = 'Todos los retos deben tener una descripción.';
+            return;
+        }
+        if (!challenge.commands || challenge.commands.length === 0 || !challenge.commands[0].comando) {
+            saveError.value = 'Cada reto debe tener al menos un comando válido.';
+            return;
+        }
+    }
     isSaving.value = true;
     try {
         const payload = toRequestPayload();
-        await LessonService.create(payload);
-        saveSuccess.value = 'Lección creada correctamente.';
+        console.log('Enviando payload:', JSON.stringify(payload, null, 2));
+        if (currentItemId) {
+            // Editar lección existente
+            const response = await fetch(`${API_URL}/lessons/${currentItemId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok)
+                throw new Error('Error al actualizar la lección');
+            saveSuccess.value = 'Lección actualizada correctamente.';
+        }
+        else {
+            // Crear nueva lección
+            await LessonService.create(payload);
+            saveSuccess.value = 'Lección creada correctamente.';
+        }
         await fetchLessons();
-        newLesson.value = { title: '', description: '', challenges: [{ title: '', command: '', feedback: '' }] };
+        // Reset form
+        newLesson.value = {
+            title: '',
+            challenges: [{
+                    description: '',
+                    feedback: '',
+                    commands: [{ comando: '' }]
+                }]
+        };
+        currentItemId = null;
         showAddLesson.value = false;
     }
     catch (err) {
-        console.error('Error creating lesson:', err);
-        saveError.value = err.message || 'Error al crear la lección.';
+        console.error('Error saving lesson:', err);
+        saveError.value = err.message || 'Error al guardar la lección.';
     }
     finally {
         isSaving.value = false;
@@ -672,8 +727,9 @@ if (__VLS_ctx.showAddLesson) {
                 if (!(__VLS_ctx.showAddLesson))
                     return;
                 __VLS_ctx.showAddLesson = false;
+                __VLS_ctx.currentItemId = null;
                 // @ts-ignore
-                [showAddLesson,];
+                [showAddLesson, currentItemId,];
             } },
         ...{ class: "modal-overlay" },
     });
@@ -685,13 +741,17 @@ if (__VLS_ctx.showAddLesson) {
         ...{ class: "modal-header" },
     });
     __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({});
+    (__VLS_ctx.currentItemId ? 'Editar Lección' : 'Agregar Lección');
+    // @ts-ignore
+    [currentItemId,];
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         ...{ onClick: (...[$event]) => {
                 if (!(__VLS_ctx.showAddLesson))
                     return;
                 __VLS_ctx.showAddLesson = false;
+                __VLS_ctx.currentItemId = null;
                 // @ts-ignore
-                [showAddLesson,];
+                [showAddLesson, currentItemId,];
             } },
         ...{ class: "btn-close" },
     });
@@ -705,20 +765,8 @@ if (__VLS_ctx.showAddLesson) {
     __VLS_asFunctionalElement(__VLS_elements.input)({
         type: "text",
         value: (__VLS_ctx.newLesson.title),
-        placeholder: "Dominando lineas de comando.",
+        placeholder: "Ej: Comandos básicos de listado",
         ...{ class: "form-input" },
-    });
-    // @ts-ignore
-    [newLesson,];
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "form-group" },
-    });
-    __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({});
-    __VLS_asFunctionalElement(__VLS_elements.textarea, __VLS_elements.textarea)({
-        value: (__VLS_ctx.newLesson.description),
-        placeholder: "Un pequeño resumen de que cubre la lección.",
-        rows: "4",
-        ...{ class: "form-textarea" },
     });
     // @ts-ignore
     [newLesson,];
@@ -734,7 +782,7 @@ if (__VLS_ctx.showAddLesson) {
     });
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         ...{ onClick: (__VLS_ctx.addChallenge) },
-        ...{ class: "btn-add-challenge btn-add" },
+        ...{ class: "btn-add" },
     });
     // @ts-ignore
     [addChallenge,];
@@ -752,28 +800,55 @@ if (__VLS_ctx.showAddLesson) {
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
             ...{ style: {} },
         });
-        __VLS_asFunctionalElement(__VLS_elements.input)({
-            type: "text",
-            value: (challenge.title),
-            placeholder: "Crea una carpeta",
-            ...{ class: "challenge-input form-input" },
+        __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
+            ...{ style: {} },
         });
-        __VLS_asFunctionalElement(__VLS_elements.input)({
-            type: "text",
-            value: (challenge.command),
-            placeholder: "mkdir my_folder",
-            ...{ class: "challenge-input form-input mono" },
+        (index + 1);
+        __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+            ...{ onClick: (...[$event]) => {
+                    if (!(__VLS_ctx.showAddLesson))
+                        return;
+                    __VLS_ctx.removeChallenge(index);
+                    // @ts-ignore
+                    [removeChallenge,];
+                } },
+            ...{ class: "btn-delete" },
+            ...{ style: {} },
         });
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "form-group" },
+            ...{ style: {} },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
+            ...{ style: {} },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.input)({
+            type: "text",
+            value: (challenge.description),
+            placeholder: "Ej: Lista todos los archivos del directorio actual",
+            ...{ class: "form-input" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "form-group" },
+            ...{ style: {} },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
             ...{ style: {} },
         });
         __VLS_asFunctionalElement(__VLS_elements.textarea, __VLS_elements.textarea)({
             value: (challenge.feedback),
-            placeholder: "Mensaje de retroalimentación.",
+            placeholder: "Ej: ¡Excelente! Has usado el comando correcto",
+            rows: "2",
             ...{ class: "form-textarea" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "form-group" },
             ...{ style: {} },
         });
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ style: {} },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
             ...{ style: {} },
         });
         __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
@@ -785,42 +860,32 @@ if (__VLS_ctx.showAddLesson) {
                     [addCommand,];
                 } },
             ...{ class: "btn-add" },
+            ...{ style: {} },
         });
-        __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-            ...{ onClick: (...[$event]) => {
-                    if (!(__VLS_ctx.showAddLesson))
-                        return;
-                    __VLS_ctx.removeChallenge(index);
-                    // @ts-ignore
-                    [removeChallenge,];
-                } },
-            ...{ class: "btn-delete" },
-        });
-        if (challenge.commands && challenge.commands.length) {
+        for (const [cmd, ci] of __VLS_getVForSourceType((challenge.commands))) {
             __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+                key: (ci),
                 ...{ style: {} },
             });
-            for (const [cmd, ci] of __VLS_getVForSourceType((challenge.commands))) {
-                __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-                    key: (ci),
-                    ...{ style: {} },
-                });
-                __VLS_asFunctionalElement(__VLS_elements.input)({
-                    placeholder: "Comando",
-                    ...{ class: "form-input" },
-                });
-                (cmd.comando);
+            __VLS_asFunctionalElement(__VLS_elements.input)({
+                placeholder: "Ej: ls -la",
+                ...{ class: "form-input mono" },
+                ...{ style: {} },
+            });
+            (cmd.comando);
+            if (challenge.commands.length > 1) {
                 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
                     ...{ onClick: (...[$event]) => {
                             if (!(__VLS_ctx.showAddLesson))
                                 return;
-                            if (!(challenge.commands && challenge.commands.length))
+                            if (!(challenge.commands.length > 1))
                                 return;
                             __VLS_ctx.removeCommand(index, ci);
                             // @ts-ignore
                             [removeCommand,];
                         } },
                     ...{ class: "btn-delete" },
+                    ...{ style: {} },
                 });
             }
         }
@@ -856,8 +921,9 @@ if (__VLS_ctx.showAddLesson) {
                 if (!(__VLS_ctx.showAddLesson))
                     return;
                 __VLS_ctx.showAddLesson = false;
+                __VLS_ctx.currentItemId = null;
                 // @ts-ignore
-                [showAddLesson,];
+                [showAddLesson, currentItemId,];
             } },
         ...{ class: "btn-cancel" },
     });
@@ -868,9 +934,9 @@ if (__VLS_ctx.showAddLesson) {
     });
     // @ts-ignore
     [saveLesson, isSaving,];
-    (__VLS_ctx.isSaving ? 'Saving...' : 'Save Lesson');
+    (__VLS_ctx.isSaving ? 'Guardando...' : (__VLS_ctx.currentItemId ? 'Actualizar Lección' : 'Guardar Lección'));
     // @ts-ignore
-    [isSaving,];
+    [currentItemId, isSaving,];
 }
 /** @type {[typeof Modales, ]} */ ;
 // @ts-ignore
@@ -952,22 +1018,19 @@ var __VLS_2;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-textarea']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenges-header']} */ ;
-/** @type {__VLS_StyleScopedClasses['btn-add-challenge']} */ ;
 /** @type {__VLS_StyleScopedClasses['btn-add']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenges-list']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['challenge-input']} */ ;
+/** @type {__VLS_StyleScopedClasses['btn-delete']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-input']} */ ;
-/** @type {__VLS_StyleScopedClasses['challenge-input']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-textarea']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
+/** @type {__VLS_StyleScopedClasses['btn-add']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['mono']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-textarea']} */ ;
-/** @type {__VLS_StyleScopedClasses['btn-add']} */ ;
-/** @type {__VLS_StyleScopedClasses['btn-delete']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['btn-delete']} */ ;
 /** @type {__VLS_StyleScopedClasses['btn-cancel']} */ ;
 /** @type {__VLS_StyleScopedClasses['btn-save']} */ ;

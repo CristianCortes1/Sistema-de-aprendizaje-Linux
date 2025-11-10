@@ -160,7 +160,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "perfil" },
 });
 __VLS_asFunctionalElement(__VLS_elements.img)({
-    src: (__VLS_ctx.displayUser.avatar),
+    src: (__VLS_ctx.displayUser.avatar || '/Assets/Avatar1.svg'),
     alt: "Perfil",
 });
 // @ts-ignore
