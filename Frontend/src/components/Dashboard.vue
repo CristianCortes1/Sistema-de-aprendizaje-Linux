@@ -4,6 +4,7 @@ import AuthService from '../services/AuthService'
 import { useRouter } from 'vue-router'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
+import { API_URL } from '../config/api'
 
 export default defineComponent({
     setup() {
@@ -16,12 +17,35 @@ export default defineComponent({
             avatar: ""
         })
 
-        const modules = ref([
-            { name: 'Comandos básicos', icon: '' },
-            { name: 'Archivos y directorios', icon: '/Assets/Archivos.svg' },
-            { name: 'Permisos', icon: '/Assets/Permisos.svg' },
-            { name: 'Procesos y señales', icon: '/Assets/Procesos.svg' },
-        ])
+        const modules = ref<any[]>([])
+
+        const pickIcon = (title: string) => {
+            const t = (title || '').toLowerCase()
+            if (t.includes('archivo')) return '/Assets/Archivos.svg'
+            if (t.includes('permiso')) return '/Assets/Permisos.svg'
+            if (t.includes('proceso') || t.includes('señal') || t.includes('senial')) return '/Assets/Procesos.svg'
+            if (t.includes('comando')) return '' // usa símbolo >_
+            return ''
+        }
+
+        const fetchLessons = async () => {
+            try {
+                const res = await fetch(`${API_URL}/lessons`, {
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                const data = await res.json()
+                modules.value = (Array.isArray(data) ? data : []).map((l: any) => {
+                    const id = l.id ?? l.id_Leccion
+                    const titulo = l.titulo ?? l.Titulo ?? 'Lección'
+                    return { id, name: titulo, icon: pickIcon(titulo) }
+                })
+            } catch (e) {
+                console.error('Error cargando lecciones:', e)
+                // Fallback mínimo si falla la carga
+                modules.value = []
+            }
+        }
 
         onMounted(() => {
             const storedUser = localStorage.getItem('user')
@@ -33,6 +57,11 @@ export default defineComponent({
                 user.value.avatar = parsed.avatar
                 user.value.correo = parsed.correo
             }
+        })
+
+        // Cargar lecciones desde la API
+        onMounted(() => {
+            fetchLessons()
         })
 
         const logout = () => {
@@ -48,7 +77,7 @@ export default defineComponent({
         const goConfig = () => router.push('/configuracion')
         const goLeccion = (id: number) => router.push(`/leccion/${id}`)
 
-        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion }
+    return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion }
     },
     components: {
         Header,
