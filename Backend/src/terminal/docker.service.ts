@@ -111,6 +111,45 @@ export class DockerService implements OnModuleDestroy {
     const containerName = `${this.CONTAINER_PREFIX}${effectiveUserId}`;
 
     try {
+      // Verificar si ya existe un contenedor con este nombre
+      try {
+        const existingContainer = this.docker.getContainer(containerName);
+        const info = await existingContainer.inspect();
+        
+        // Si existe y está corriendo, reutilizarlo
+        if (info.State.Running) {
+          console.log('♻️ Reutilizando contenedor existente:', containerName);
+          const stream = await existingContainer.attach({
+            stream: true,
+            stdin: true,
+            stdout: true,
+            stderr: true,
+            hijack: true,
+          });
+
+          const now = new Date();
+          const session: ContainerSession = {
+            container: existingContainer,
+            stream,
+            userId: effectiveUserId,
+            createdAt: now,
+            lastActivity: now,
+            connectedSockets: new Set([socketId]),
+          };
+
+          this.sessions.set(effectiveUserId, session);
+          this.socketToUser.set(socketId, effectiveUserId);
+
+          return session;
+        } else {
+          // Si existe pero está parado, eliminarlo
+          console.log('🗑️ Eliminando contenedor parado:', containerName);
+          await existingContainer.remove({ force: true });
+        }
+      } catch (err) {
+        // El contenedor no existe, continuar con la creación
+      }
+
       // Crear contenedor con bash interactivo
       const container = await this.docker.createContainer({
         Image: this.IMAGE_NAME,
