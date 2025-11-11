@@ -110,12 +110,14 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['status']} */ ;
 /** @type {__VLS_StyleScopedClasses['status']} */ ;
 /** @type {__VLS_StyleScopedClasses['status']} */ ;
+/** @type {__VLS_StyleScopedClasses['perfil']} */ ;
 /** @type {__VLS_StyleScopedClasses['logout-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['header']} */ ;
 /** @type {__VLS_StyleScopedClasses['header']} */ ;
 /** @type {__VLS_StyleScopedClasses['logo']} */ ;
 /** @type {__VLS_StyleScopedClasses['brand']} */ ;
 /** @type {__VLS_StyleScopedClasses['status']} */ ;
+/** @type {__VLS_StyleScopedClasses['perfil']} */ ;
 /** @type {__VLS_StyleScopedClasses['perfil']} */ ;
 __VLS_asFunctionalElement(__VLS_elements.header, __VLS_elements.header)({
     ...{ class: "header" },

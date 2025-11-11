@@ -29,7 +29,9 @@ const showAddLesson = ref(false);
 const newLesson = ref({
     title: '',
     challenges: [{
+            tipo: 'reto',
             description: '',
+            contenido: '',
             feedback: '',
             commands: [{ comando: '' }]
         }]
@@ -281,7 +283,9 @@ const confirmarEliminacion = async () => {
 // Funciones para el modal de agregar lección con challenges
 const addChallenge = () => {
     newLesson.value.challenges.push({
+        tipo: 'reto',
         description: '',
+        contenido: '',
         feedback: '',
         commands: [{ comando: '' }]
     });
@@ -308,9 +312,11 @@ const toRequestPayload = () => {
     return {
         titulo: newLesson.value.title,
         retos: newLesson.value.challenges.map((c) => ({
+            tipo: c.tipo || 'reto',
             descripcion: c.description,
+            contenido: c.contenido || null,
             Retroalimentacion: c.feedback || null,
-            comandos: c.commands.map((cmd) => ({ comando: cmd.comando }))
+            comandos: c.tipo === 'explicacion' ? [] : c.commands.map((cmd) => ({ comando: cmd.comando }))
         }))
     };
 };
@@ -319,17 +325,21 @@ const saveLesson = async () => {
     saveSuccess.value = '';
     // Validación
     if (!newLesson.value.title || newLesson.value.challenges.length === 0) {
-        saveError.value = 'El título y al menos un reto son obligatorios.';
+        saveError.value = 'El título y al menos un reto/explicación son obligatorios.';
         return;
     }
-    // Validar que cada reto tenga al menos un comando
+    // Validar que cada reto tenga al menos un comando (solo si es tipo "reto")
     for (const challenge of newLesson.value.challenges) {
         if (!challenge.description) {
-            saveError.value = 'Todos los retos deben tener una descripción.';
+            saveError.value = 'Todos los elementos deben tener una descripción/título.';
             return;
         }
-        if (!challenge.commands || challenge.commands.length === 0 || !challenge.commands[0].comando) {
+        if (challenge.tipo === 'reto' && (!challenge.commands || challenge.commands.length === 0 || !challenge.commands[0].comando)) {
             saveError.value = 'Cada reto debe tener al menos un comando válido.';
+            return;
+        }
+        if (challenge.tipo === 'explicacion' && !challenge.contenido) {
+            saveError.value = 'Cada explicación debe tener contenido.';
             return;
         }
     }
@@ -340,14 +350,17 @@ const saveLesson = async () => {
         if (currentItemId) {
             // Editar lección existente
             const response = await fetch(`${API_URL}/lessons/${currentItemId}`, {
-                method: 'PUT',
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
             });
-            if (!response.ok)
-                throw new Error('Error al actualizar la lección');
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Error del servidor:', errorData);
+                throw new Error(errorData.message || 'Error al actualizar la lección');
+            }
             saveSuccess.value = 'Lección actualizada correctamente.';
         }
         else {
@@ -419,6 +432,7 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['btn-save']} */ ;
 /** @type {__VLS_StyleScopedClasses['btn-save']} */ ;
 /** @type {__VLS_StyleScopedClasses['btn-save']} */ ;
+/** @type {__VLS_StyleScopedClasses['mono']} */ ;
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "admin" },
 });
@@ -822,71 +836,114 @@ if (__VLS_ctx.showAddLesson) {
         __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
             ...{ style: {} },
         });
+        __VLS_asFunctionalElement(__VLS_elements.select, __VLS_elements.select)({
+            value: (challenge.tipo),
+            ...{ class: "form-input" },
+            ...{ style: {} },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+            value: "explicacion",
+        });
+        __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+            value: "reto",
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "form-group" },
+            ...{ style: {} },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
+            ...{ style: {} },
+        });
+        (challenge.tipo === 'explicacion' ? 'Título de la Explicación' : 'Descripción del Reto');
         __VLS_asFunctionalElement(__VLS_elements.input)({
             type: "text",
             value: (challenge.description),
-            placeholder: "Ej: Lista todos los archivos del directorio actual",
+            placeholder: (challenge.tipo === 'explicacion' ? 'Ej: ¿Qué es la terminal de Linux?' : 'Ej: Lista todos los archivos del directorio actual'),
             ...{ class: "form-input" },
         });
-        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-            ...{ class: "form-group" },
-            ...{ style: {} },
-        });
-        __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
-            ...{ style: {} },
-        });
-        __VLS_asFunctionalElement(__VLS_elements.textarea, __VLS_elements.textarea)({
-            value: (challenge.feedback),
-            placeholder: "Ej: ¡Excelente! Has usado el comando correcto",
-            rows: "2",
-            ...{ class: "form-textarea" },
-        });
-        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-            ...{ class: "form-group" },
-            ...{ style: {} },
-        });
-        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-            ...{ style: {} },
-        });
-        __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
-            ...{ style: {} },
-        });
-        __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-            ...{ onClick: (...[$event]) => {
-                    if (!(__VLS_ctx.showAddLesson))
-                        return;
-                    __VLS_ctx.addCommand(index);
-                    // @ts-ignore
-                    [addCommand,];
-                } },
-            ...{ class: "btn-add" },
-            ...{ style: {} },
-        });
-        for (const [cmd, ci] of __VLS_getVForSourceType((challenge.commands))) {
+        if (challenge.tipo === 'explicacion') {
             __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-                key: (ci),
+                ...{ class: "form-group" },
                 ...{ style: {} },
             });
-            __VLS_asFunctionalElement(__VLS_elements.input)({
-                placeholder: "Ej: ls -la",
-                ...{ class: "form-input mono" },
+            __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
                 ...{ style: {} },
             });
-            (cmd.comando);
-            if (challenge.commands.length > 1) {
-                __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-                    ...{ onClick: (...[$event]) => {
-                            if (!(__VLS_ctx.showAddLesson))
-                                return;
-                            if (!(challenge.commands.length > 1))
-                                return;
-                            __VLS_ctx.removeCommand(index, ci);
-                            // @ts-ignore
-                            [removeCommand,];
-                        } },
-                    ...{ class: "btn-delete" },
+            __VLS_asFunctionalElement(__VLS_elements.textarea, __VLS_elements.textarea)({
+                value: (challenge.contenido),
+                placeholder: "Puedes usar HTML o Markdown. Ej: <h2>La Terminal</h2><p>Es una interfaz...</p>",
+                rows: "6",
+                ...{ class: "form-textarea" },
+            });
+            __VLS_asFunctionalElement(__VLS_elements.small, __VLS_elements.small)({
+                ...{ style: {} },
+            });
+        }
+        if (challenge.tipo === 'reto') {
+            __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+                ...{ class: "form-group" },
+                ...{ style: {} },
+            });
+            __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
+                ...{ style: {} },
+            });
+            __VLS_asFunctionalElement(__VLS_elements.textarea, __VLS_elements.textarea)({
+                value: (challenge.feedback),
+                placeholder: "Ej: ¡Excelente! Has usado el comando correcto",
+                rows: "2",
+                ...{ class: "form-textarea" },
+            });
+            __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+                ...{ class: "form-group" },
+                ...{ style: {} },
+            });
+            __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+                ...{ style: {} },
+            });
+            __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
+                ...{ style: {} },
+            });
+            __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+                ...{ onClick: (...[$event]) => {
+                        if (!(__VLS_ctx.showAddLesson))
+                            return;
+                        if (!(challenge.tipo === 'reto'))
+                            return;
+                        __VLS_ctx.addCommand(index);
+                        // @ts-ignore
+                        [addCommand,];
+                    } },
+                ...{ class: "btn-add" },
+                ...{ style: {} },
+            });
+            for (const [cmd, ci] of __VLS_getVForSourceType((challenge.commands))) {
+                __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+                    key: (ci),
                     ...{ style: {} },
                 });
+                __VLS_asFunctionalElement(__VLS_elements.input)({
+                    placeholder: "Ej: ls -la",
+                    ...{ class: "form-input mono" },
+                    ...{ style: {} },
+                });
+                (cmd.comando);
+                if (challenge.commands.length > 1) {
+                    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+                        ...{ onClick: (...[$event]) => {
+                                if (!(__VLS_ctx.showAddLesson))
+                                    return;
+                                if (!(challenge.tipo === 'reto'))
+                                    return;
+                                if (!(challenge.commands.length > 1))
+                                    return;
+                                __VLS_ctx.removeCommand(index, ci);
+                                // @ts-ignore
+                                [removeCommand,];
+                            } },
+                        ...{ class: "btn-delete" },
+                        ...{ style: {} },
+                    });
+                }
             }
         }
     }
@@ -1025,6 +1082,10 @@ var __VLS_2;
 /** @type {__VLS_StyleScopedClasses['btn-delete']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-input']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-input']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-textarea']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-textarea']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;

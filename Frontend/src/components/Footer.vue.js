@@ -37,7 +37,7 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 // @ts-ignore
 [goInicio,];
 __VLS_asFunctionalElement(__VLS_elements.img)({
-    src: "/Assets/Inicio.svg",
+    src: "https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg",
     alt: "Inicio",
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({

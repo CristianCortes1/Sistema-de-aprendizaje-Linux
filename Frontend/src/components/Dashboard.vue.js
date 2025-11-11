@@ -3,6 +3,7 @@ import AuthService from '../services/AuthService';
 import { useRouter } from 'vue-router';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
+import { API_URL } from '../config/api';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = defineComponent({
     setup() {
@@ -12,14 +13,48 @@ const __VLS_export = defineComponent({
             correo: '',
             racha: 0,
             experiencia: 0,
-            avatar: ""
+            avatar: "",
+            id: 0
         });
-        const modules = ref([
-            { name: 'Comandos básicos', icon: '' },
-            { name: 'Archivos y directorios', icon: '/Assets/Archivos.svg' },
-            { name: 'Permisos', icon: '/Assets/Permisos.svg' },
-            { name: 'Procesos y señales', icon: '/Assets/Procesos.svg' },
-        ]);
+        const modules = ref([]);
+        const pickIcon = (title) => {
+            const t = (title || '').toLowerCase();
+            if (t.includes('archivo'))
+                return '/Assets/Archivos.svg';
+            if (t.includes('permiso'))
+                return '/Assets/Permisos.svg';
+            if (t.includes('proceso') || t.includes('señal') || t.includes('senial'))
+                return '/Assets/Procesos.svg';
+            if (t.includes('comando'))
+                return ''; // usa símbolo >_
+            return '';
+        };
+        const fetchLessons = async () => {
+            try {
+                const userId = user.value.id;
+                if (!userId) {
+                    console.error('No user ID found');
+                    return;
+                }
+                const res = await fetch(`${API_URL}/lessons/user/${userId}/available`, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!res.ok)
+                    throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                modules.value = (Array.isArray(data) ? data : []).map((l) => ({
+                    id: l.id,
+                    name: l.titulo,
+                    icon: pickIcon(l.titulo),
+                    locked: l.locked,
+                    progreso: l.progreso || 0
+                }));
+            }
+            catch (e) {
+                console.error('Error cargando lecciones:', e);
+                modules.value = [];
+            }
+        };
         onMounted(() => {
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
@@ -29,10 +64,13 @@ const __VLS_export = defineComponent({
                 user.value.experiencia = parsed.experiencia;
                 user.value.avatar = parsed.avatar;
                 user.value.correo = parsed.correo;
+                user.value.id = parsed.id_Usuario || parsed.id;
             }
+            // Cargar lecciones después de obtener el usuario
+            fetchLessons();
         });
         const logout = () => {
-            AuthService.logout(); // limpiar token del backend si es necesario
+            AuthService.logout();
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/';
@@ -41,7 +79,11 @@ const __VLS_export = defineComponent({
         const goBiblioteca = () => router.push('/biblioteca');
         const goRanking = () => router.push('/ranking');
         const goConfig = () => router.push('/configuracion');
-        const goLeccion = (id) => router.push(`/leccion/${id}`);
+        const goLeccion = (module) => {
+            if (!module.locked) {
+                router.push(`/leccion/${module.id}`);
+            }
+        };
         return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion };
     },
     components: {
@@ -57,14 +99,48 @@ const __VLS_self = (await import('vue')).defineComponent({
             correo: '',
             racha: 0,
             experiencia: 0,
-            avatar: ""
+            avatar: "",
+            id: 0
         });
-        const modules = ref([
-            { name: 'Comandos básicos', icon: '' },
-            { name: 'Archivos y directorios', icon: '/Assets/Archivos.svg' },
-            { name: 'Permisos', icon: '/Assets/Permisos.svg' },
-            { name: 'Procesos y señales', icon: '/Assets/Procesos.svg' },
-        ]);
+        const modules = ref([]);
+        const pickIcon = (title) => {
+            const t = (title || '').toLowerCase();
+            if (t.includes('archivo'))
+                return '/Assets/Archivos.svg';
+            if (t.includes('permiso'))
+                return '/Assets/Permisos.svg';
+            if (t.includes('proceso') || t.includes('señal') || t.includes('senial'))
+                return '/Assets/Procesos.svg';
+            if (t.includes('comando'))
+                return ''; // usa símbolo >_
+            return '';
+        };
+        const fetchLessons = async () => {
+            try {
+                const userId = user.value.id;
+                if (!userId) {
+                    console.error('No user ID found');
+                    return;
+                }
+                const res = await fetch(`${API_URL}/lessons/user/${userId}/available`, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!res.ok)
+                    throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                modules.value = (Array.isArray(data) ? data : []).map((l) => ({
+                    id: l.id,
+                    name: l.titulo,
+                    icon: pickIcon(l.titulo),
+                    locked: l.locked,
+                    progreso: l.progreso || 0
+                }));
+            }
+            catch (e) {
+                console.error('Error cargando lecciones:', e);
+                modules.value = [];
+            }
+        };
         onMounted(() => {
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
@@ -74,10 +150,13 @@ const __VLS_self = (await import('vue')).defineComponent({
                 user.value.experiencia = parsed.experiencia;
                 user.value.avatar = parsed.avatar;
                 user.value.correo = parsed.correo;
+                user.value.id = parsed.id_Usuario || parsed.id;
             }
+            // Cargar lecciones después de obtener el usuario
+            fetchLessons();
         });
         const logout = () => {
-            AuthService.logout(); // limpiar token del backend si es necesario
+            AuthService.logout();
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/';
@@ -86,7 +165,11 @@ const __VLS_self = (await import('vue')).defineComponent({
         const goBiblioteca = () => router.push('/biblioteca');
         const goRanking = () => router.push('/ranking');
         const goConfig = () => router.push('/configuracion');
-        const goLeccion = (id) => router.push(`/leccion/${id}`);
+        const goLeccion = (module) => {
+            if (!module.locked) {
+                router.push(`/leccion/${module.id}`);
+            }
+        };
         return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion };
     },
     components: {
@@ -108,20 +191,12 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['status']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
-/** @type {__VLS_StyleScopedClasses['card']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
-/** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
-/** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
-/** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
-/** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
+/** @type {__VLS_StyleScopedClasses['locked']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['logout-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['header']} */ ;
@@ -159,21 +234,22 @@ __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "form-group" },
 });
-for (const [module, index] of __VLS_getVForSourceType((__VLS_ctx.modules))) {
+for (const [module] of __VLS_getVForSourceType((__VLS_ctx.modules))) {
     // @ts-ignore
     [modules,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "card" },
-        key: (module.name),
+        key: (module.id),
+        ...{ class: ({ 'locked': module.locked }) },
     });
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         ...{ onClick: (...[$event]) => {
-                index === 0 ? __VLS_ctx.goLeccion(1) : null;
+                __VLS_ctx.goLeccion(module);
                 // @ts-ignore
                 [goLeccion,];
             } },
         type: "button",
-        disabled: (index > 1),
+        disabled: (module.locked),
     });
     if (module.icon) {
         __VLS_asFunctionalElement(__VLS_elements.img)({
@@ -186,6 +262,17 @@ for (const [module, index] of __VLS_getVForSourceType((__VLS_ctx.modules))) {
     }
     __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
     (module.name);
+    if (module.locked) {
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+            ...{ class: "lock-icon" },
+        });
+    }
+    if (!module.locked && module.progreso > 0) {
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+            ...{ class: "progress-indicator" },
+        });
+        (module.progreso);
+    }
 }
 const __VLS_5 = {}.Footer;
 /** @type {[typeof __VLS_components.Footer, ]} */ ;
@@ -211,4 +298,7 @@ const __VLS_7 = __VLS_6({
 /** @type {__VLS_StyleScopedClasses['subtitulo']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
+/** @type {__VLS_StyleScopedClasses['locked']} */ ;
+/** @type {__VLS_StyleScopedClasses['lock-icon']} */ ;
+/** @type {__VLS_StyleScopedClasses['progress-indicator']} */ ;
 export default {};

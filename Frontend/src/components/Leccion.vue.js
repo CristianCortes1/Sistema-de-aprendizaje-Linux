@@ -7,6 +7,7 @@ import { WebLinksAddon } from 'xterm-addon-web-links';
 import 'xterm/css/xterm.css';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
+import { API_URL } from '../config/api';
 // Función para obtener userId del token JWT
 function getUserIdForTerminal() {
     const token = localStorage.getItem('token');
@@ -41,17 +42,17 @@ const __VLS_export = defineComponent({
         const terminalContainer = ref(null);
         // UI state (lesson, hints, progress)
         const showHint = ref(false);
-        const progress = ref(30);
-        const lesson = ref({
-            title: 'Leccion 1: comandos basicos',
-            challenge: {
-                title: 'Challenge 1: Change Directory',
-                description: 'Use the cd command to navigate to the "documents" directory. Type your command in the terminal and press "Run" to check your answer.',
-                hint: 'The command is cd documents',
-                correctCommand: 'cd documents',
-                directory: '~'
-            }
-        });
+        const progress = ref(0);
+        const lessonData = ref(null);
+        const currentRetoIndex = ref(0);
+        const commandHistory = ref([]);
+        const lastCommand = ref('');
+        const isVerifying = ref(false);
+        const showSuccess = ref(false);
+        const successMessage = ref('');
+        const showError = ref(false);
+        const errorMessage = ref('');
+        const userProgress = ref(0);
         // ❌ Redirigir a login si no está autenticado
         if (!userId) {
             console.warn('No authenticated user - redirecting to login');
@@ -62,7 +63,8 @@ const __VLS_export = defineComponent({
                 showHint,
                 toggleHint: () => { },
                 progress,
-                lesson,
+                lessonData,
+                currentReto: ref(null),
                 goBack: () => { },
                 goInicio: () => { },
                 goBiblioteca: () => { },
@@ -71,28 +73,214 @@ const __VLS_export = defineComponent({
                 isConnected,
                 terminalTitle,
                 clearTerminal: () => { },
+                verifyCommand: () => { },
+                nextChallenge: () => { },
+                showSuccess,
+                successMessage,
+                showError,
+                errorMessage,
+                isVerifying,
             };
         }
+        // Computed: Reto actual
+        const currentReto = ref(null);
+        // Cargar lección desde el backend
+        const loadLesson = async () => {
+            try {
+                const lessonId = route.params.id;
+                const response = await fetch(`${API_URL}/lessons/${lessonId}`);
+                if (!response.ok) {
+                    throw new Error('Error loading lesson');
+                }
+                const data = await response.json();
+                lessonData.value = data;
+                if (data.retos && data.retos.length > 0) {
+                    currentReto.value = data.retos[0];
+                }
+                // Cargar progreso del usuario
+                await loadUserProgress();
+            }
+            catch (error) {
+                console.error('Error loading lesson:', error);
+                errorMessage.value = 'No se pudo cargar la lección';
+                showError.value = true;
+                setTimeout(() => showError.value = false, 3000);
+            }
+        };
+        // Cargar progreso del usuario
+        const loadUserProgress = async () => {
+            try {
+                const response = await fetch(`${API_URL}/progress?userId=${userId}&lessonId=${route.params.id}`);
+                if (response.ok) {
+                    const progressData = await response.json();
+                    if (progressData && progressData.length > 0) {
+                        userProgress.value = progressData[0].progreso;
+                        progress.value = progressData[0].progreso;
+                        // Si hay progreso, calcular qué reto mostrar
+                        const retosCompletados = Math.floor((userProgress.value / 100) * (lessonData.value?.retos.length || 1));
+                        currentRetoIndex.value = Math.min(retosCompletados, (lessonData.value?.retos.length || 1) - 1);
+                        if (lessonData.value && lessonData.value.retos[currentRetoIndex.value]) {
+                            currentReto.value = lessonData.value.retos[currentRetoIndex.value];
+                        }
+                    }
+                }
+            }
+            catch (error) {
+                console.error('Error loading progress:', error);
+            }
+        };
+        // Capturar último comando ejecutado
+        const captureCommand = (data) => {
+            if (data === '\r') {
+                // Enter pressed - comando completo
+                const cmd = lastCommand.value.trim();
+                if (cmd) {
+                    commandHistory.value.push(cmd);
+                    // Verificar automáticamente cuando presiona Enter
+                    setTimeout(() => {
+                        verifyCommand();
+                    }, 500); // Pequeño delay para dar tiempo a la terminal de procesar
+                }
+                lastCommand.value = '';
+            }
+            else if (data === '\x7F') {
+                // Backspace
+                lastCommand.value = lastCommand.value.slice(0, -1);
+            }
+            else if (data.charCodeAt(0) >= 32 && data.charCodeAt(0) <= 126) {
+                // Caracter imprimible
+                lastCommand.value += data;
+            }
+        };
+        // Verificar comando (solo para tipo='reto')
+        const verifyCommand = async () => {
+            // No verificar si es una explicación
+            if (!currentReto.value || currentReto.value.tipo === 'explicacion')
+                return;
+            if (isVerifying.value || showSuccess.value)
+                return;
+            isVerifying.value = true;
+            // Obtener el último comando ejecutado
+            const lastCmd = commandHistory.value[commandHistory.value.length - 1];
+            if (!lastCmd) {
+                isVerifying.value = false;
+                return;
+            }
+            const expectedCommands = currentReto.value.comandos.map(c => c.comando.toLowerCase().trim());
+            // Verificar si el último comando coincide
+            const cmdClean = lastCmd.toLowerCase().trim();
+            const isCorrect = expectedCommands.some(expected => cmdClean === expected || cmdClean.includes(expected));
+            if (isCorrect) {
+                successMessage.value = currentReto.value.Retroalimentacion || '¡Correcto! Comando ejecutado exitosamente.';
+                showSuccess.value = true;
+                showError.value = false;
+                // Actualizar progreso en el backend
+                await updateProgress();
+            }
+            else {
+                // No mostrar error, solo quedarse en silencio
+                // El usuario puede intentar de nuevo
+            }
+            isVerifying.value = false;
+        };
+        // Actualizar progreso en el backend
+        const updateProgress = async () => {
+            try {
+                if (!lessonData.value)
+                    return;
+                const totalRetos = lessonData.value.retos.length;
+                const retosCompletados = currentRetoIndex.value + 1;
+                const newProgress = Math.round((retosCompletados / totalRetos) * 100);
+                const response = await fetch(`${API_URL}/progress`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: parseInt(userId),
+                        lessonId: parseInt(route.params.id),
+                        progress: newProgress,
+                    }),
+                });
+                if (response.ok) {
+                    progress.value = newProgress;
+                    userProgress.value = newProgress;
+                }
+            }
+            catch (error) {
+                console.error('Error updating progress:', error);
+            }
+        };
+        // Continuar al siguiente reto
+        const nextChallenge = async () => {
+            if (!lessonData.value)
+                return;
+            showSuccess.value = false;
+            currentRetoIndex.value++;
+            if (currentRetoIndex.value < lessonData.value.retos.length) {
+                currentReto.value = lessonData.value.retos[currentRetoIndex.value];
+                commandHistory.value = [];
+            }
+            else {
+                // Lección completada - Asegurar que se guarde al 100%
+                try {
+                    const response = await fetch(`${API_URL}/progress`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            userId: parseInt(userId),
+                            lessonId: parseInt(route.params.id),
+                            progress: 100,
+                        }),
+                    });
+                    if (response.ok) {
+                        progress.value = 100;
+                        userProgress.value = 100;
+                    }
+                }
+                catch (error) {
+                    console.error('Error updating final progress:', error);
+                }
+                successMessage.value = '¡Felicidades! Has completado toda la lección al 100%.';
+                showSuccess.value = true;
+                setTimeout(() => {
+                    router.push('/dashboard');
+                }, 3000);
+            }
+        };
         // API URL usando la configuración centralizada
         const WS_URL = import.meta.env.MODE === 'production' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000');
+        console.log('🔌 Conectando al WebSocket:', WS_URL);
+        console.log('👤 User ID:', userId);
         // Terminal - conectar con autenticación
         const socket = io(WS_URL, {
             auth: {
                 userId: userId
-            }
+            },
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 5
         });
         let terminal = null;
         let fitAddon = null;
         onMounted(async () => {
+            // Esperar a que el DOM esté listo PRIMERO
             await nextTick();
-            if (!terminalContainer.value)
+            if (!terminalContainer.value) {
+                console.error('Terminal container not found!');
                 return;
-            // Crear instancia de xterm
+            }
+            // Crear instancia de xterm ANTES de cargar los datos
+            // Detectar si es móvil
+            const isMobile = window.innerWidth <= 768;
             terminal = new Terminal({
                 cursorBlink: true,
                 cursorStyle: 'block',
                 fontFamily: '"Ubuntu Mono", "Courier New", monospace',
-                fontSize: 15,
+                fontSize: isMobile ? 11 : 15,
                 lineHeight: 1.4,
                 theme: {
                     background: '#300a24',
@@ -119,6 +307,10 @@ const __VLS_export = defineComponent({
                 allowProposedApi: true,
                 scrollback: 1000,
                 convertEol: true,
+                // Opciones específicas para móviles
+                screenReaderMode: false,
+                disableStdin: false,
+                allowTransparency: false,
             });
             // Addons
             fitAddon = new FitAddon();
@@ -126,25 +318,44 @@ const __VLS_export = defineComponent({
             terminal.loadAddon(new WebLinksAddon());
             // Montar terminal en el DOM
             terminal.open(terminalContainer.value);
-            // Ajustar tamaño según pantalla
-            if (window.innerWidth <= 768) {
-                // Móvil: reducir fuente para más columnas
-                terminal.options.fontSize = 9;
-            }
+            // Ajustar tamaño
             fitAddon.fit();
+            // Enfocar la terminal automáticamente en móviles cuando se toca el contenedor
+            const focusTerminal = () => {
+                if (terminal) {
+                    terminal.focus();
+                }
+            };
+            if (terminalContainer.value) {
+                terminalContainer.value.addEventListener('click', focusTerminal);
+                terminalContainer.value.addEventListener('touchstart', focusTerminal, { passive: true });
+            }
+            // Enfocar la terminal inmediatamente
+            setTimeout(() => {
+                terminal?.focus();
+            }, 500);
             // Manejar input del usuario
             terminal.onData((data) => {
+                captureCommand(data);
                 socket.emit('input', data);
             });
             // Conexión establecida
             socket.on('connect', () => {
+                console.log('✅ Socket conectado');
                 isConnected.value = true;
                 terminalTitle.value = 'Terminal SSH';
             });
             // Desconexión
-            socket.on('disconnect', () => {
+            socket.on('disconnect', (reason) => {
+                console.log('❌ Socket desconectado:', reason);
                 isConnected.value = false;
                 terminalTitle.value = 'Desconectado';
+            });
+            // Error de conexión
+            socket.on('connect_error', (error) => {
+                console.error('🔴 Error de conexión:', error.message);
+                isConnected.value = false;
+                terminalTitle.value = 'Error de conexión';
             });
             // Recibir output del servidor
             socket.on('output', (data) => {
@@ -177,12 +388,14 @@ const __VLS_export = defineComponent({
                     });
                 }
             }, 200);
-            // Cleanup
-            onUnmounted(() => {
-                window.removeEventListener('resize', handleResize);
-                terminal?.dispose();
-                socket.disconnect();
-            });
+            // AHORA cargar la lección después de que la terminal esté lista
+            await loadLesson();
+        });
+        // Cleanup fuera de onMounted
+        onUnmounted(() => {
+            window.removeEventListener('resize', () => { });
+            terminal?.dispose();
+            socket.disconnect();
         });
         const toggleHint = () => {
             showHint.value = !showHint.value;
@@ -219,7 +432,8 @@ const __VLS_export = defineComponent({
             showHint,
             toggleHint,
             progress,
-            lesson,
+            lessonData,
+            currentReto,
             goBack,
             goInicio,
             goBiblioteca,
@@ -234,6 +448,13 @@ const __VLS_export = defineComponent({
             sendCtrlS,
             sendCtrlZ,
             sendCtrlD,
+            verifyCommand,
+            nextChallenge,
+            showSuccess,
+            successMessage,
+            showError,
+            errorMessage,
+            isVerifying,
         };
     },
 });
@@ -251,17 +472,17 @@ const __VLS_self = (await import('vue')).defineComponent({
         const terminalContainer = ref(null);
         // UI state (lesson, hints, progress)
         const showHint = ref(false);
-        const progress = ref(30);
-        const lesson = ref({
-            title: 'Leccion 1: comandos basicos',
-            challenge: {
-                title: 'Challenge 1: Change Directory',
-                description: 'Use the cd command to navigate to the "documents" directory. Type your command in the terminal and press "Run" to check your answer.',
-                hint: 'The command is cd documents',
-                correctCommand: 'cd documents',
-                directory: '~'
-            }
-        });
+        const progress = ref(0);
+        const lessonData = ref(null);
+        const currentRetoIndex = ref(0);
+        const commandHistory = ref([]);
+        const lastCommand = ref('');
+        const isVerifying = ref(false);
+        const showSuccess = ref(false);
+        const successMessage = ref('');
+        const showError = ref(false);
+        const errorMessage = ref('');
+        const userProgress = ref(0);
         // ❌ Redirigir a login si no está autenticado
         if (!userId) {
             console.warn('No authenticated user - redirecting to login');
@@ -272,7 +493,8 @@ const __VLS_self = (await import('vue')).defineComponent({
                 showHint,
                 toggleHint: () => { },
                 progress,
-                lesson,
+                lessonData,
+                currentReto: ref(null),
                 goBack: () => { },
                 goInicio: () => { },
                 goBiblioteca: () => { },
@@ -281,28 +503,214 @@ const __VLS_self = (await import('vue')).defineComponent({
                 isConnected,
                 terminalTitle,
                 clearTerminal: () => { },
+                verifyCommand: () => { },
+                nextChallenge: () => { },
+                showSuccess,
+                successMessage,
+                showError,
+                errorMessage,
+                isVerifying,
             };
         }
+        // Computed: Reto actual
+        const currentReto = ref(null);
+        // Cargar lección desde el backend
+        const loadLesson = async () => {
+            try {
+                const lessonId = route.params.id;
+                const response = await fetch(`${API_URL}/lessons/${lessonId}`);
+                if (!response.ok) {
+                    throw new Error('Error loading lesson');
+                }
+                const data = await response.json();
+                lessonData.value = data;
+                if (data.retos && data.retos.length > 0) {
+                    currentReto.value = data.retos[0];
+                }
+                // Cargar progreso del usuario
+                await loadUserProgress();
+            }
+            catch (error) {
+                console.error('Error loading lesson:', error);
+                errorMessage.value = 'No se pudo cargar la lección';
+                showError.value = true;
+                setTimeout(() => showError.value = false, 3000);
+            }
+        };
+        // Cargar progreso del usuario
+        const loadUserProgress = async () => {
+            try {
+                const response = await fetch(`${API_URL}/progress?userId=${userId}&lessonId=${route.params.id}`);
+                if (response.ok) {
+                    const progressData = await response.json();
+                    if (progressData && progressData.length > 0) {
+                        userProgress.value = progressData[0].progreso;
+                        progress.value = progressData[0].progreso;
+                        // Si hay progreso, calcular qué reto mostrar
+                        const retosCompletados = Math.floor((userProgress.value / 100) * (lessonData.value?.retos.length || 1));
+                        currentRetoIndex.value = Math.min(retosCompletados, (lessonData.value?.retos.length || 1) - 1);
+                        if (lessonData.value && lessonData.value.retos[currentRetoIndex.value]) {
+                            currentReto.value = lessonData.value.retos[currentRetoIndex.value];
+                        }
+                    }
+                }
+            }
+            catch (error) {
+                console.error('Error loading progress:', error);
+            }
+        };
+        // Capturar último comando ejecutado
+        const captureCommand = (data) => {
+            if (data === '\r') {
+                // Enter pressed - comando completo
+                const cmd = lastCommand.value.trim();
+                if (cmd) {
+                    commandHistory.value.push(cmd);
+                    // Verificar automáticamente cuando presiona Enter
+                    setTimeout(() => {
+                        verifyCommand();
+                    }, 500); // Pequeño delay para dar tiempo a la terminal de procesar
+                }
+                lastCommand.value = '';
+            }
+            else if (data === '\x7F') {
+                // Backspace
+                lastCommand.value = lastCommand.value.slice(0, -1);
+            }
+            else if (data.charCodeAt(0) >= 32 && data.charCodeAt(0) <= 126) {
+                // Caracter imprimible
+                lastCommand.value += data;
+            }
+        };
+        // Verificar comando (solo para tipo='reto')
+        const verifyCommand = async () => {
+            // No verificar si es una explicación
+            if (!currentReto.value || currentReto.value.tipo === 'explicacion')
+                return;
+            if (isVerifying.value || showSuccess.value)
+                return;
+            isVerifying.value = true;
+            // Obtener el último comando ejecutado
+            const lastCmd = commandHistory.value[commandHistory.value.length - 1];
+            if (!lastCmd) {
+                isVerifying.value = false;
+                return;
+            }
+            const expectedCommands = currentReto.value.comandos.map(c => c.comando.toLowerCase().trim());
+            // Verificar si el último comando coincide
+            const cmdClean = lastCmd.toLowerCase().trim();
+            const isCorrect = expectedCommands.some(expected => cmdClean === expected || cmdClean.includes(expected));
+            if (isCorrect) {
+                successMessage.value = currentReto.value.Retroalimentacion || '¡Correcto! Comando ejecutado exitosamente.';
+                showSuccess.value = true;
+                showError.value = false;
+                // Actualizar progreso en el backend
+                await updateProgress();
+            }
+            else {
+                // No mostrar error, solo quedarse en silencio
+                // El usuario puede intentar de nuevo
+            }
+            isVerifying.value = false;
+        };
+        // Actualizar progreso en el backend
+        const updateProgress = async () => {
+            try {
+                if (!lessonData.value)
+                    return;
+                const totalRetos = lessonData.value.retos.length;
+                const retosCompletados = currentRetoIndex.value + 1;
+                const newProgress = Math.round((retosCompletados / totalRetos) * 100);
+                const response = await fetch(`${API_URL}/progress`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: parseInt(userId),
+                        lessonId: parseInt(route.params.id),
+                        progress: newProgress,
+                    }),
+                });
+                if (response.ok) {
+                    progress.value = newProgress;
+                    userProgress.value = newProgress;
+                }
+            }
+            catch (error) {
+                console.error('Error updating progress:', error);
+            }
+        };
+        // Continuar al siguiente reto
+        const nextChallenge = async () => {
+            if (!lessonData.value)
+                return;
+            showSuccess.value = false;
+            currentRetoIndex.value++;
+            if (currentRetoIndex.value < lessonData.value.retos.length) {
+                currentReto.value = lessonData.value.retos[currentRetoIndex.value];
+                commandHistory.value = [];
+            }
+            else {
+                // Lección completada - Asegurar que se guarde al 100%
+                try {
+                    const response = await fetch(`${API_URL}/progress`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            userId: parseInt(userId),
+                            lessonId: parseInt(route.params.id),
+                            progress: 100,
+                        }),
+                    });
+                    if (response.ok) {
+                        progress.value = 100;
+                        userProgress.value = 100;
+                    }
+                }
+                catch (error) {
+                    console.error('Error updating final progress:', error);
+                }
+                successMessage.value = '¡Felicidades! Has completado toda la lección al 100%.';
+                showSuccess.value = true;
+                setTimeout(() => {
+                    router.push('/dashboard');
+                }, 3000);
+            }
+        };
         // API URL usando la configuración centralizada
         const WS_URL = import.meta.env.MODE === 'production' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000');
+        console.log('🔌 Conectando al WebSocket:', WS_URL);
+        console.log('👤 User ID:', userId);
         // Terminal - conectar con autenticación
         const socket = io(WS_URL, {
             auth: {
                 userId: userId
-            }
+            },
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 5
         });
         let terminal = null;
         let fitAddon = null;
         onMounted(async () => {
+            // Esperar a que el DOM esté listo PRIMERO
             await nextTick();
-            if (!terminalContainer.value)
+            if (!terminalContainer.value) {
+                console.error('Terminal container not found!');
                 return;
-            // Crear instancia de xterm
+            }
+            // Crear instancia de xterm ANTES de cargar los datos
+            // Detectar si es móvil
+            const isMobile = window.innerWidth <= 768;
             terminal = new Terminal({
                 cursorBlink: true,
                 cursorStyle: 'block',
                 fontFamily: '"Ubuntu Mono", "Courier New", monospace',
-                fontSize: 15,
+                fontSize: isMobile ? 11 : 15,
                 lineHeight: 1.4,
                 theme: {
                     background: '#300a24',
@@ -329,6 +737,10 @@ const __VLS_self = (await import('vue')).defineComponent({
                 allowProposedApi: true,
                 scrollback: 1000,
                 convertEol: true,
+                // Opciones específicas para móviles
+                screenReaderMode: false,
+                disableStdin: false,
+                allowTransparency: false,
             });
             // Addons
             fitAddon = new FitAddon();
@@ -336,25 +748,44 @@ const __VLS_self = (await import('vue')).defineComponent({
             terminal.loadAddon(new WebLinksAddon());
             // Montar terminal en el DOM
             terminal.open(terminalContainer.value);
-            // Ajustar tamaño según pantalla
-            if (window.innerWidth <= 768) {
-                // Móvil: reducir fuente para más columnas
-                terminal.options.fontSize = 9;
-            }
+            // Ajustar tamaño
             fitAddon.fit();
+            // Enfocar la terminal automáticamente en móviles cuando se toca el contenedor
+            const focusTerminal = () => {
+                if (terminal) {
+                    terminal.focus();
+                }
+            };
+            if (terminalContainer.value) {
+                terminalContainer.value.addEventListener('click', focusTerminal);
+                terminalContainer.value.addEventListener('touchstart', focusTerminal, { passive: true });
+            }
+            // Enfocar la terminal inmediatamente
+            setTimeout(() => {
+                terminal?.focus();
+            }, 500);
             // Manejar input del usuario
             terminal.onData((data) => {
+                captureCommand(data);
                 socket.emit('input', data);
             });
             // Conexión establecida
             socket.on('connect', () => {
+                console.log('✅ Socket conectado');
                 isConnected.value = true;
                 terminalTitle.value = 'Terminal SSH';
             });
             // Desconexión
-            socket.on('disconnect', () => {
+            socket.on('disconnect', (reason) => {
+                console.log('❌ Socket desconectado:', reason);
                 isConnected.value = false;
                 terminalTitle.value = 'Desconectado';
+            });
+            // Error de conexión
+            socket.on('connect_error', (error) => {
+                console.error('🔴 Error de conexión:', error.message);
+                isConnected.value = false;
+                terminalTitle.value = 'Error de conexión';
             });
             // Recibir output del servidor
             socket.on('output', (data) => {
@@ -387,12 +818,14 @@ const __VLS_self = (await import('vue')).defineComponent({
                     });
                 }
             }, 200);
-            // Cleanup
-            onUnmounted(() => {
-                window.removeEventListener('resize', handleResize);
-                terminal?.dispose();
-                socket.disconnect();
-            });
+            // AHORA cargar la lección después de que la terminal esté lista
+            await loadLesson();
+        });
+        // Cleanup fuera de onMounted
+        onUnmounted(() => {
+            window.removeEventListener('resize', () => { });
+            terminal?.dispose();
+            socket.disconnect();
         });
         const toggleHint = () => {
             showHint.value = !showHint.value;
@@ -429,7 +862,8 @@ const __VLS_self = (await import('vue')).defineComponent({
             showHint,
             toggleHint,
             progress,
-            lesson,
+            lessonData,
+            currentReto,
             goBack,
             goInicio,
             goBiblioteca,
@@ -444,6 +878,13 @@ const __VLS_self = (await import('vue')).defineComponent({
             sendCtrlS,
             sendCtrlZ,
             sendCtrlD,
+            verifyCommand,
+            nextChallenge,
+            showSuccess,
+            successMessage,
+            showError,
+            errorMessage,
+            isVerifying,
         };
     },
 });
@@ -452,60 +893,49 @@ let __VLS_elements;
 const __VLS_componentsOption = { Header, Footer };
 let __VLS_components;
 let __VLS_directives;
-/** @type {__VLS_StyleScopedClasses['control']} */ ;
-/** @type {__VLS_StyleScopedClasses['control']} */ ;
-/** @type {__VLS_StyleScopedClasses['control']} */ ;
-/** @type {__VLS_StyleScopedClasses['status-indicator']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['explicacion-content']} */ ;
+/** @type {__VLS_StyleScopedClasses['explicacion-content']} */ ;
+/** @type {__VLS_StyleScopedClasses['explicacion-content']} */ ;
+/** @type {__VLS_StyleScopedClasses['explicacion-content']} */ ;
+/** @type {__VLS_StyleScopedClasses['explicacion-content']} */ ;
 /** @type {__VLS_StyleScopedClasses['hint-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['hint']} */ ;
-/** @type {__VLS_StyleScopedClasses['leccion']} */ ;
+/** @type {__VLS_StyleScopedClasses['verify-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['verify-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['verify-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['continue-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['continue-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['dot']} */ ;
+/** @type {__VLS_StyleScopedClasses['dot']} */ ;
+/** @type {__VLS_StyleScopedClasses['dot']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-dot']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['content']} */ ;
-/** @type {__VLS_StyleScopedClasses['lesson-content']} */ ;
-/** @type {__VLS_StyleScopedClasses['lesson-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-title']} */ ;
+/** @type {__VLS_StyleScopedClasses['lesson-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['content']} */ ;
+/** @type {__VLS_StyleScopedClasses['content']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-wrapper']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-header']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-controls']} */ ;
-/** @type {__VLS_StyleScopedClasses['control']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-title']} */ ;
-/** @type {__VLS_StyleScopedClasses['status-indicator']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['challenge-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['xterm']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['xterm-viewport']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['xterm-screen']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['xterm-rows']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-controls']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['challenge-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-panel']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-description']} */ ;
-/** @type {__VLS_StyleScopedClasses['hint-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['verify-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['continue-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['hint-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['hint']} */ ;
-/** @type {__VLS_StyleScopedClasses['hint']} */ ;
 /** @type {__VLS_StyleScopedClasses['progress-section']} */ ;
-/** @type {__VLS_StyleScopedClasses['progress-label']} */ ;
-/** @type {__VLS_StyleScopedClasses['progress-bar']} */ ;
-/** @type {__VLS_StyleScopedClasses['progress-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['content']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['xterm']} */ ;
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "leccion" },
 });
@@ -525,151 +955,116 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.h1, __VLS_elements.h1)({
     ...{ class: "lesson-title" },
 });
-(__VLS_ctx.lesson.title);
+(__VLS_ctx.lessonData?.Titulo || 'Cargando...');
 // @ts-ignore
-[lesson,];
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "lesson-content" },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "terminal-section" },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "terminal-wrapper" },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "terminal-header" },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "terminal-controls" },
-});
-__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-    ...{ class: "control red" },
-});
-__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-    ...{ class: "control yellow" },
-});
-__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-    ...{ class: "control green" },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "terminal-title" },
-});
-(__VLS_ctx.terminalTitle);
-// @ts-ignore
-[terminalTitle,];
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "connection-status" },
-});
-__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-    ...{ class: "status-indicator" },
-    ...{ class: ({ connected: __VLS_ctx.isConnected }) },
-});
-// @ts-ignore
-[isConnected,];
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ref: "terminalContainer",
-    ...{ class: "terminal-container" },
-});
-/** @type {typeof __VLS_ctx.terminalContainer} */ ;
-// @ts-ignore
-[terminalContainer,];
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "mobile-controls" },
-});
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.sendTab) },
-    ...{ class: "mobile-btn" },
-    title: "Tab - Autocompletar",
-});
-// @ts-ignore
-[sendTab,];
-__VLS_asFunctionalElement(__VLS_elements.svg, __VLS_elements.svg)({
-    width: "16",
-    height: "16",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    'stroke-width': "2",
-});
-__VLS_asFunctionalElement(__VLS_elements.path)({
-    d: "M5 12h14M12 5l7 7-7 7",
-});
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.sendCtrlC) },
-    ...{ class: "mobile-btn shortcut-btn" },
-    title: "Ctrl+C - Interrumpir proceso",
-});
-// @ts-ignore
-[sendCtrlC,];
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.sendCtrlX) },
-    ...{ class: "mobile-btn shortcut-btn" },
-    title: "Ctrl+X - Salir de nano",
-});
-// @ts-ignore
-[sendCtrlX,];
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.sendCtrlS) },
-    ...{ class: "mobile-btn shortcut-btn" },
-    title: "Ctrl+S - Guardar",
-});
-// @ts-ignore
-[sendCtrlS,];
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.sendCtrlZ) },
-    ...{ class: "mobile-btn shortcut-btn" },
-    title: "Ctrl+Z - Suspender proceso",
-});
-// @ts-ignore
-[sendCtrlZ,];
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.sendCtrlD) },
-    ...{ class: "mobile-btn shortcut-btn" },
-    title: "Ctrl+D - EOF / Salir",
-});
-// @ts-ignore
-[sendCtrlD,];
+[lessonData,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "challenge-section" },
 });
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "challenge-panel" },
-});
-__VLS_asFunctionalElement(__VLS_elements.h2, __VLS_elements.h2)({
-    ...{ class: "challenge-title" },
-});
-(__VLS_ctx.lesson.challenge.title);
-// @ts-ignore
-[lesson,];
-__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
-    ...{ class: "challenge-description" },
-});
-(__VLS_ctx.lesson.challenge.description);
-// @ts-ignore
-[lesson,];
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "hint-section" },
-});
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.toggleHint) },
-    ...{ class: "hint-btn" },
-});
-// @ts-ignore
-[toggleHint,];
-(__VLS_ctx.showHint ? 'Ocultar pista' : 'Mostrar pista');
-// @ts-ignore
-[showHint,];
-if (__VLS_ctx.showHint) {
+if (__VLS_ctx.currentReto) {
     // @ts-ignore
-    [showHint,];
+    [currentReto,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "hint" },
+        ...{ class: "challenge-panel" },
     });
-    __VLS_asFunctionalElement(__VLS_elements.code, __VLS_elements.code)({});
-    (__VLS_ctx.lesson.challenge.hint);
+    __VLS_asFunctionalElement(__VLS_elements.h2, __VLS_elements.h2)({
+        ...{ class: "challenge-title" },
+    });
+    (__VLS_ctx.currentReto.tipo === 'explicacion' ? '📚' : '🎯');
+    (__VLS_ctx.currentReto.tipo === 'explicacion' ? 'Explicación' : 'Reto');
+    ((__VLS_ctx.lessonData?.retos.findIndex(r => r.id_Reto === __VLS_ctx.currentReto?.id_Reto) || 0) + 1);
+    (__VLS_ctx.lessonData?.retos.length || 0);
     // @ts-ignore
-    [lesson,];
+    [lessonData, lessonData, currentReto, currentReto, currentReto,];
+    if (__VLS_ctx.currentReto.tipo === 'explicacion') {
+        // @ts-ignore
+        [currentReto,];
+        __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({
+            ...{ class: "explicacion-title" },
+        });
+        (__VLS_ctx.currentReto.descripcion);
+        // @ts-ignore
+        [currentReto,];
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "explicacion-content" },
+        });
+        __VLS_asFunctionalDirective(__VLS_directives.vHtml)(null, { ...__VLS_directiveBindingRestFields, value: (__VLS_ctx.currentReto.contenido) }, null, null);
+        // @ts-ignore
+        [currentReto,];
+        __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+            ...{ onClick: (__VLS_ctx.nextChallenge) },
+            ...{ class: "continue-btn" },
+        });
+        // @ts-ignore
+        [nextChallenge,];
+    }
+    else {
+        __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+            ...{ class: "challenge-description" },
+        });
+        (__VLS_ctx.currentReto.descripcion);
+        // @ts-ignore
+        [currentReto,];
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "hint-section" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+            ...{ onClick: (__VLS_ctx.toggleHint) },
+            ...{ class: "hint-btn" },
+        });
+        // @ts-ignore
+        [toggleHint,];
+        (__VLS_ctx.showHint ? 'Ocultar pista' : 'Ver pista');
+        // @ts-ignore
+        [showHint,];
+        if (__VLS_ctx.showHint) {
+            // @ts-ignore
+            [showHint,];
+            __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+                ...{ class: "hint" },
+            });
+            for (const [cmd] of __VLS_getVForSourceType((__VLS_ctx.currentReto.comandos))) {
+                // @ts-ignore
+                [currentReto,];
+                __VLS_asFunctionalElement(__VLS_elements.code, __VLS_elements.code)({
+                    key: (cmd.id_Comando),
+                });
+                (cmd.comando);
+            }
+        }
+        if (__VLS_ctx.showSuccess) {
+            // @ts-ignore
+            [showSuccess,];
+            __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+                ...{ class: "success-message" },
+            });
+            (__VLS_ctx.successMessage);
+            // @ts-ignore
+            [successMessage,];
+        }
+        if (__VLS_ctx.showSuccess) {
+            // @ts-ignore
+            [showSuccess,];
+            __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+                ...{ onClick: (__VLS_ctx.nextChallenge) },
+                ...{ class: "continue-btn" },
+            });
+            // @ts-ignore
+            [nextChallenge,];
+        }
+        else {
+            __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+                ...{ onClick: (__VLS_ctx.verifyCommand) },
+                ...{ class: "verify-btn" },
+                disabled: (__VLS_ctx.isVerifying),
+            });
+            // @ts-ignore
+            [verifyCommand, isVerifying,];
+            (__VLS_ctx.isVerifying ? 'Verificando...' : 'Verificar ✓');
+            // @ts-ignore
+            [isVerifying,];
+        }
+    }
 }
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "progress-section" },
@@ -692,6 +1087,89 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 (__VLS_ctx.progress);
 // @ts-ignore
 [progress,];
+if (__VLS_ctx.currentReto?.tipo !== 'explicacion') {
+    // @ts-ignore
+    [currentReto,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "terminal-section" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "terminal-wrapper" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "terminal-header" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "terminal-controls" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+        ...{ class: "dot red" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+        ...{ class: "dot yellow" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+        ...{ class: "dot green" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "terminal-title" },
+    });
+    (__VLS_ctx.terminalTitle);
+    // @ts-ignore
+    [terminalTitle,];
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+        ...{ class: "status-dot" },
+        ...{ class: ({ connected: __VLS_ctx.isConnected }) },
+    });
+    // @ts-ignore
+    [isConnected,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ref: "terminalContainer",
+        ...{ class: "terminal-container" },
+    });
+    /** @type {typeof __VLS_ctx.terminalContainer} */ ;
+    // @ts-ignore
+    [terminalContainer,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "terminal-shortcuts" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+        ...{ onClick: (__VLS_ctx.sendTab) },
+        ...{ class: "shortcut-btn" },
+    });
+    // @ts-ignore
+    [sendTab,];
+    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+        ...{ onClick: (__VLS_ctx.sendCtrlC) },
+        ...{ class: "shortcut-btn" },
+    });
+    // @ts-ignore
+    [sendCtrlC,];
+    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+        ...{ onClick: (__VLS_ctx.sendCtrlX) },
+        ...{ class: "shortcut-btn" },
+    });
+    // @ts-ignore
+    [sendCtrlX,];
+    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+        ...{ onClick: (__VLS_ctx.sendCtrlS) },
+        ...{ class: "shortcut-btn" },
+    });
+    // @ts-ignore
+    [sendCtrlS,];
+    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+        ...{ onClick: (__VLS_ctx.sendCtrlZ) },
+        ...{ class: "shortcut-btn" },
+    });
+    // @ts-ignore
+    [sendCtrlZ,];
+    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+        ...{ onClick: (__VLS_ctx.sendCtrlD) },
+        ...{ class: "shortcut-btn" },
+    });
+    // @ts-ignore
+    [sendCtrlD,];
+}
 const __VLS_5 = {}.Footer;
 /** @type {[typeof __VLS_components.Footer, ]} */ ;
 // @ts-ignore
@@ -715,44 +1193,43 @@ const __VLS_7 = __VLS_6({
 /** @type {__VLS_StyleScopedClasses['content']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-title']} */ ;
-/** @type {__VLS_StyleScopedClasses['lesson-content']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-wrapper']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-header']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-controls']} */ ;
-/** @type {__VLS_StyleScopedClasses['control']} */ ;
-/** @type {__VLS_StyleScopedClasses['red']} */ ;
-/** @type {__VLS_StyleScopedClasses['control']} */ ;
-/** @type {__VLS_StyleScopedClasses['yellow']} */ ;
-/** @type {__VLS_StyleScopedClasses['control']} */ ;
-/** @type {__VLS_StyleScopedClasses['green']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-title']} */ ;
-/** @type {__VLS_StyleScopedClasses['connection-status']} */ ;
-/** @type {__VLS_StyleScopedClasses['status-indicator']} */ ;
-/** @type {__VLS_StyleScopedClasses['connected']} */ ;
-/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-controls']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['mobile-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-panel']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-title']} */ ;
+/** @type {__VLS_StyleScopedClasses['explicacion-title']} */ ;
+/** @type {__VLS_StyleScopedClasses['explicacion-content']} */ ;
+/** @type {__VLS_StyleScopedClasses['continue-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-description']} */ ;
 /** @type {__VLS_StyleScopedClasses['hint-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['hint-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['hint']} */ ;
+/** @type {__VLS_StyleScopedClasses['success-message']} */ ;
+/** @type {__VLS_StyleScopedClasses['continue-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['verify-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['progress-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['progress-label']} */ ;
 /** @type {__VLS_StyleScopedClasses['progress-bar']} */ ;
 /** @type {__VLS_StyleScopedClasses['progress-fill']} */ ;
 /** @type {__VLS_StyleScopedClasses['progress-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-wrapper']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-controls']} */ ;
+/** @type {__VLS_StyleScopedClasses['dot']} */ ;
+/** @type {__VLS_StyleScopedClasses['red']} */ ;
+/** @type {__VLS_StyleScopedClasses['dot']} */ ;
+/** @type {__VLS_StyleScopedClasses['yellow']} */ ;
+/** @type {__VLS_StyleScopedClasses['dot']} */ ;
+/** @type {__VLS_StyleScopedClasses['green']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-title']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-dot']} */ ;
+/** @type {__VLS_StyleScopedClasses['connected']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-shortcuts']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
 export default {};

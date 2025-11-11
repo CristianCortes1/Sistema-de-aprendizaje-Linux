@@ -128,12 +128,14 @@ export default defineComponent({
                 const data = await response.json()
                 lessonData.value = data
                 
-                if (data.retos && data.retos.length > 0) {
-                    currentReto.value = data.retos[0]
-                }
-
-                // Cargar progreso del usuario
+                // Cargar progreso del usuario ANTES de asignar el reto inicial
                 await loadUserProgress()
+                
+                // Si no hay progreso cargado, empezar desde el primer reto
+                if (!currentReto.value && data.retos && data.retos.length > 0) {
+                    currentReto.value = data.retos[0]
+                    currentRetoIndex.value = 0
+                }
             } catch (error) {
                 console.error('Error loading lesson:', error)
                 errorMessage.value = 'No se pudo cargar la lección'
@@ -150,16 +152,37 @@ export default defineComponent({
                 if (response.ok) {
                     const progressData = await response.json()
                     if (progressData && progressData.length > 0) {
-                        userProgress.value = progressData[0].progreso
-                        progress.value = progressData[0].progreso
+                        const savedProgress = progressData[0].progreso
+                        userProgress.value = savedProgress
+                        progress.value = savedProgress
                         
-                        // Si hay progreso, calcular qué reto mostrar
-                        const retosCompletados = Math.floor((userProgress.value / 100) * (lessonData.value?.retos.length || 1))
-                        currentRetoIndex.value = Math.min(retosCompletados, (lessonData.value?.retos.length || 1) - 1)
-                        
-                        if (lessonData.value && lessonData.value.retos[currentRetoIndex.value]) {
-                            currentReto.value = lessonData.value.retos[currentRetoIndex.value]
+                        // Si el progreso es 100%, empezar desde el inicio
+                        if (savedProgress >= 100) {
+                            console.log('Lección ya completada, reiniciando desde el inicio')
+                            currentRetoIndex.value = 0
+                            if (lessonData.value && lessonData.value.retos[0]) {
+                                currentReto.value = lessonData.value.retos[0]
+                            }
+                            // No reiniciar el progreso, mantenerlo en 100%
+                            return
                         }
+                        
+                        // Calcular qué reto mostrar basado en el progreso (solo si no está completado)
+                        if (lessonData.value && lessonData.value.retos.length > 0) {
+                            const totalRetos = lessonData.value.retos.length
+                            // Calcular índice: progreso 0-99% → reto correspondiente
+                            const retoIndex = Math.floor((savedProgress / 100) * totalRetos)
+                            // Asegurar que no exceda el límite
+                            currentRetoIndex.value = Math.min(retoIndex, totalRetos - 1)
+                            currentReto.value = lessonData.value.retos[currentRetoIndex.value]
+                            
+                            console.log(`Progreso cargado: ${savedProgress}%, mostrando reto ${currentRetoIndex.value + 1} de ${totalRetos}`)
+                        }
+                    } else {
+                        // Sin progreso guardado, empezar desde 0
+                        console.log('Sin progreso guardado, empezando desde el inicio')
+                        currentRetoIndex.value = 0
+                        progress.value = 0
                     }
                 }
             } catch (error) {
@@ -330,11 +353,14 @@ export default defineComponent({
             }
 
             // Crear instancia de xterm ANTES de cargar los datos
+            // Detectar si es móvil
+            const isMobile = window.innerWidth <= 768
+            
             terminal = new Terminal({
                 cursorBlink: true,
                 cursorStyle: 'block',
                 fontFamily: '"Ubuntu Mono", "Courier New", monospace',
-                fontSize: 15,
+                fontSize: isMobile ? 11 : 15,
                 lineHeight: 1.4,
                 theme: {
                     background: '#300a24',
@@ -361,6 +387,10 @@ export default defineComponent({
                 allowProposedApi: true,
                 scrollback: 1000,
                 convertEol: true,
+                // Opciones específicas para móviles
+                screenReaderMode: false,
+                disableStdin: false,
+                allowTransparency: false,
             })
 
             // Addons
@@ -371,13 +401,25 @@ export default defineComponent({
             // Montar terminal en el DOM
             terminal.open(terminalContainer.value)
             
-            // Ajustar tamaño según pantalla
-            if (window.innerWidth <= 768) {
-                // Móvil: reducir fuente para más columnas
-                terminal.options.fontSize = 9
-            }
-            
+            // Ajustar tamaño
             fitAddon.fit()
+
+            // Enfocar la terminal automáticamente en móviles cuando se toca el contenedor
+            const focusTerminal = () => {
+                if (terminal) {
+                    terminal.focus()
+                }
+            }
+
+            if (terminalContainer.value) {
+                terminalContainer.value.addEventListener('click', focusTerminal)
+                terminalContainer.value.addEventListener('touchstart', focusTerminal, { passive: true })
+            }
+
+            // Enfocar la terminal inmediatamente
+            setTimeout(() => {
+                terminal?.focus()
+            }, 500)
 
             // Manejar input del usuario
             terminal.onData((data) => {
@@ -532,148 +574,101 @@ export default defineComponent({
         <div class="content">
             <!-- Título de la lección -->
             <div class="lesson-header">
-                <h1 class="lesson-title">{{ lessonData?.Titulo || 'Cargando lección...' }}</h1>
+                <h1 class="lesson-title">{{ lessonData?.Titulo || 'Cargando...' }}</h1>
             </div>
 
-            <div class="lesson-content" :class="{ 'no-terminal': currentReto?.tipo === 'explicacion' }">
-                <!-- Terminal (siempre montada, ocultada solo en explicaciones con CSS) -->
-                <div class="terminal-section" :class="{ 'hidden-terminal': currentReto?.tipo === 'explicacion' }">
-                    <div class="terminal-wrapper">
-                        <div class="terminal-header">
-                            <div class="terminal-controls">
-                                <span class="control red"></span>
-                                <span class="control yellow"></span>
-                                <span class="control green"></span>
-                            </div>
-                            <div class="terminal-title">{{ terminalTitle }}</div>
-                            <div class="connection-status">
-                                <span class="status-indicator" :class="{ connected: isConnected }"></span>
-                            </div>
-                        </div>
-                        <div ref="terminalContainer" class="terminal-container"></div>
+            <!-- Challenge Panel (PRIMERO en móvil) -->
+            <div class="challenge-section">
+                <div class="challenge-panel" v-if="currentReto">
+                    <h2 class="challenge-title">
+                        {{ currentReto.tipo === 'explicacion' ? '📚' : '🎯' }}
+                        {{ currentReto.tipo === 'explicacion' ? 'Explicación' : 'Reto' }} 
+                        {{ (lessonData?.retos.findIndex(r => r.id_Reto === currentReto?.id_Reto) || 0) + 1 }} de {{ lessonData?.retos.length || 0 }}
+                    </h2>
+
+                    <!-- VISTA DE EXPLICACIÓN -->
+                    <template v-if="currentReto.tipo === 'explicacion'">
+                        <h3 class="explicacion-title">{{ currentReto.descripcion }}</h3>
+                        <div class="explicacion-content" v-html="currentReto.contenido"></div>
                         
-                        <!-- Botones táctiles para móvil -->
-                        <div class="mobile-controls">
-                            <button class="mobile-btn" @click="sendTab" title="Tab - Autocompletar">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                                </svg>
-                                Tab
+                        <button class="continue-btn" @click="nextChallenge">
+                            Continuar →
+                        </button>
+                    </template>
+
+                    <!-- VISTA DE RETO -->
+                    <template v-else>
+                        <p class="challenge-description">{{ currentReto.descripcion }}</p>
+
+                        <div class="hint-section">
+                            <button class="hint-btn" @click="toggleHint">
+                                {{ showHint ? 'Ocultar pista' : 'Ver pista' }} 💡
                             </button>
-                            <button 
-                                class="mobile-btn shortcut-btn" 
-                                @click="sendCtrlC" 
-                                title="Ctrl+C - Interrumpir proceso"
-                            >
-                                ^C
-                            </button>
-                            <button 
-                                class="mobile-btn shortcut-btn" 
-                                @click="sendCtrlX" 
-                                title="Ctrl+X - Salir de nano"
-                            >
-                                ^X
-                            </button>
-                            <button 
-                                class="mobile-btn shortcut-btn" 
-                                @click="sendCtrlS" 
-                                title="Ctrl+S - Guardar"
-                            >
-                                ^S
-                            </button>
-                            <button 
-                                class="mobile-btn shortcut-btn" 
-                                @click="sendCtrlZ" 
-                                title="Ctrl+Z - Suspender proceso"
-                            >
-                                ^Z
-                            </button>
-                            <button 
-                                class="mobile-btn shortcut-btn" 
-                                @click="sendCtrlD" 
-                                title="Ctrl+D - EOF / Salir"
-                            >
-                                ^D
-                            </button>
+                            <div v-if="showHint" class="hint">
+                                Comandos esperados:
+                                <code v-for="cmd in currentReto.comandos" :key="cmd.id_Comando">
+                                    {{ cmd.comando }}
+                                </code>
+                            </div>
                         </div>
-                    </div>
+
+                        <!-- Mensajes -->
+                        <div v-if="showSuccess" class="success-message">
+                            ✅ {{ successMessage }}
+                        </div>
+
+                        <!-- Botones -->
+                        <button 
+                            v-if="showSuccess" 
+                            class="continue-btn" 
+                            @click="nextChallenge"
+                        >
+                            Continuar →
+                        </button>
+                        <button 
+                            v-else
+                            class="verify-btn" 
+                            @click="verifyCommand"
+                            :disabled="isVerifying"
+                        >
+                            {{ isVerifying ? 'Verificando...' : 'Verificar ✓' }}
+                        </button>
+                    </template>
                 </div>
 
-                <!-- Challenge Panel -->
-                <div class="challenge-section">
-                    <div class="challenge-panel" v-if="currentReto">
-                        <!-- Contador de elementos -->
-                        <h2 class="challenge-title">
-                            {{ currentReto.tipo === 'explicacion' ? '📚' : '🎯' }}
-                            {{ currentReto.tipo === 'explicacion' ? 'Explicación' : 'Reto' }} 
-                            {{ (lessonData?.retos.findIndex(r => r.id_Reto === currentReto?.id_Reto) || 0) + 1 }} de {{ lessonData?.retos.length || 0 }}
-                        </h2>
-
-                        <!-- VISTA DE EXPLICACIÓN -->
-                        <template v-if="currentReto.tipo === 'explicacion'">
-                            <h3 class="explicacion-title">{{ currentReto.descripcion }}</h3>
-                            <div class="explicacion-content" v-html="currentReto.contenido"></div>
-                            
-                            <div class="action-buttons" style="margin-top: 24px;">
-                                <button class="continue-btn" @click="nextChallenge">
-                                    Continuar →
-                                </button>
-                            </div>
-                        </template>
-
-                        <!-- VISTA DE RETO (terminal interactiva) -->
-                        <template v-else>
-                            <p class="challenge-description">{{ currentReto.descripcion }}</p>
-
-                            <div class="hint-section">
-                                <button class="hint-btn" @click="toggleHint">
-                                    {{ showHint ? 'Ocultar pista' : 'Mostrar pista' }} 💡
-                                </button>
-                                <div v-if="showHint" class="hint">
-                                    Comandos esperados:
-                                    <code v-for="cmd in currentReto.comandos" :key="cmd.id_Comando">
-                                        {{ cmd.comando }}
-                                    </code>
-                                </div>
-                            </div>
-
-                            <!-- Mensajes de éxito/error -->
-                            <div v-if="showSuccess" class="success-message">
-                                ✅ {{ successMessage }}
-                            </div>
-
-                            <!-- Botones de acción -->
-                            <div class="action-buttons">
-                                <button 
-                                    v-if="showSuccess" 
-                                    class="continue-btn" 
-                                    @click="nextChallenge"
-                                >
-                                    Continuar →
-                                </button>
-                                <button 
-                                    v-else
-                                    class="verify-btn manual" 
-                                    @click="verifyCommand"
-                                    :disabled="isVerifying"
-                                    title="También se verifica automáticamente al presionar Enter"
-                                >
-                                    {{ isVerifying ? 'Verificando...' : 'Verificar comando ✓' }}
-                                </button>
-                            </div>
-                        </template>
+                <!-- Progress -->
+                <div class="progress-section">
+                    <div class="progress-label">Progreso</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" :style="`width: ${progress}%`"></div>
                     </div>
-                    <div class="challenge-panel" v-else>
-                        <p class="challenge-description">Cargando contenido...</p>
-                    </div>
+                    <div class="progress-text">{{ progress }}%</div>
+                </div>
+            </div>
 
-                    <!-- Progress -->
-                    <div class="progress-section">
-                        <div class="progress-label">Progreso de la Lección</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" :style="`width: ${progress}%`"></div>
+            <!-- Terminal (SEGUNDO en móvil, oculta con CSS en explicaciones) -->
+            <div class="terminal-section" :class="{ 'hidden-section': currentReto?.tipo === 'explicacion' }">
+                <div class="terminal-wrapper">
+                    <div class="terminal-header">
+                        <div class="terminal-controls">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
                         </div>
-                        <div class="progress-text">{{ progress }}%</div>
+                        <div class="terminal-title">{{ terminalTitle }}</div>
+                        <span class="status-dot" :class="{ connected: isConnected }"></span>
+                    </div>
+                    
+                    <div ref="terminalContainer" class="terminal-container"></div>
+                    
+                    <!-- Botones de atajos -->
+                    <div class="terminal-shortcuts">
+                        <button class="shortcut-btn" @click="sendTab">Tab</button>
+                        <button class="shortcut-btn" @click="sendCtrlC">^C</button>
+                        <button class="shortcut-btn" @click="sendCtrlX">^X</button>
+                        <button class="shortcut-btn" @click="sendCtrlS">^S</button>
+                        <button class="shortcut-btn" @click="sendCtrlZ">^Z</button>
+                        <button class="shortcut-btn" @click="sendCtrlD">^D</button>
                     </div>
                 </div>
             </div>
@@ -684,452 +679,190 @@ export default defineComponent({
 </template>
 
 <style scoped>
+/* ========================================
+   MOBILE FIRST - Estilos base para móvil
+   ======================================== */
+
 .leccion {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    min-height: 100vh;
     background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    overflow-y: auto;
-    overflow-x: hidden;
-    width: 100%;
+    padding-bottom: 80px;
 }
 
 .content {
-    padding: 20px;
-    padding-top: 20px;
-    padding-bottom: 120px;
-    max-width: 1400px;
-    margin: 0 auto;
+    padding: 12px;
+    max-width: 100%;
 }
 
+/* Header */
 .lesson-header {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 30px;
+    margin-bottom: 16px;
 }
 
 .lesson-title {
     color: white;
-    font-size: 28px;
-    font-weight: 300;
+    font-size: 20px;
+    font-weight: 600;
     margin: 0;
+    line-height: 1.3;
 }
 
-.lesson-content {
-    display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 30px;
-    align-items: start;
-}
-
-/* Ancho completo cuando no hay terminal (explicación) */
-.lesson-content.no-terminal {
-    grid-template-columns: 1fr;
-}
-
-/* Cuando no hay terminal (explicación), usar ancho completo */
-.leccion .lesson-content:has(.terminal-section[style*="display: none"], .terminal-section[hidden]) {
-    grid-template-columns: 1fr;
-}
-
-.terminal-section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-/* Ocultar terminal en explicaciones */
-.terminal-section.hidden-terminal {
-    display: none;
-}
-
-.terminal-wrapper {
-    background: #300a24;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.terminal-header {
-    background: #2c001e;
-    padding: 8px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-}
-
-.terminal-controls {
-    display: flex;
-    gap: 8px;
-}
-
-.control {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-}
-
-.control.red {
-    background: #ff5f57;
-}
-
-.control.yellow {
-    background: #ffbd2e;
-}
-
-.control.green {
-    background: #28ca42;
-}
-
-.terminal-title {
-    color: #d3d7cf;
-    font-family: 'Ubuntu Mono', 'Courier New', monospace;
-    font-size: 13px;
-    font-weight: normal;
-    flex: 1;
-    text-align: center;
-}
-
-.connection-status {
-    display: flex;
-    align-items: center;
-}
-
-.status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #ff5f57;
-    transition: background 0.3s ease;
-}
-
-.status-indicator.connected {
-    background: #28ca42;
-    box-shadow: 0 0 8px rgba(40, 202, 66, 0.6);
-}
-
-.terminal-container {
-    padding: 10px;
-    min-height: 500px;
-    max-height: 600px;
-    overflow: hidden;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* Estilos para xterm.js */
-.terminal-container :deep(.xterm) {
-    height: 100%;
-    width: 100% !important;
-    max-width: 100% !important;
-}
-
-.terminal-container :deep(.xterm-viewport) {
-    overflow-y: auto;
-    overflow-x: hidden;
-    width: 100% !important;
-    max-width: 100% !important;
-}
-
-.terminal-container :deep(.xterm-screen) {
-    width: 100% !important;
-    max-width: 100% !important;
-}
-
-.terminal-container :deep(.xterm-rows) {
-    width: 100% !important;
-    max-width: 100% !important;
-}
-
-.terminal-container :deep(canvas) {
-    max-width: 100% !important;
-}
-
-/* Botones táctiles para móvil */
-.mobile-controls {
-    display: none; /* Oculto por defecto en desktop */
-    background: #2c001e;
-    padding: 8px;
-    gap: 6px;
-    border-top: 1px solid rgba(0, 0, 0, 0.3);
-    flex-wrap: wrap;
-    justify-content: flex-start;
-}
-
-.mobile-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #d3d7cf;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-family: 'Ubuntu Mono', 'Courier New', monospace;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    justify-content: center;
-    touch-action: manipulation;
-    user-select: none;
-    flex: 0 0 auto;
-}
-
-.mobile-btn:active {
-    background: rgba(255, 255, 255, 0.25);
-    transform: scale(0.95);
-}
-
-.mobile-btn.shortcut-btn {
-    min-width: 50px;
-    padding: 8px 10px;
-    background: rgba(76, 175, 80, 0.15);
-    border-color: rgba(76, 175, 80, 0.3);
-    color: #8ae234;
-}
-
-.mobile-btn.shortcut-btn:active {
-    background: rgba(76, 175, 80, 0.3);
-}
-
-.mobile-btn svg {
-    width: 14px;
-    height: 14px;
-}
-
+/* Challenge Section - PRIMERO en móvil */
 .challenge-section {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
+    margin-bottom: 16px;
 }
 
 .challenge-panel {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 16px;
-    padding: 25px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(149, 110, 170, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .challenge-title {
     color: white;
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
-    margin: 0 0 15px 0;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .challenge-description {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.95);
     line-height: 1.6;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     font-size: 14px;
 }
 
-/* Estilos para pantallas de explicación */
+/* Explicaciones */
 .explicacion-title {
-    color: #ffc107;
-    font-size: 18px;
+    color: white;
+    font-size: 15px;
     font-weight: 600;
-    margin: 0 0 20px 0;
-    padding-bottom: 12px;
-    border-bottom: 2px solid rgba(255, 193, 7, 0.3);
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .explicacion-content {
     color: rgba(255, 255, 255, 0.95);
-    line-height: 1.8;
-    font-size: 15px;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-    border-left: 4px solid #ffc107;
+    line-height: 1.7;
+    font-size: 14px;
 }
 
-.explicacion-content h1,
 .explicacion-content h2,
 .explicacion-content h3,
 .explicacion-content h4 {
-    color: #ffc107;
-    margin-top: 20px;
-    margin-bottom: 12px;
-}
-
-.explicacion-content h2 { font-size: 20px; }
-.explicacion-content h3 { font-size: 18px; }
-.explicacion-content h4 { font-size: 16px; }
-
-.explicacion-content p {
-    margin-bottom: 14px;
-}
-
-.explicacion-content code {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    color: #66bb6a;
-}
-
-.explicacion-content pre {
-    background: rgba(0, 0, 0, 0.4);
-    padding: 16px;
-    border-radius: 8px;
-    overflow-x: auto;
-    margin: 16px 0;
-}
-
-.explicacion-content pre code {
-    background: none;
-    padding: 0;
-}
-
-.explicacion-content ul,
-.explicacion-content ol {
-    margin-left: 24px;
-    margin-bottom: 14px;
-}
-
-.explicacion-content li {
+    color: white;
+    margin-top: 16px;
     margin-bottom: 8px;
 }
 
-.explicacion-content strong {
-    color: white;
-    font-weight: 600;
+.explicacion-content code {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #ffd700;
 }
 
-.explicacion-content em {
-    color: rgba(255, 255, 255, 0.8);
-    font-style: italic;
+.explicacion-content pre {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 12px 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Hints */
 .hint-section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    margin: 12px 0;
 }
 
 .hint-btn {
     background: rgba(255, 193, 7, 0.2);
     border: 1px solid rgba(255, 193, 7, 0.4);
-    color: #ffc107;
-    padding: 8px 12px;
-    border-radius: 6px;
+    color: #ffd700;
+    padding: 10px 16px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
-    transition: all 0.3s ease;
-    align-self: flex-start;
+    font-weight: 500;
+    width: 100%;
+    transition: all 0.2s ease;
 }
 
-.hint-btn:hover {
+.hint-btn:active {
     background: rgba(255, 193, 7, 0.3);
+    transform: scale(0.98);
 }
 
 .hint {
-    background: rgba(76, 175, 80, 0.2);
-    border-left: 4px solid #4caf50;
+    background: rgba(255, 255, 255, 0.15);
+    border-left: 3px solid rgba(255, 193, 7, 0.6);
     padding: 12px;
     border-radius: 6px;
-    color: white;
-    font-size: 14px;
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 13px;
 }
 
 .hint code {
     background: rgba(0, 0, 0, 0.3);
-    padding: 2px 6px;
+    padding: 4px 8px;
     border-radius: 4px;
     font-family: 'Courier New', monospace;
-    color: #00ff88;
+    color: #ffd700;
     display: block;
-    margin: 4px 0;
+    margin: 6px 0;
 }
 
+/* Mensajes */
 .success-message {
     background: rgba(76, 175, 80, 0.15);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    color: #66bb6a;
+    border: 1px solid rgba(76, 175, 80, 0.4);
+    color: #2e7d32;
     padding: 12px;
     border-radius: 8px;
-    margin-top: 15px;
+    margin: 12px 0;
     font-size: 14px;
-    animation: slideIn 0.3s ease;
+    font-weight: 500;
 }
 
-.error-message {
-    background: rgba(244, 67, 54, 0.2);
-    border: 1px solid rgba(244, 67, 54, 0.4);
-    color: #f44336;
-    padding: 12px;
-    border-radius: 8px;
-    margin-top: 15px;
-    font-size: 14px;
-    animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.action-buttons {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-}
-
+/* Botones */
 .verify-btn,
 .continue-btn {
-    flex: 1;
-    padding: 12px 24px;
+    width: 100%;
+    padding: 14px;
     border: none;
     border-radius: 8px;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+    transition: all 0.2s ease;
+    margin-top: 12px;
 }
 
 .verify-btn {
-    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    background: rgba(255, 255, 255, 0.2);
     color: white;
-    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
-}
-
-.verify-btn.manual {
-    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 3px 8px rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.3);
-    color: rgba(255, 255, 255, 0.9);
-    box-shadow: none;
-    font-size: 13px;
 }
 
-.verify-btn.manual:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
-}
-
-.verify-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4);
+.verify-btn:active:not(:disabled) {
+    transform: scale(0.98);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .verify-btn:disabled {
@@ -1138,47 +871,39 @@ export default defineComponent({
 }
 
 .continue-btn {
-    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    background: rgba(255, 255, 255, 0.25);
     color: white;
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-    animation: pulse 2s infinite;
+    box-shadow: 0 3px 8px rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
-.continue-btn:hover {
-    background: linear-gradient(135deg, #45a049 0%, #388e3c 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+.continue-btn:active {
+    transform: scale(0.98);
 }
 
-@keyframes pulse {
-    0%, 100% {
-        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-    }
-    50% {
-        box-shadow: 0 4px 20px rgba(76, 175, 80, 0.5);
-    }
-}
-
+/* Progress */
 .progress-section {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 16px;
-    padding: 20px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(149, 110, 170, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .progress-label {
     color: white;
     font-weight: 600;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    font-size: 14px;
 }
 
 .progress-bar {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.2);
     height: 8px;
     border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .progress-fill {
@@ -1186,241 +911,250 @@ export default defineComponent({
     height: 100%;
     transition: width 0.5s ease;
     border-radius: 4px;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
 }
 
 .progress-text {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 14px;
+    color: white;
+    font-size: 13px;
     text-align: right;
 }
 
-@media (max-width: 768px) {
+/* Terminal Section */
+.terminal-section {
+    margin-bottom: 16px;
+}
+
+/* Ocultar terminal en explicaciones */
+.terminal-section.hidden-section {
+    display: none;
+}
+
+.terminal-wrapper {
+    background: #300a24;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.terminal-header {
+    background: #2c001e;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.terminal-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.dot.red { background: #e74c3c; }
+.dot.yellow { background: #f39c12; }
+.dot.green { background: #9b59b6; }
+
+.terminal-title {
+    color: #d4d4d4;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    flex: 1;
+    text-align: center;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e74c3c;
+    transition: background 0.3s ease;
+}
+
+.status-dot.connected {
+    background: #9b59b6;
+    box-shadow: 0 0 8px rgba(155, 89, 182, 0.6);
+}
+
+.terminal-container {
+    padding: 8px;
+    min-height: 280px;
+    max-height: 350px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    cursor: text;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Estilos para xterm.js */
+.terminal-container :deep(.xterm) {
+    height: 100%;
+    font-size: 11px;
+    width: 100%;
+}
+
+.terminal-container :deep(.xterm-viewport) {
+    overflow-y: auto !important;
+    width: 100%;
+}
+
+.terminal-container :deep(.xterm-screen) {
+    width: 100%;
+}
+
+.terminal-container :deep(.xterm-helper-textarea) {
+    position: absolute !important;
+    opacity: 0 !important;
+    left: -9999px !important;
+    top: 0 !important;
+    width: 0px !important;
+    height: 0px !important;
+    z-index: -10 !important;
+    resize: none !important;
+    overflow: hidden !important;
+}
+
+/* Botones de atajos */
+.terminal-shortcuts {
+    background: #2c001e;
+    padding: 8px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.shortcut-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #d4d4d4;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 50px;
+    text-align: center;
+}
+
+.shortcut-btn:active {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(0.95);
+}
+
+/* ========================================
+   TABLET - 768px y más
+   ======================================== */
+@media (min-width: 768px) {
     .leccion {
-        overflow-x: hidden !important;
+        padding-bottom: 120px;
     }
 
     .content {
-        padding: 6px;
-        padding-top: 10px;
-        padding-bottom: 85px;
-        max-width: 100vw;
-        width: 100vw;
-        margin: 0;
-        box-sizing: border-box;
-        overflow-x: hidden;
-    }
-
-    .lesson-content {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
         grid-template-columns: 1fr;
-        gap: 12px;
-        width: 100%;
-        max-width: 100%;
-        overflow-x: hidden;
-    }
-
-    .lesson-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-        margin-bottom: 12px;
+        grid-template-rows: auto auto;
+        gap: 20px;
     }
 
     .lesson-title {
-        font-size: 18px;
-        word-break: break-word;
-        line-height: 1.3;
+        font-size: 28px;
+    }
+
+    .lesson-header {
+        margin-bottom: 24px;
+        grid-column: 1 / -1;
+    }
+
+    /* En desktop con terminal: Layout en 2 columnas */
+    .content:has(.terminal-section:not(.hidden-section)) {
+        grid-template-columns: 1fr 420px;
     }
 
     .terminal-section {
-        width: 100%;
-        max-width: 100%;
-        margin: 0;
-        overflow-x: hidden;
-    }
-
-    .terminal-wrapper {
-        border-radius: 8px;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-        margin: 0;
-        overflow-x: hidden;
-    }
-
-    .terminal-header {
-        padding: 5px 8px;
-    }
-
-    .terminal-controls {
-        gap: 5px;
-    }
-
-    .control {
-        width: 9px;
-        height: 9px;
-    }
-
-    .terminal-title {
-        font-size: 10px;
-    }
-
-    .status-indicator {
-        width: 6px;
-        height: 6px;
-    }
-
-    .terminal-container {
-        min-height: 250px;
-        max-height: 320px;
-        padding: 3px;
-        width: 100%;
-        max-width: 100%;
-        overflow-x: hidden !important;
-        box-sizing: border-box;
-    }
-
-    .terminal-container :deep(.xterm) {
-        font-size: 9px;
-        width: 100% !important;
-        max-width: 100% !important;
-        overflow-x: hidden !important;
-    }
-
-    .terminal-container :deep(.xterm-viewport) {
-        width: 100% !important;
-        max-width: 100% !important;
-        overflow-x: hidden !important;
-    }
-
-    .terminal-container :deep(.xterm-screen) {
-        width: 100% !important;
-        max-width: 100% !important;
-        overflow-x: hidden !important;
-    }
-
-    .terminal-container :deep(.xterm-rows) {
-        width: 100% !important;
-        max-width: 100% !important;
-        overflow-x: hidden !important;
-    }
-
-    .terminal-container :deep(canvas) {
-        max-width: 100% !important;
-        width: 100% !important;
-    }
-
-    /* Forzar que ningún elemento hijo exceda el ancho */
-    .terminal-container :deep(*) {
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-    }
-
-    /* Mostrar botones táctiles en móvil */
-    .mobile-controls {
-        display: flex;
-        padding: 5px;
-        gap: 4px;
-        flex-wrap: wrap;
-    }
-
-    .mobile-btn {
-        font-size: 10px;
-        padding: 5px 7px;
-        min-width: 42px;
-        flex: 0 0 auto;
-    }
-
-    .mobile-btn svg {
-        width: 11px;
-        height: 11px;
+        grid-column: 1;
+        grid-row: 2;
+        margin-bottom: 0;
     }
 
     .challenge-section {
-        width: 100%;
-        gap: 12px;
-        max-width: 100%;
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    /* En desktop sin terminal visible (explicación): Layout de 1 columna centrada */
+    .content:has(.terminal-section.hidden-section) .challenge-section,
+    .content:not(:has(.terminal-section)) .challenge-section {
+        grid-column: 1 / -1;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .terminal-container {
+        min-height: 500px;
+        max-height: 600px;
+        padding: 12px;
+    }
+
+    .terminal-container :deep(.xterm) {
+        font-size: 14px;
     }
 
     .challenge-panel {
-        padding: 12px;
-        border-radius: 10px;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-        margin: 0;
+        padding: 24px;
     }
 
     .challenge-title {
-        font-size: 16px;
-        margin-bottom: 10px;
-        line-height: 1.3;
+        font-size: 20px;
     }
 
     .challenge-description {
-        font-size: 12px;
-        line-height: 1.4;
-        margin-bottom: 12px;
-    }
-
-    .hint-section {
-        gap: 7px;
-    }
-
-    .hint-btn {
-        font-size: 11px;
-        padding: 6px 10px;
-    }
-
-    .hint {
-        font-size: 11px;
-        padding: 8px;
-    }
-
-    .hint code {
-        font-size: 10px;
-        padding: 2px 4px;
-    }
-
-    .success-message,
-    .error-message {
-        font-size: 11px;
-        padding: 8px;
-        margin-top: 10px;
-    }
-
-    .action-buttons {
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 10px;
+        font-size: 15px;
     }
 
     .verify-btn,
     .continue-btn {
-        padding: 10px 18px;
-        font-size: 13px;
+        padding: 12px 24px;
+        width: auto;
+    }
+
+    .hint-btn {
+        width: auto;
     }
 
     .progress-section {
-        padding: 12px;
-        border-radius: 10px;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-        margin: 0;
+        padding: 20px;
+    }
+}
+
+/* ========================================
+   DESKTOP LARGE - 1200px y más
+   ======================================== */
+@media (min-width: 1200px) {
+    .content:has(.terminal-section:not(.hidden-section)) {
+        grid-template-columns: 1fr 480px;
     }
 
-    .progress-label {
-        font-size: 13px;
-        margin-bottom: 7px;
+    .terminal-container {
+        min-height: 550px;
+        max-height: 650px;
     }
 
-    .progress-bar {
-        height: 5px;
-        margin-bottom: 5px;
-    }
-
-    .progress-text {
-        font-size: 12px;
+    .terminal-container :deep(.xterm) {
+        font-size: 15px;
     }
 }
 </style>

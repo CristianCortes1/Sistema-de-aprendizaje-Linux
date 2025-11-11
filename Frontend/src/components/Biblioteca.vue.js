@@ -338,57 +338,25 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
     ...{ class: "proceso" },
 });
-__VLS_asFunctionalElement(__VLS_elements.footer, __VLS_elements.footer)({
-    ...{ class: "footer" },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "barra-inicio" },
-});
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.goInicio) },
-});
+const __VLS_5 = {}.Footer;
+/** @type {[typeof __VLS_components.Footer, ]} */ ;
 // @ts-ignore
-[goInicio,];
-__VLS_asFunctionalElement(__VLS_elements.img)({
-    src: "/Assets/Inicio.svg",
-    alt: "Inicio",
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "barra" },
-});
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.goBiblioteca) },
-});
+Footer;
 // @ts-ignore
-[goBiblioteca,];
-__VLS_asFunctionalElement(__VLS_elements.img)({
-    src: "/Assets/Biblioteca.svg",
-    alt: "Biblioteca",
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "barra" },
-});
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.goRanking) },
-});
+const __VLS_6 = __VLS_asFunctionalComponent(__VLS_5, new __VLS_5({
+    goInicio: (() => __VLS_ctx.$router.push('/dashboard')),
+    goBiblioteca: (() => __VLS_ctx.$router.push('/biblioteca')),
+    goRanking: (() => __VLS_ctx.$router.push('/ranking')),
+    goConfig: (() => __VLS_ctx.$router.push('/configuracion')),
+}));
+const __VLS_7 = __VLS_6({
+    goInicio: (() => __VLS_ctx.$router.push('/dashboard')),
+    goBiblioteca: (() => __VLS_ctx.$router.push('/biblioteca')),
+    goRanking: (() => __VLS_ctx.$router.push('/ranking')),
+    goConfig: (() => __VLS_ctx.$router.push('/configuracion')),
+}, ...__VLS_functionalComponentArgsRest(__VLS_6));
 // @ts-ignore
-[goRanking,];
-__VLS_asFunctionalElement(__VLS_elements.img)({
-    src: "/Assets/Ranking.svg",
-    alt: "Ranking",
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "barra" },
-});
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.goConfig) },
-});
-// @ts-ignore
-[goConfig,];
-__VLS_asFunctionalElement(__VLS_elements.img)({
-    src: "/Assets/Configuración.svg",
-    alt: "Configuración",
-});
+[$router, $router, $router, $router,];
 /** @type {__VLS_StyleScopedClasses['biblioteca']} */ ;
 /** @type {__VLS_StyleScopedClasses['modulos']} */ ;
 /** @type {__VLS_StyleScopedClasses['tablas-container']} */ ;
@@ -401,9 +369,4 @@ __VLS_asFunctionalElement(__VLS_elements.img)({
 /** @type {__VLS_StyleScopedClasses['permiso']} */ ;
 /** @type {__VLS_StyleScopedClasses['procesos']} */ ;
 /** @type {__VLS_StyleScopedClasses['proceso']} */ ;
-/** @type {__VLS_StyleScopedClasses['footer']} */ ;
-/** @type {__VLS_StyleScopedClasses['barra-inicio']} */ ;
-/** @type {__VLS_StyleScopedClasses['barra']} */ ;
-/** @type {__VLS_StyleScopedClasses['barra']} */ ;
-/** @type {__VLS_StyleScopedClasses['barra']} */ ;
 export default {};
