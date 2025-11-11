@@ -303,25 +303,33 @@ export default defineComponent({
         // API URL usando la configuración centralizada
         const WS_URL = import.meta.env.MODE === 'production' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000')
 
+        console.log('🔌 Conectando al WebSocket:', WS_URL)
+        console.log('👤 User ID:', userId)
+
         // Terminal - conectar con autenticación
         const socket = io(WS_URL, {
             auth: {
                 userId: userId
-            }
+            },
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 5
         })
         
         let terminal: Terminal | null = null
         let fitAddon: FitAddon | null = null
 
         onMounted(async () => {
-            // Cargar lección primero
-            await loadLesson()
-            
+            // Esperar a que el DOM esté listo PRIMERO
             await nextTick()
             
-            if (!terminalContainer.value) return
+            if (!terminalContainer.value) {
+                console.error('Terminal container not found!')
+                return
+            }
 
-            // Crear instancia de xterm
+            // Crear instancia de xterm ANTES de cargar los datos
             terminal = new Terminal({
                 cursorBlink: true,
                 cursorStyle: 'block',
@@ -379,14 +387,23 @@ export default defineComponent({
 
             // Conexión establecida
             socket.on('connect', () => {
+                console.log('✅ Socket conectado')
                 isConnected.value = true
                 terminalTitle.value = 'Terminal SSH'
             })
 
             // Desconexión
-            socket.on('disconnect', () => {
+            socket.on('disconnect', (reason) => {
+                console.log('❌ Socket desconectado:', reason)
                 isConnected.value = false
                 terminalTitle.value = 'Desconectado'
+            })
+
+            // Error de conexión
+            socket.on('connect_error', (error) => {
+                console.error('🔴 Error de conexión:', error.message)
+                isConnected.value = false
+                terminalTitle.value = 'Error de conexión'
             })
 
             // Recibir output del servidor
@@ -424,12 +441,15 @@ export default defineComponent({
                 }
             }, 200)
 
-            // Cleanup
-            onUnmounted(() => {
-                window.removeEventListener('resize', handleResize)
-                terminal?.dispose()
-                socket.disconnect()
-            })
+            // AHORA cargar la lección después de que la terminal esté lista
+            await loadLesson()
+        })
+
+        // Cleanup fuera de onMounted
+        onUnmounted(() => {
+            window.removeEventListener('resize', () => {})
+            terminal?.dispose()
+            socket.disconnect()
         })
 
         const toggleHint = () => {
@@ -516,8 +536,8 @@ export default defineComponent({
             </div>
 
             <div class="lesson-content" :class="{ 'no-terminal': currentReto?.tipo === 'explicacion' }">
-                <!-- Terminal (oculta en explicaciones) -->
-                <div class="terminal-section" v-if="currentReto?.tipo === 'reto'">
+                <!-- Terminal (siempre montada, ocultada solo en explicaciones con CSS) -->
+                <div class="terminal-section" :class="{ 'hidden-terminal': currentReto?.tipo === 'explicacion' }">
                     <div class="terminal-wrapper">
                         <div class="terminal-header">
                             <div class="terminal-controls">
@@ -720,6 +740,11 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+/* Ocultar terminal en explicaciones */
+.terminal-section.hidden-terminal {
+    display: none;
 }
 
 .terminal-wrapper {
