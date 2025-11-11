@@ -48,6 +48,7 @@ model Lecciones {
   id_Leccion Int         @id @default(autoincrement())
   // Ampliado de 45 a 150 para permitir títulos más descriptivos
   Titulo     String      @db.VarChar(150)
+  experiencia Int        @default(100) // XP que gana el usuario al completar la lección
   progresos  Progresos[]
   retos      Retos[]
 }

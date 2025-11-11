@@ -26,28 +26,81 @@ export class ProgressService {
       },
     });
 
+    const wasCompleted = existing && existing.progreso >= 100;
+    const isNowCompleted = createProgressDto.progress >= 100;
+
     if (existing) {
       // Si existe, actualizar solo si el nuevo progreso es mayor
       if (createProgressDto.progress > existing.progreso) {
-        return this.prisma.progresos.update({
+        const updated = await this.prisma.progresos.update({
           where: { id: existing.id },
           data: {
             progreso: createProgressDto.progress,
           },
         });
+
+        // Si la lección acaba de completarse (no estaba completada antes)
+        if (!wasCompleted && isNowCompleted) {
+          await this.grantXPForLesson(
+            createProgressDto.userId,
+            createProgressDto.lessonId,
+          );
+        }
+
+        return updated;
       }
       // Si el progreso es menor o igual, devolver el existente
       return existing;
     } else {
       // Si no existe, crear uno nuevo
-      return this.prisma.progresos.create({
+      const created = await this.prisma.progresos.create({
         data: {
           progreso: createProgressDto.progress,
           Usuarios_id_Usuario: createProgressDto.userId,
           Lecciones_id_Leccion: createProgressDto.lessonId,
         },
       });
+
+      // Si se completó en el primer intento
+      if (isNowCompleted) {
+        await this.grantXPForLesson(
+          createProgressDto.userId,
+          createProgressDto.lessonId,
+        );
+      }
+
+      return created;
     }
+  }
+
+  /**
+   * Otorga XP al usuario por completar una lección
+   */
+  private async grantXPForLesson(userId: number, lessonId: number) {
+    // Obtener la lección para saber cuánto XP otorga
+    const leccion = await this.prisma.lecciones.findUnique({
+      where: { id_Leccion: lessonId },
+      select: { experiencia: true },
+    });
+
+    if (!leccion) {
+      console.error(`Lección ${lessonId} no encontrada`);
+      return;
+    }
+
+    // Actualizar la experiencia del usuario
+    await this.prisma.user.update({
+      where: { id_Usuario: userId },
+      data: {
+        experiencia: {
+          increment: leccion.experiencia,
+        },
+      },
+    });
+
+    console.log(
+      `✨ Usuario ${userId} ganó ${leccion.experiencia} XP por completar la lección ${lessonId}`,
+    );
   }
 
   findAll() {

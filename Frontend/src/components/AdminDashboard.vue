@@ -35,6 +35,7 @@ const isLoadingLessons = ref(false)
 const showAddLesson = ref(false)
 const newLesson = ref<any>({
     title: '',
+    experiencia: 100,
     challenges: [{ 
         tipo: 'reto',
         description: '', 
@@ -188,8 +189,11 @@ const editLesson = async (id: number) => {
         // Mapear los datos al formato del formulario
         newLesson.value = {
             title: leccion.Titulo,
+            experiencia: leccion.experiencia || 100,
             challenges: leccion.retos.map((reto: any) => ({
+                tipo: reto.tipo || 'reto',
                 description: reto.descripcion,
+                contenido: reto.contenido || '',
                 feedback: reto.Retroalimentacion || '',
                 commands: reto.comandos.map((cmd: any) => ({ comando: cmd.comando }))
             }))
@@ -413,7 +417,8 @@ const saveLesson = async () => {
         
         // Reset form
         newLesson.value = { 
-            title: '', 
+            title: '',
+            experiencia: 100,
             challenges: [{ 
                 description: '', 
                 feedback: '', 
@@ -557,6 +562,12 @@ const saveLesson = async () => {
                     <div class="form-group">
                         <label>Título de la Lección</label>
                         <input type="text" v-model="newLesson.title" placeholder="Ej: Comandos básicos de listado" class="form-input" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Puntos de Experiencia (XP)</label>
+                        <input type="number" v-model.number="newLesson.experiencia" min="1" placeholder="100" class="form-input" />
+                        <small style="color: rgba(255, 255, 255, 0.6); margin-top: 4px; display: block;">XP que ganará el usuario al completar esta lección</small>
                     </div>
 
                     <div class="form-group">

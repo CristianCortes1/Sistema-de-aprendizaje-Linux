@@ -6,6 +6,8 @@ import {
   IsArray,
   ArrayMinSize,
   IsOptional,
+  IsNumber,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -74,6 +76,16 @@ export class CreateLessonDto {
   @IsString()
   @IsNotEmpty()
   titulo: string;
+
+  @ApiPropertyOptional({
+    description: 'Puntos de experiencia (XP) que gana el usuario al completar la lección',
+    example: 100,
+    default: 100,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  experiencia?: number;
 
   @ApiProperty({
     description: 'Lista de retos que componen la lección',

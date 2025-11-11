@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, PropType, computed, onMounted, ref } from 'vue'
+import { defineComponent, PropType, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthService from '../services/AuthService'
 
@@ -25,7 +25,7 @@ export default defineComponent({
             avatar: ""
         })
 
-        onMounted(() => {
+        const loadUserFromStorage = () => {
             const storedUser = localStorage.getItem('user')
             if (storedUser) {
                 const parsed = JSON.parse(storedUser)
@@ -35,6 +35,25 @@ export default defineComponent({
                 localUser.value.avatar = parsed.avatar
                 localUser.value.correo = parsed.correo
             }
+        }
+
+        const handleUserUpdated = (event: any) => {
+            const updatedUser = event.detail
+            localUser.value = {
+                ...localUser.value,
+                experiencia: updatedUser.experiencia,
+                racha: updatedUser.racha
+            }
+        }
+
+        onMounted(() => {
+            loadUserFromStorage()
+            // Escuchar cambios en los datos del usuario
+            window.addEventListener('userUpdated', handleUserUpdated)
+        })
+
+        onUnmounted(() => {
+            window.removeEventListener('userUpdated', handleUserUpdated)
         })
 
         const displayUser = computed(() => {

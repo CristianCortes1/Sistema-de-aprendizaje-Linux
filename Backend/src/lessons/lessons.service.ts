@@ -22,6 +22,7 @@ export class LessonsService {
     return this.prisma.lecciones.create({
       data: {
         Titulo: createLessonDto.titulo,
+        experiencia: createLessonDto.experiencia ?? 100,
         retos: {
           create: retosData,
         },
@@ -57,11 +58,12 @@ export class LessonsService {
 
   update(id: number, updateLessonDto: UpdateLessonDto) {
     return this.prisma.$transaction(async (prisma) => {
-      // Actualizar título de la lección
+      // Actualizar título y experiencia de la lección
       await prisma.lecciones.update({
         where: { id_Leccion: id },
         data: {
           Titulo: updateLessonDto.titulo,
+          experiencia: updateLessonDto.experiencia ?? 100,
         },
       });
 
@@ -175,6 +177,7 @@ export class LessonsService {
       select: {
         id_Leccion: true,
         Titulo: true,
+        experiencia: true,
       },
     });
 
@@ -210,6 +213,7 @@ export class LessonsService {
       return {
         id: leccion.id_Leccion,
         titulo: leccion.Titulo,
+        experiencia: leccion.experiencia,
         locked,
         progreso,
       };

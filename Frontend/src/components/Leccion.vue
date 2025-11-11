@@ -8,6 +8,7 @@ import { WebLinksAddon } from 'xterm-addon-web-links'
 import 'xterm/css/xterm.css'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
+import XPGainedAnimation from './XPGainedAnimation.vue'
 import { API_URL } from '../config/api'
 
 // Función para obtener userId del token JWT
@@ -49,12 +50,13 @@ interface Reto {
 interface Leccion {
     id_Leccion: number
     Titulo: string
+    experiencia: number
     retos: Reto[]
 }
 
 export default defineComponent({
     name: 'Leccion',
-    components: { Header, Footer },
+    components: { Header, Footer, XPGainedAnimation },
     setup() {
         const router = useRouter()
         const route = useRoute()
@@ -80,6 +82,10 @@ export default defineComponent({
         const showError = ref(false)
         const errorMessage = ref('')
         const userProgress = ref(0)
+
+        // XP Animation
+        const showXPAnimation = ref(false)
+        const xpGained = ref(0)
 
         // ❌ Redirigir a login si no está autenticado
         if (!userId) {
@@ -141,6 +147,37 @@ export default defineComponent({
                 errorMessage.value = 'No se pudo cargar la lección'
                 showError.value = true
                 setTimeout(() => showError.value = false, 3000)
+            }
+        }
+
+        // Actualizar datos del usuario en localStorage
+        const updateUserData = async () => {
+            try {
+                const response = await fetch(`${API_URL}/users/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                })
+                
+                if (response.ok) {
+                    const userData = await response.json()
+                    
+                    // Actualizar localStorage con los nuevos datos
+                    const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+                    const updatedUser = {
+                        ...currentUser,
+                        experiencia: userData.experiencia,
+                        racha: userData.racha
+                    }
+                    localStorage.setItem('user', JSON.stringify(updatedUser))
+                    
+                    // Emitir evento para que el Header se actualice
+                    window.dispatchEvent(new CustomEvent('userUpdated', { detail: updatedUser }))
+                    
+                    console.log(`✅ Usuario actualizado: ${userData.experiencia} XP`)
+                }
+            } catch (error) {
+                console.error('Error updating user data:', error)
             }
         }
 
@@ -309,6 +346,18 @@ export default defineComponent({
                     if (response.ok) {
                         progress.value = 100
                         userProgress.value = 100
+
+                        // Actualizar datos del usuario en localStorage
+                        await updateUserData()
+
+                        // Mostrar animación de XP ganado
+                        xpGained.value = lessonData.value.experiencia || 100
+                        showXPAnimation.value = true
+
+                        // Ocultar animación después de 3 segundos
+                        setTimeout(() => {
+                            showXPAnimation.value = false
+                        }, 3000)
                     }
                 } catch (error) {
                     console.error('Error updating final progress:', error)
@@ -319,7 +368,7 @@ export default defineComponent({
                 
                 setTimeout(() => {
                     router.push('/dashboard')
-                }, 3000)
+                }, 4000) // Aumentado a 4 segundos para dar tiempo a ver la animación
             }
         }
 
@@ -561,6 +610,8 @@ export default defineComponent({
             showError,
             errorMessage,
             isVerifying,
+            showXPAnimation,
+            xpGained,
         }
     },
 })
@@ -570,6 +621,9 @@ export default defineComponent({
 <template>
     <div class="leccion">
         <Header />
+
+        <!-- Animación de XP ganado -->
+        <XPGainedAnimation :show="showXPAnimation" :xpAmount="xpGained ?? 0" />
 
         <div class="content">
             <!-- Título de la lección -->
