@@ -15,7 +15,11 @@ export class LessonsService {
       contenido: reto.contenido ?? null,
       Retroalimentacion: reto.Retroalimentacion ?? null,
       comandos: {
-        create: reto.comandos?.map((c) => ({ comando: c.comando })) || [],
+        create:
+          reto.comandos?.map((c) => ({
+            comando: c.comando,
+            descripcion: c.descripcion ?? null,
+          })) || [],
       },
     }));
 
@@ -88,7 +92,11 @@ export class LessonsService {
           Retroalimentacion: reto.Retroalimentacion ?? null,
           Lecciones_id_Leccion: id,
           comandos: {
-            create: reto.comandos?.map((c) => ({ comando: c.comando })) || [],
+            create:
+              reto.comandos?.map((c) => ({
+                comando: c.comando,
+                descripcion: c.descripcion ?? null,
+              })) || [],
           },
         }));
 
@@ -109,6 +117,7 @@ export class LessonsService {
             await prisma.comandos.createMany({
               data: comandos.map((c) => ({
                 comando: c.comando,
+                descripcion: c.descripcion ?? null,
                 Retos_id_Reto: newRetos[i].id_Reto,
               })),
             });

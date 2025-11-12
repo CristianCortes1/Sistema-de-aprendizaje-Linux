@@ -52,7 +52,7 @@ const newLesson = ref<any>({
         description: '',
         contenido: '',
         feedback: '',
-        commands: [{ comando: '' }]
+        commands: [{ comando: '', descripcion: '' }]
     }]
 })
 
@@ -197,7 +197,7 @@ const editLesson = async (id: number) => {
         const leccion = await response.json()
         console.log('Lección cargada para editar:', leccion)
 
-        // Mapear los datos al formato del formulario
+        // Mapear los datos al formato del formulario (incluye descripcion de comandos)
         newLesson.value = {
             title: leccion.Titulo,
             experiencia: leccion.experiencia || 100,
@@ -206,7 +206,10 @@ const editLesson = async (id: number) => {
                 description: reto.descripcion,
                 contenido: reto.contenido || '',
                 feedback: reto.Retroalimentacion || '',
-                commands: reto.comandos.map((cmd: any) => ({ comando: cmd.comando }))
+                commands: reto.comandos.map((cmd: any) => ({
+                    comando: cmd.comando,
+                    descripcion: cmd.descripcion || ''
+                }))
             }))
         }
 
@@ -334,14 +337,14 @@ const addChallenge = () => {
         description: '',
         contenido: '',
         feedback: '',
-        commands: [{ comando: '' }]
+        commands: [{ comando: '', descripcion: '' }]
     })
 }
 
 const addCommand = (challengeIndex: number) => {
     const ch = newLesson.value.challenges[challengeIndex]
     if (!ch.commands) ch.commands = []
-    ch.commands.push({ comando: '' })
+    ch.commands.push({ comando: '', descripcion: '' })
 }
 
 const removeCommand = (challengeIndex: number, cmdIndex: number) => {
@@ -366,7 +369,10 @@ const toRequestPayload = () => {
             descripcion: c.description,
             contenido: c.contenido || null,
             Retroalimentacion: c.feedback || null,
-            comandos: c.tipo === 'explicacion' ? [] : c.commands.map((cmd: any) => ({ comando: cmd.comando }))
+            comandos: c.tipo === 'explicacion' ? [] : c.commands.map((cmd: any) => ({
+                comando: cmd.comando,
+                descripcion: cmd.descripcion?.trim() || undefined
+            }))
         }))
     }
 }
@@ -385,6 +391,7 @@ const saveLesson = async () => {
     // - Lecciones.Titulo: VARCHAR(150)
     // - Retos.descripcion: VARCHAR(500)
     // - Comandos.comando: VARCHAR(100)
+    // - Comandos.descripcion: VARCHAR(200)
     if (newLesson.value.title.length > 150) {
         saveError.value = 'El título no puede superar 150 caracteres.'
         return
@@ -409,6 +416,10 @@ const saveLesson = async () => {
                 if (!cmd || typeof cmd.comando !== 'string') continue
                 if (cmd.comando.length > 100) {
                     saveError.value = 'Cada comando no puede superar 100 caracteres.'
+                    return
+                }
+                if (cmd.descripcion && cmd.descripcion.length > 200) {
+                    saveError.value = 'La descripción de cada comando no puede superar 200 caracteres.'
                     return
                 }
             }
@@ -455,7 +466,7 @@ const saveLesson = async () => {
             challenges: [{
                 description: '',
                 feedback: '',
-                commands: [{ comando: '' }]
+                commands: [{ comando: '', descripcion: '' }]
             }]
         }
         currentItemId = null
@@ -693,9 +704,11 @@ const saveLesson = async () => {
                                         </div>
 
                                         <div v-for="(cmd, ci) in challenge.commands" :key="ci"
-                                            style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+                                            style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
                                             <input v-model="cmd.comando" placeholder="Ej: ls -la"
-                                                class="form-input mono" style="flex:1;" />
+                                                class="form-input mono" style="flex:1; min-width:160px;" />
+                                            <input v-model="cmd.descripcion" placeholder="Descripción del comando (opcional)"
+                                                class="form-input" style="flex:1; min-width:220px;" />
                                             <button v-if="challenge.commands.length > 1" class="btn-delete"
                                                 @click.prevent="removeCommand(index, ci)"
                                                 style="padding: 8px 12px; font-size: 12px;">×</button>

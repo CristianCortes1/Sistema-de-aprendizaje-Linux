@@ -70,6 +70,8 @@ model Comandos {
   id_Comando    Int    @id @default(autoincrement())
   // Ampliado de 45 a 100 para permitir comandos con múltiples flags
   comando       String @db.VarChar(100)
+  // Descripción corta para usar en la biblioteca de comandos
+  descripcion   String? @db.VarChar(200)
   reto          Retos  @relation(fields: [Retos_id_Reto], references: [id_Reto])
   Retos_id_Reto Int
 }

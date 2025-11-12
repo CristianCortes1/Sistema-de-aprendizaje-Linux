@@ -29,6 +29,7 @@ export class CommandsController {
       example: {
         id: 1,
         comando: 'ls -la',
+        descripcion: 'Lista archivos incluidos ocultos con detalles',
         retoId: 1,
       },
     },
@@ -51,6 +52,7 @@ export class CommandsController {
         {
           id: 1,
           comando: 'ls -la',
+          descripcion: 'Lista archivos con detalles',
           retoId: 1,
           reto: {
             descripcion: 'Lista archivos con detalles',
@@ -59,6 +61,7 @@ export class CommandsController {
         {
           id: 2,
           comando: 'cd /home',
+          descripcion: 'Cambia al directorio home',
           retoId: 2,
           reto: {
             descripcion: 'Navega al directorio home',
@@ -84,6 +87,7 @@ export class CommandsController {
       example: {
         id: 1,
         comando: 'ls -la',
+        descripcion: 'Lista todos los archivos con detalles',
         retoId: 1,
         reto: {
           id: 1,
@@ -111,6 +115,7 @@ export class CommandsController {
       example: {
         id: 1,
         comando: 'ls -lah',
+        descripcion: 'Lista archivos con unidades legibles',
         retoId: 1,
         updatedAt: '2025-10-24T00:00:00.000Z',
       },

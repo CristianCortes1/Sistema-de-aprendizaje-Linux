@@ -34,7 +34,9 @@ export class LessonsController {
           {
             id: 1,
             descripcion: 'Lista archivos del directorio',
-            comandos: [{ id: 1, comando: 'ls' }],
+            comandos: [
+              { id: 1, comando: 'ls', descripcion: 'Lista archivos' },
+            ],
           },
         ],
       },
@@ -133,8 +135,8 @@ export class LessonsController {
             descripcion: 'Lista todos los archivos',
             Retroalimentacion: 'Excelente!',
             comandos: [
-              { id: 1, comando: 'ls' },
-              { id: 2, comando: 'ls -l' },
+              { id: 1, comando: 'ls', descripcion: 'Lista archivos' },
+              { id: 2, comando: 'ls -l', descripcion: 'Lista con detalles' },
             ],
           },
         ],
