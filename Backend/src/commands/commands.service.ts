@@ -11,6 +11,7 @@ export class CommandsService {
     return this.prisma.comandos.create({
       data: {
         comando: createCommandDto.comando,
+        descripcion: createCommandDto.descripcion ?? null,
         Retos_id_Reto: createCommandDto.retoId,
       },
     });
@@ -31,6 +32,7 @@ export class CommandsService {
       where: { id_Comando: id },
       data: {
         comando: updateCommandDto.comando,
+        descripcion: updateCommandDto.descripcion ?? null,
         Retos_id_Reto: updateCommandDto.retoId,
       },
     });

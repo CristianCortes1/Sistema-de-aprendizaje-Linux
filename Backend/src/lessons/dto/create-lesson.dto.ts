@@ -19,6 +19,15 @@ export class CreateComandoDto {
   @IsString()
   @IsNotEmpty()
   comando: string;
+
+  @ApiPropertyOptional({
+    description: 'Descripción corta del comando para mostrar en la biblioteca',
+    example: 'Lista archivos (incluye ocultos) con permisos detallados',
+    maxLength: 200,
+  })
+  @IsOptional()
+  @IsString()
+  descripcion?: string;
 }
 
 export class CreateRetoDto {
@@ -59,7 +68,10 @@ export class CreateRetoDto {
   @ApiPropertyOptional({
     description: 'Lista de comandos válidos como solución (solo para tipo="reto")',
     type: [CreateComandoDto],
-    example: [{ comando: 'ls -la' }, { comando: 'ls -al' }],
+    example: [
+      { comando: 'ls -la', descripcion: 'Lista archivos con detalles' },
+      { comando: 'ls -al', descripcion: 'Orden alternativo de flags' },
+    ],
   })
   @IsOptional()
   @IsArray()

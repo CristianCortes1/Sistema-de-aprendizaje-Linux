@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
+import { API_URL } from '../config/api'
 
 export default {
     name: 'Biblioteca',
@@ -26,49 +27,43 @@ export default {
     },
     data() {
         return {
-            descripciones: {
-                ls: "Muestra el contenido de un directorio.",
-                pwd: "Muestra el directorio actual del archivo.",
-                cd: "Cambia el directorio de trabajo.",
-                echo: "Muestra un mensaje o valor de variable.",
-                clear: "Limpia la pantalla del terminal.",
-                touch: "Crea un archivo vacío.",
-                mkdir: "Crea un nuevo directorio.",
-                rm: "Elimina archivos.",
-                rmdir: "Elimina directorios vacíos.",
-                cp: "Copia archivos o directorios.",
-                mv: "Mueve o renombra archivos o directorios.",
-                cat: "Muestra el contenido de un archivo.",
-                nano: "Editor de texto en línea de comandos.",
-                grep: "Busca texto dentro de archivos.",
-                sudo: "Ejecuta comandos con privilegios de superusuario.",
-                chmod: "Cambia los permisos de archivos o directorios."
-            }
+            isLoading: false,
+            error: '',
+            commands: [],
+            openCommandId: null,
         }
     },
+    mounted() {
+        this.fetchCommands()
+    },
     methods: {
-        toggleDescripcion(comando, event) {
-            const row = event.target.closest('tr');
-            const table = event.target.closest('table');
-
-            // Si ya existe una descripción justo después, la eliminamos (cerrar)
-            if (row.nextElementSibling && row.nextElementSibling.classList.contains('descripcion')) {
-                row.nextElementSibling.remove();
-                return;
+        async fetchCommands() {
+            this.isLoading = true
+            this.error = ''
+            try {
+                const res = await fetch(`${API_URL}/commands`, {
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                if (!res.ok) throw new Error(`Error HTTP: ${res.status}`)
+                const data = await res.json()
+                // Mapear resultados del backend al formato usado en la UI
+                this.commands = (Array.isArray(data) ? data : []).map((d, i) => ({
+                    id: d.id ?? d.id_Comando ?? `${d.comando}-${i}`,
+                    comando: d.comando,
+                    descripcion: d.descripcion || ''
+                })).sort((a, b) => a.comando.localeCompare(b.comando))
+            } catch (err) {
+                console.error('Error cargando comandos:', err)
+                this.error = 'No se pudieron cargar los comandos.'
+                this.commands = []
+            } finally {
+                this.isLoading = false
             }
-
-            // Remover cualquier otra descripción abierta
-            table.querySelectorAll('.descripcion').forEach(r => r.remove());
-
-            // Crear nueva descripción
-            const descRow = document.createElement('tr');
-            descRow.className = 'descripcion';
-            const descCell = document.createElement('td');
-            descCell.colSpan = 1; // Una sola columna ahora
-            descCell.textContent = this.descripciones[comando] || 'Descripción no disponible.';
-            descRow.appendChild(descCell);
-            row.insertAdjacentElement('afterend', descRow);
-        }
+        },
+        toggleDescripcion(cmd) {
+            this.openCommandId = this.openCommandId === cmd.id ? null : cmd.id
+        },
+        
     }
 }
 </script>
@@ -79,87 +74,45 @@ export default {
 
         <div class="modulos">
             <div class="tablas-container">
-                <div class="comandos-basicos">
+                <div class="comandos-basicos" style="flex: 1 1 100%; max-width: 700px;">
                     <table>
                         <thead>
                             <tr>
-                                <th class="titulo">Comandos básicos</th>
+                                <th class="titulo">Biblioteca de comandos</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td @click="toggleDescripcion('ls', $event)">→ ls</td>
+                            <tr v-if="isLoading || error">
+                                <td>
+                                    <span v-if="isLoading">Cargando comandos...</span>
+                                    <span v-else>{{ error }}</span>
+                                </td>
                             </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('pwd', $event)">→ pwd</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('cd', $event)">→ cd</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('echo', $event)">→ echo</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('clear', $event)">→ clear</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('cat', $event)">→ cat</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('nano', $event)">→ nano</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('grep', $event)">→ grep</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('sudo', $event)">→ sudo</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('chmod', $event)">→ chmod</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="archivos-y-directorios">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="titulo">Archivos y directorios</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td @click="toggleDescripcion('touch', $event)">→ touch</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('mkdir', $event)">→ mkdir</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('rm', $event)">→ rm</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('rmdir', $event)">→ rmdir</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('cp', $event)">→ cp</td>
-                            </tr>
-                            <tr>
-                                <td @click="toggleDescripcion('mv', $event)">→ mv</td>
+                            <template v-for="cmd in commands" :key="cmd.id">
+                                <tr>
+                                    <td @click="toggleDescripcion(cmd)">→ {{ cmd.comando }}</td>
+                                </tr>
+                                <tr v-if="openCommandId === cmd.id" class="descripcion">
+                                    <td>
+                                        <div class="desc-wrapper">
+                                            <div class="desc-header">
+                                                <strong class="cmd-label">{{ cmd.comando }}</strong>
+                                            </div>
+                                            <p class="desc-text" v-if="cmd.descripcion && cmd.descripcion.trim()">{{ cmd.descripcion }}</p>
+                                            <p class="desc-text muted" v-else>Descripción no disponible.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                            <tr v-if="!isLoading && commands.length === 0 && !error">
+                                <td>No hay comandos disponibles.</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <div class="bloqueados">
-                <div class="permisos">Permisos
-                    <span class="permiso">Aún no disponible</span>
-                </div>
-                <div class="procesos">Procesos y señales
-                    <span class="proceso">Aún no disponible</span>
-                </div>
-            </div>
+            <!-- Se removieron las tarjetas de lecciones por defecto (Permisos / Procesos y señales) -->
         </div>
         <Footer :goInicio="() => $router.push('/dashboard')" :goBiblioteca="() => $router.push('/biblioteca')"
             :goRanking="() => $router.push('/ranking')" :goConfig="() => $router.push('/configuracion')" />
@@ -289,55 +242,93 @@ tr.descripcion {
 }
 
 tr.descripcion td {
-    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%) !important;
-    color: white;
-    font-style: italic;
-    font-weight: normal;
-    padding: 15px;
-    border-left: 4px solid #2E7D32;
-    border-radius: 8px;
-    margin-top: 4px;
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-}
-
-.bloqueados {
-    display: flex;
-    justify-content: space-around;
-    margin: 40px auto;
-    width: 63%;
-    gap: 250px;
-}
-
-.permisos,
-.procesos {
-    flex: 1;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    padding: 20px;
-    text-align: center;
-    color: white;
-    font-weight: bold;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     position: relative;
+    background: linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 100%) !important;
+    color: #f7f9ff;
+    padding: 0;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(255,255,255,0.04);
+    animation: fadeInDesc 180ms ease-out;
 }
 
-.permisos::after,
-.procesos::after {
-    content: "🔒";
+/* Se retiró el emoji del indicador informativo */
+
+tr.descripcion td::after {
+    content: "";
     position: absolute;
-    top: 12px;
-    right: 12px;
-    font-size: 18px;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    border-radius: 12px 0 0 12px;
+    background: linear-gradient(180deg, #7c3aed 0%, #60a5fa 100%);
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.45);
 }
 
-.permiso,
-.proceso {
-    display: block;
-    margin-top: 10px;
-    font-size: 14px;
-    font-weight: normal;
-    color: rgba(255, 255, 255, 0.8);
+@keyframes fadeInDesc {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
+
+.desc-wrapper {
+    position: relative;
+    padding: 16px 16px 16px 52px;
+}
+
+.desc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.cmd-label {
+    color: #eaf0ff;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+.desc-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.desc-btn {
+    background: rgba(255,255,255,0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.desc-btn:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.35);
+}
+
+.desc-btn.close {
+    padding: 4px 10px;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.desc-text {
+    color: #f3f6ff;
+    line-height: 1.55;
+}
+
+.desc-text.muted {
+    color: rgba(255,255,255,0.75);
+}
+
+/* Se elimina el estilo de las tarjetas de lecciones por defecto */
 
 .footer {
     display: flex;
@@ -430,8 +421,26 @@ tr.descripcion td {
     }
 
     tr.descripcion td {
-        padding: 12px;
+        padding: 8px 10px;
         font-size: 12px;
+    }
+
+    .desc-wrapper {
+        padding: 10px 12px 10px 32px;
+    }
+
+    .desc-header {
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .cmd-label {
+        font-size: 13px;
+    }
+
+    .desc-text {
+        font-size: 12px;
+        line-height: 1.45;
     }
 
     .bloqueados {

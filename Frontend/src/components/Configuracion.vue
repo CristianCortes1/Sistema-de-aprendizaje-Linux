@@ -491,6 +491,7 @@ export default {
   border: 3px solid transparent;
   transition: all 0.3s ease;
   background: white;
+  margin-bottom: 12px;
 }
 
 .avatar-option:hover {
