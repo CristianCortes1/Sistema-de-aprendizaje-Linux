@@ -10,6 +10,17 @@ const router = useRouter()
 
 const activeTab = ref<'users' | 'lessons'>('users')
 const searchTerm = ref('')
+const selectedPage = ref('')
+
+const navigateToPage = () => {
+    if (!selectedPage.value) return
+    if (selectedPage.value === 'admin') {
+        router.push({ name: 'AdminDashboard' })
+    } else if (selectedPage.value === 'dashboard') {
+        router.push({ name: 'Dashboard' })
+    }
+    selectedPage.value = ''
+}
 
 // Control de modales con Modales.vue
 const modalVisible = ref(false)
@@ -36,12 +47,12 @@ const showAddLesson = ref(false)
 const newLesson = ref<any>({
     title: '',
     experiencia: 100,
-    challenges: [{ 
+    challenges: [{
         tipo: 'reto',
-        description: '', 
+        description: '',
         contenido: '',
-        feedback: '', 
-        commands: [{ comando: '' }] 
+        feedback: '',
+        commands: [{ comando: '' }]
     }]
 })
 
@@ -182,10 +193,10 @@ const editLesson = async (id: number) => {
         // Obtener los detalles completos de la lección
         const response = await fetch(`${API_URL}/lessons/${id}`)
         if (!response.ok) throw new Error('Error al cargar la lección')
-        
+
         const leccion = await response.json()
         console.log('Lección cargada para editar:', leccion)
-        
+
         // Mapear los datos al formato del formulario
         newLesson.value = {
             title: leccion.Titulo,
@@ -198,7 +209,7 @@ const editLesson = async (id: number) => {
                 commands: reto.comandos.map((cmd: any) => ({ comando: cmd.comando }))
             }))
         }
-        
+
         currentItemId = id
         showAddLesson.value = true
     } catch (err) {
@@ -237,15 +248,15 @@ const cerrarModal = () => {
 }
 
 const guardarCambios = async (data: any) => {
-        try {
-        
+    try {
+
         if (currentContext === 'usuarios') {
-            const url = currentItemId 
+            const url = currentItemId
                 ? `${API_URL}/users/${currentItemId}`
                 : `${API_URL}/users`
-            
+
             const method = currentItemId ? 'PATCH' : 'POST'
-            
+
             const response = await fetch(url, {
                 method,
                 headers: {
@@ -258,18 +269,18 @@ const guardarCambios = async (data: any) => {
                     activo: data.estado === 'activo'
                 })
             })
-            
+
             if (!response.ok) throw new Error('Error al guardar usuario')
             await fetchUsers()
             alert(currentItemId ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente')
-            
+
         } else {
-            const url = currentItemId 
+            const url = currentItemId
                 ? `${API_URL}/lessons/${currentItemId}`
                 : `${API_URL}/lessons`
-            
+
             const method = currentItemId ? 'PUT' : 'POST'
-            
+
             const response = await fetch(url, {
                 method,
                 headers: {
@@ -280,12 +291,12 @@ const guardarCambios = async (data: any) => {
                     Descripcion: data.descripcion
                 })
             })
-            
+
             if (!response.ok) throw new Error('Error al guardar lección')
             await fetchLessons()
             alert(currentItemId ? 'Lección actualizada correctamente' : 'Lección creada correctamente')
         }
-        
+
         cerrarModal()
     } catch (err: any) {
         console.error('Error guardando datos:', err)
@@ -294,7 +305,7 @@ const guardarCambios = async (data: any) => {
 }
 
 const confirmarEliminacion = async () => {
-        try {
+    try {
         const endpoint = currentContext === 'usuarios'
             ? `${API_URL}/users/${currentItemId}`
             : `${API_URL}/lessons/${currentItemId}`
@@ -318,12 +329,12 @@ const confirmarEliminacion = async () => {
 
 // Funciones para el modal de agregar lección con challenges
 const addChallenge = () => {
-    newLesson.value.challenges.push({ 
+    newLesson.value.challenges.push({
         tipo: 'reto',
-        description: '', 
+        description: '',
         contenido: '',
-        feedback: '', 
-        commands: [{ comando: '' }] 
+        feedback: '',
+        commands: [{ comando: '' }]
     })
 }
 
@@ -363,7 +374,7 @@ const toRequestPayload = () => {
 const saveLesson = async () => {
     saveError.value = ''
     saveSuccess.value = ''
-    
+
     // Validación
     if (!newLesson.value.title || newLesson.value.challenges.length === 0) {
         saveError.value = 'El título y al menos un reto/explicación son obligatorios.'
@@ -390,7 +401,7 @@ const saveLesson = async () => {
     try {
         const payload = toRequestPayload()
         console.log('Enviando payload:', JSON.stringify(payload, null, 2))
-        
+
         if (currentItemId) {
             // Editar lección existente
             const response = await fetch(`${API_URL}/lessons/${currentItemId}`, {
@@ -400,7 +411,7 @@ const saveLesson = async () => {
                 },
                 body: JSON.stringify(payload)
             })
-            
+
             if (!response.ok) {
                 const errorData = await response.json()
                 console.error('Error del servidor:', errorData)
@@ -412,18 +423,18 @@ const saveLesson = async () => {
             await LessonService.create(payload)
             saveSuccess.value = 'Lección creada correctamente.'
         }
-        
+
         await fetchLessons()
-        
+
         // Reset form
-        newLesson.value = { 
+        newLesson.value = {
             title: '',
             experiencia: 100,
-            challenges: [{ 
-                description: '', 
-                feedback: '', 
-                commands: [{ comando: '' }] 
-            }] 
+            challenges: [{
+                description: '',
+                feedback: '',
+                commands: [{ comando: '' }]
+            }]
         }
         currentItemId = null
         showAddLesson.value = false
@@ -441,7 +452,8 @@ const saveLesson = async () => {
         <!-- Header -->
         <header class="admin-header">
             <div class="brand">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Penguin" class="logo-penguin" />
+                <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Penguin"
+                    class="logo-penguin" />
                 <h1>Penguin Path</h1>
             </div>
             <div class="user-info">
@@ -453,16 +465,27 @@ const saveLesson = async () => {
         </header>
 
         <aside class="sidebar">
+            <div class="nav-selector">
+                <label for="pagina" class="nav-label">Ir a:</label>
+                <select id="pagina" v-model="selectedPage" @change="navigateToPage" class="nav-select">
+                    <option value="">Selecciona una opción</option>
+                    <option value="admin">Dashboard Admin</option>
+                    <option value="dashboard">Dashboard Usuario</option>
+                </select>
+            </div>
+
             <nav>
                 <button :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'" class="nav-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                         <circle cx="9" cy="7" r="4" />
                     </svg>
                     <span>Usuarios</span>
                 </button>
                 <button :class="{ active: activeTab === 'lessons' }" @click="activeTab = 'lessons'" class="nav-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                     </svg>
@@ -470,9 +493,13 @@ const saveLesson = async () => {
                 </button>
             </nav>
 
+
+
+
             <div class="sidebar-footer">
                 <button class="nav-btn config-btn" @click="logout">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                         <polyline points="16 17 21 12 16 7" />
                         <line x1="21" y1="12" x2="9" y2="12" />
@@ -492,11 +519,14 @@ const saveLesson = async () => {
                 </div>
 
                 <div class="search-container">
-                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8" />
                         <path d="m21 21-4.35-4.35" />
                     </svg>
-                    <input type="text" v-model="searchTerm" placeholder="Buscar usuarios por nombre, correo..." class="search-input" />
+                    <input type="text" v-model="searchTerm" placeholder="Buscar usuarios por nombre, correo..."
+                        class="search-input" />
                 </div>
 
                 <div class="table-container">
@@ -516,11 +546,14 @@ const saveLesson = async () => {
                                 <td class="email-col">{{ usuario.email }}</td>
                                 <td>{{ usuario.rol }}</td>
                                 <td>
-                                    <span :class="['badge', usuario.estado === 'Activo' ? 'badge-active' : 'badge-inactive']">{{ usuario.estado }}</span>
+                                    <span
+                                        :class="['badge', usuario.estado === 'Activo' ? 'badge-active' : 'badge-inactive']">{{
+                                            usuario.estado }}</span>
                                 </td>
                                 <td class="actions-col">
                                     <button class="btn-action btn-edit" @click="editUser(usuario.id)">Editar</button>
-                                    <button class="btn-action btn-delete" @click="confirmDeleteUser(usuario.id)">Eliminar</button>
+                                    <button class="btn-action btn-delete"
+                                        @click="confirmDeleteUser(usuario.id)">Eliminar</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -542,7 +575,8 @@ const saveLesson = async () => {
                             <p>{{ leccion.descripcion }}</p>
                         </div>
                         <div style="display: flex; gap: 8px;">
-                            <button class="btn-action btn-edit" @click="editLesson(leccion.id)" style="padding: 6px 16px; border-radius: 6px;">Editar</button>
+                            <button class="btn-action btn-edit" @click="editLesson(leccion.id)"
+                                style="padding: 6px 16px; border-radius: 6px;">Editar</button>
                             <button class="btn-delete-lesson" @click="confirmDeleteLesson(leccion.id)">Borrar</button>
                         </div>
                     </div>
@@ -561,32 +595,41 @@ const saveLesson = async () => {
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Título de la Lección</label>
-                        <input type="text" v-model="newLesson.title" placeholder="Ej: Comandos básicos de listado" class="form-input" />
+                        <input type="text" v-model="newLesson.title" placeholder="Ej: Comandos básicos de listado"
+                            class="form-input" />
                     </div>
 
                     <div class="form-group">
                         <label>Puntos de Experiencia (XP)</label>
-                        <input type="number" v-model.number="newLesson.experiencia" min="1" placeholder="100" class="form-input" />
-                        <small style="color: rgba(255, 255, 255, 0.6); margin-top: 4px; display: block;">XP que ganará el usuario al completar esta lección</small>
+                        <input type="number" v-model.number="newLesson.experiencia" min="1" placeholder="100"
+                            class="form-input" />
+                        <small style="color: rgba(255, 255, 255, 0.6); margin-top: 4px; display: block;">XP que ganará
+                            el usuario al completar esta lección</small>
                     </div>
 
                     <div class="form-group">
-                        <div class="challenges-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                        <div class="challenges-header"
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                             <label style="color:white; margin:0;">Contenido de la Lección</label>
                             <button class="btn-add" @click="addChallenge">+ Añadir Elemento</button>
                         </div>
 
                         <div class="challenges-list">
-                            <div v-for="(challenge, index) in newLesson.challenges" :key="index" class="challenge-item" style="background: rgba(255, 255, 255, 0.1); padding: 16px; border-radius: 10px; margin-bottom: 12px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                                    <label style="color:white; font-weight:600; margin:0;">Elemento {{ index + 1 }}</label>
-                                    <button class="btn-delete" @click.prevent="removeChallenge(index)" style="padding: 4px 12px; font-size: 12px;">Eliminar</button>
+                            <div v-for="(challenge, index) in newLesson.challenges" :key="index" class="challenge-item"
+                                style="background: rgba(255, 255, 255, 0.1); padding: 16px; border-radius: 10px; margin-bottom: 12px;">
+                                <div
+                                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                    <label style="color:white; font-weight:600; margin:0;">Elemento {{ index + 1
+                                        }}</label>
+                                    <button class="btn-delete" @click.prevent="removeChallenge(index)"
+                                        style="padding: 4px 12px; font-size: 12px;">Eliminar</button>
                                 </div>
 
                                 <!-- Selector de tipo -->
                                 <div class="form-group" style="margin-bottom:12px;">
                                     <label style="font-size:13px;">Tipo de Contenido</label>
-                                    <select v-model="challenge.tipo" class="form-input" style="background: rgba(0,0,0,0.2); color: white;">
+                                    <select v-model="challenge.tipo" class="form-input"
+                                        style="background: rgba(0,0,0,0.2); color: white;">
                                         <option value="explicacion">📚 Explicación (Solo lectura)</option>
                                         <option value="reto">🎯 Reto (Terminal interactiva)</option>
                                     </select>
@@ -594,32 +637,46 @@ const saveLesson = async () => {
 
                                 <div class="form-group" style="margin-bottom:12px;">
                                     <label style="font-size:13px;">{{ challenge.tipo === 'explicacion' ? 'Título de la Explicación' : 'Descripción del Reto' }}</label>
-                                    <input type="text" v-model="challenge.description" :placeholder="challenge.tipo === 'explicacion' ? 'Ej: ¿Qué es la terminal de Linux?' : 'Ej: Lista todos los archivos del directorio actual'" class="form-input" />
+                                    <input type="text" v-model="challenge.description"
+                                        :placeholder="challenge.tipo === 'explicacion' ? 'Ej: ¿Qué es la terminal de Linux?' : 'Ej: Lista todos los archivos del directorio actual'"
+                                        class="form-input" />
                                 </div>
 
                                 <!-- Contenido extenso para explicaciones -->
-                                <div v-if="challenge.tipo === 'explicacion'" class="form-group" style="margin-bottom:12px;">
+                                <div v-if="challenge.tipo === 'explicacion'" class="form-group"
+                                    style="margin-bottom:12px;">
                                     <label style="font-size:13px;">Contenido de la Explicación</label>
-                                    <textarea v-model="challenge.contenido" placeholder="Puedes usar HTML o Markdown. Ej: <h2>La Terminal</h2><p>Es una interfaz...</p>" rows="6" class="form-textarea"></textarea>
-                                    <small style="color: rgba(255,255,255,0.6); font-size:11px;">Soporta HTML básico: h1-h6, p, strong, em, ul, ol, li, code, pre</small>
+                                    <textarea v-model="challenge.contenido"
+                                        placeholder="Puedes usar HTML o Markdown. Ej: <h2>La Terminal</h2><p>Es una interfaz...</p>"
+                                        rows="6" class="form-textarea"></textarea>
+                                    <small style="color: rgba(255,255,255,0.6); font-size:11px;">Soporta HTML básico:
+                                        h1-h6, p, strong, em, ul, ol, li, code, pre</small>
                                 </div>
 
                                 <!-- Campos solo para retos -->
                                 <template v-if="challenge.tipo === 'reto'">
                                     <div class="form-group" style="margin-bottom:12px;">
                                         <label style="font-size:13px;">Retroalimentación (opcional)</label>
-                                        <textarea v-model="challenge.feedback" placeholder="Ej: ¡Excelente! Has usado el comando correcto" rows="2" class="form-textarea"></textarea>
+                                        <textarea v-model="challenge.feedback"
+                                            placeholder="Ej: ¡Excelente! Has usado el comando correcto" rows="2"
+                                            class="form-textarea"></textarea>
                                     </div>
 
                                     <div class="form-group" style="margin-bottom:0;">
-                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                        <div
+                                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                                             <label style="font-size:13px; margin:0;">Comandos Válidos</label>
-                                            <button class="btn-add" @click.prevent="addCommand(index)" style="padding: 4px 10px; font-size: 12px;">+ Comando</button>
+                                            <button class="btn-add" @click.prevent="addCommand(index)"
+                                                style="padding: 4px 10px; font-size: 12px;">+ Comando</button>
                                         </div>
 
-                                        <div v-for="(cmd, ci) in challenge.commands" :key="ci" style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
-                                            <input v-model="cmd.comando" placeholder="Ej: ls -la" class="form-input mono" style="flex:1;" />
-                                            <button v-if="challenge.commands.length > 1" class="btn-delete" @click.prevent="removeCommand(index, ci)" style="padding: 8px 12px; font-size: 12px;">×</button>
+                                        <div v-for="(cmd, ci) in challenge.commands" :key="ci"
+                                            style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+                                            <input v-model="cmd.comando" placeholder="Ej: ls -la"
+                                                class="form-input mono" style="flex:1;" />
+                                            <button v-if="challenge.commands.length > 1" class="btn-delete"
+                                                @click.prevent="removeCommand(index, ci)"
+                                                style="padding: 8px 12px; font-size: 12px;">×</button>
                                         </div>
                                     </div>
                                 </template>
@@ -628,16 +685,19 @@ const saveLesson = async () => {
                     </div>
 
                     <div style="margin-top:20px;">
-                        <div v-if="saveError" style="color: #ffbdbd; margin-bottom:12px; padding:12px; background: rgba(239, 68, 68, 0.2); border-radius:8px; border: 1px solid rgba(239, 68, 68, 0.4);">
+                        <div v-if="saveError"
+                            style="color: #ffbdbd; margin-bottom:12px; padding:12px; background: rgba(239, 68, 68, 0.2); border-radius:8px; border: 1px solid rgba(239, 68, 68, 0.4);">
                             {{ saveError }}
                         </div>
-                        <div v-if="saveSuccess" style="color: #bdf5bd; margin-bottom:12px; padding:12px; background: rgba(34, 197, 94, 0.2); border-radius:8px; border: 1px solid rgba(34, 197, 94, 0.4);">
+                        <div v-if="saveSuccess"
+                            style="color: #bdf5bd; margin-bottom:12px; padding:12px; background: rgba(34, 197, 94, 0.2); border-radius:8px; border: 1px solid rgba(34, 197, 94, 0.4);">
                             {{ saveSuccess }}
                         </div>
                         <div style="display:flex; gap:12px; justify-content:flex-end;">
-                            <button class="btn-cancel" @click="showAddLesson = false; currentItemId = null">Cancelar</button>
+                            <button class="btn-cancel"
+                                @click="showAddLesson = false; currentItemId = null">Cancelar</button>
                             <button class="btn-save" @click="saveLesson" :disabled="isSaving">
-                                {{ isSaving ? 'Guardando...' : (currentItemId ? 'Actualizar Lección' : 'Guardar Lección') }}
+                                {{ isSaving ? 'Guardando...' : 'Guardar Lección' }}
                             </button>
                         </div>
                     </div>
@@ -646,15 +706,8 @@ const saveLesson = async () => {
         </div>
 
         <!-- Componente Modales para usuarios y editar lecciones -->
-        <Modales 
-            :visible="modalVisible" 
-            :type="modalType" 
-            :title="modalTitle" 
-            :data="modalData" 
-            @close="cerrarModal"
-            @save="guardarCambios" 
-            @confirmDelete="confirmarEliminacion" 
-        />
+        <Modales :visible="modalVisible" :type="modalType" :title="modalTitle" :data="modalData" @close="cerrarModal"
+            @save="guardarCambios" @confirmDelete="confirmarEliminacion" />
     </div>
 </template>
 
@@ -773,6 +826,53 @@ const saveLesson = async () => {
 .nav-btn.active {
     background: rgba(255, 255, 255, 0.25);
     border-color: rgba(255, 255, 255, 0.4);
+}
+
+.nav-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.nav-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nav-select {
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-select:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.nav-select:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.nav-select option {
+    background: #956eaa;
+    color: white;
+    padding: 10px;
 }
 
 .sidebar-footer {
@@ -1023,6 +1123,7 @@ const saveLesson = async () => {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -1048,6 +1149,7 @@ const saveLesson = async () => {
         transform: translateY(30px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;

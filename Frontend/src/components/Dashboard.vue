@@ -15,10 +15,12 @@ export default defineComponent({
             racha: 0,
             experiencia: 0,
             avatar: "",
-            id: 0
+            id: 0,
+            rol: ''
         })
 
         const modules = ref<any[]>([])
+        const selectedPage = ref('')
 
         const pickIcon = (title: string) => {
             const t = (title || '').toLowerCase()
@@ -65,6 +67,7 @@ export default defineComponent({
                 user.value.avatar = parsed.avatar
                 user.value.correo = parsed.correo
                 user.value.id = parsed.id_Usuario || parsed.id
+                user.value.rol = parsed.rol || parsed.role || ''
             }
 
             // Cargar lecciones después de obtener el usuario
@@ -88,7 +91,19 @@ export default defineComponent({
             }
         }
 
-    return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion }
+        const navigateToPage = () => {
+            if (!selectedPage.value) return
+            if (selectedPage.value === 'admin') {
+                router.push({ name: 'AdminDashboard' })
+            } else if (selectedPage.value === 'dashboard') {
+                router.push({ name: 'Dashboard' })
+            }
+            selectedPage.value = ''
+        }
+
+        const isAdmin = () => user.value.rol === 'admin'
+
+        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion, selectedPage, navigateToPage, isAdmin }
     },
     components: {
         Header,
@@ -99,7 +114,18 @@ export default defineComponent({
 
 <template>
     <div class="dashboard">
+
+
         <Header :user="user" :logout="logout" />
+
+        <div v-if="isAdmin()" class="nav-selector">
+            <label for="pagina" class="nav-label">Ir a:</label>
+            <select id="pagina" v-model="selectedPage" @change="navigateToPage" class="nav-select">
+                <option value="">Selecciona una opción</option>
+                <option value="admin">Dashboard Admin</option>
+                <option value="dashboard">Dashboard Usuario</option>
+            </select>
+        </div>
 
         <!-- PROGRESO -->
         <h1 class="titulo">Tu progreso en Linux</h1>
@@ -317,6 +343,51 @@ export default defineComponent({
 .logout-btn:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
+}
+
+.nav-selector {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin: 20px 20px 0 20px;
+}
+
+.nav-label {
+    color: white;
+    font-weight: 500;
+    font-size: 15px;
+}
+
+.nav-select {
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    color: white;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 200px;
+}
+
+.nav-select:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.nav-select:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.nav-select option {
+    background: #956eaa;
+    color: white;
+    padding: 10px;
 }
 
 @media (max-width: 768px) {
