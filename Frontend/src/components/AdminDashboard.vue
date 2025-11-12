@@ -381,15 +381,37 @@ const saveLesson = async () => {
         return
     }
 
+    // Validaciones de longitud (alineadas con la base de datos)
+    // - Lecciones.Titulo: VARCHAR(150)
+    // - Retos.descripcion: VARCHAR(500)
+    // - Comandos.comando: VARCHAR(100)
+    if (newLesson.value.title.length > 150) {
+        saveError.value = 'El título no puede superar 150 caracteres.'
+        return
+    }
+
     // Validar que cada reto tenga al menos un comando (solo si es tipo "reto")
     for (const challenge of newLesson.value.challenges) {
         if (!challenge.description) {
             saveError.value = 'Todos los elementos deben tener una descripción/título.'
             return
         }
+        if (challenge.description.length > 500) {
+            saveError.value = 'La descripción/título de cada elemento no puede superar 500 caracteres.'
+            return
+        }
         if (challenge.tipo === 'reto' && (!challenge.commands || challenge.commands.length === 0 || !challenge.commands[0].comando)) {
             saveError.value = 'Cada reto debe tener al menos un comando válido.'
             return
+        }
+        if (challenge.tipo === 'reto' && challenge.commands) {
+            for (const cmd of challenge.commands) {
+                if (!cmd || typeof cmd.comando !== 'string') continue
+                if (cmd.comando.length > 100) {
+                    saveError.value = 'Cada comando no puede superar 100 caracteres.'
+                    return
+                }
+            }
         }
         if (challenge.tipo === 'explicacion' && !challenge.contenido) {
             saveError.value = 'Cada explicación debe tener contenido.'
