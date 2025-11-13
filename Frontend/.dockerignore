@@ -11,6 +11,7 @@
 !tsconfig.json
 !tailwind.config.*
 !postcss.config.*
+!nginx.conf
 
 # --- Código fuente y públicos ---
 !src/
