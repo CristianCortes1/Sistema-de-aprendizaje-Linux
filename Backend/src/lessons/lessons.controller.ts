@@ -7,17 +7,21 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { LessonsService } from './lessons.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('lessons')
+@ApiBearerAuth()
 @Controller('lessons')
 export class LessonsController {
   constructor(private readonly lessonsService: LessonsService) {}
 
   @Post()
+  @Roles('admin')
   @ApiOperation({
     summary: 'Crear nueva lección',
     description:
@@ -48,6 +52,7 @@ export class LessonsController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({
     summary: 'Obtener todas las lecciones',
     description: 'Obtiene la lista completa de lecciones disponibles',
@@ -116,6 +121,7 @@ export class LessonsController {
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({
     summary: 'Obtener lección por ID',
     description:
@@ -149,6 +155,7 @@ export class LessonsController {
   }
 
   @Patch(':id')
+  @Roles('admin')
   @ApiOperation({
     summary: 'Actualizar lección',
     description: 'Actualiza la información de una lección existente',
@@ -164,6 +171,7 @@ export class LessonsController {
   }
 
   @Delete(':id')
+  @Roles('admin')
   @ApiOperation({
     summary: 'Eliminar lección',
     description: 'Elimina una lección del sistema',

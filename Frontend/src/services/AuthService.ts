@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import ApiService from './ApiService'
 
 const tokenKey = 'token'
 const isLogged = ref(!!localStorage.getItem(tokenKey))
@@ -34,11 +35,53 @@ function getUserId(): string | null {
 
 function logout() {
     localStorage.removeItem(tokenKey)
+    localStorage.removeItem('user')
     isLogged.value = false
 }
 
 function isAuthenticated(): boolean {
     return isLogged.value
+}
+
+// Funciones de API de autenticación
+async function login(username: string, password: string) {
+    return ApiService.post<{ access_token: string; user: any }>(
+        '/auth/login',
+        { username, password },
+        { requiresAuth: false }
+    )
+}
+
+async function register(username: string, correo: string, password: string) {
+    return ApiService.post(
+        '/auth/register',
+        { username, correo, password },
+        { requiresAuth: false }
+    )
+}
+
+async function confirmEmail(token: string) {
+    return ApiService.get(`/auth/confirm-email?token=${token}`, { requiresAuth: false })
+}
+
+async function forgotPassword(email: string) {
+    return ApiService.post('/auth/forgot-password', { email }, { requiresAuth: false })
+}
+
+async function resetPassword(token: string, newPassword: string) {
+    return ApiService.post(
+        '/auth/reset-password',
+        { token, newPassword },
+        { requiresAuth: false }
+    )
+}
+
+async function changePassword(email: string, currentPassword: string, newPassword: string) {
+    return ApiService.post('/auth/change-password', {
+        email,
+        currentPassword,
+        newPassword
+    })
 }
 
 export default {
@@ -47,6 +90,11 @@ export default {
     getUserId,
     logout,
     isAuthenticated,
-    isLogged
+    isLogged,
+    login,
+    register,
+    confirmEmail,
+    forgotPassword,
+    resetPassword,
+    changePassword
 }
-

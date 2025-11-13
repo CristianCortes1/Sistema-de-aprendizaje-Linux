@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthService from '../services/AuthService'
-import { API_URL } from '../config/api'
 
 const email = ref('')
 const password = ref('')
@@ -21,36 +20,10 @@ async function handleLogin() {
 
     loading.value = true
     try {
-        const response = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: email.value,
-                password: password.value
-            })
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-            // Manejar errores específicos del backend
-            if (data.message) {
-                if (data.message.includes('Account not activated') || data.message.includes('not activated')) {
-                    errorMessage.value = 'Tu cuenta aún no está activada. Por favor revisa tu correo para confirmar tu cuenta.'
-                } else if (data.message.includes('Invalid credentials') || data.message.includes('Unauthorized')) {
-                    errorMessage.value = 'Usuario o contraseña incorrectos'
-                } else {
-                    errorMessage.value = data.message
-                }
-            } else {
-                errorMessage.value = 'Error al iniciar sesión. Por favor intenta de nuevo.'
-            }
-            return
-        }
+        const data = await AuthService.login(email.value, password.value)
 
         // Guardar token y datos del usuario en localStorage
-        // La API de Nest devuelve access_token; mantenemos compat con token
-        const token = data.token || data.access_token
+        const token = data.access_token
         AuthService.setToken(token)
         localStorage.setItem('token', token)
         localStorage.setItem('user', JSON.stringify({
@@ -69,9 +42,19 @@ async function handleLogin() {
         } else {
             router.push('/dashboard')
         }
-    } catch (err) {
+    } catch (err: any) {
         console.error('❌ Error en login:', err)
-        errorMessage.value = 'Error de conexión. Por favor verifica tu internet e intenta de nuevo.'
+        
+        // Manejar errores específicos
+        if (err.message.includes('Account not activated') || err.message.includes('not activated')) {
+            errorMessage.value = 'Tu cuenta aún no está activada. Por favor revisa tu correo para confirmar tu cuenta.'
+        } else if (err.message.includes('Invalid credentials') || err.message.includes('Unauthorized')) {
+            errorMessage.value = 'Usuario o contraseña incorrectos'
+        } else if (err.message.includes('conexión')) {
+            errorMessage.value = 'Error de conexión. Por favor verifica tu internet e intenta de nuevo.'
+        } else {
+            errorMessage.value = err.message || 'Error al iniciar sesión. Por favor intenta de nuevo.'
+        }
     } finally {
         loading.value = false
     }

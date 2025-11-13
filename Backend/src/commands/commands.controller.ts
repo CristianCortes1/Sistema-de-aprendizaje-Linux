@@ -7,17 +7,21 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { CommandsService } from './commands.service';
 import { CreateCommandDto } from './dto/create-command.dto';
 import { UpdateCommandDto } from './dto/update-command.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('commands')
+@ApiBearerAuth()
 @Controller('commands')
 export class CommandsController {
   constructor(private readonly commandsService: CommandsService) {}
 
   @Post()
+  @Roles('admin')
   @ApiOperation({
     summary: 'Crear nuevo comando',
     description: 'Crea un nuevo comando Linux y lo asocia a un reto',
@@ -40,6 +44,7 @@ export class CommandsController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({
     summary: 'Obtener todos los comandos',
     description: 'Obtiene la lista completa de comandos Linux registrados',
@@ -75,6 +80,7 @@ export class CommandsController {
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({
     summary: 'Obtener comando por ID',
     description: 'Obtiene un comando específico con su información detallada',
@@ -103,6 +109,7 @@ export class CommandsController {
   }
 
   @Patch(':id')
+  @Roles('admin')
   @ApiOperation({
     summary: 'Actualizar comando',
     description: 'Actualiza la información de un comando existente',
@@ -127,6 +134,7 @@ export class CommandsController {
   }
 
   @Delete(':id')
+  @Roles('admin')
   @ApiOperation({
     summary: 'Eliminar comando',
     description: 'Elimina un comando del sistema',

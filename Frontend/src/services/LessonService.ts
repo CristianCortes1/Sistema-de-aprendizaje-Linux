@@ -1,23 +1,27 @@
-import AuthService from './AuthService'
-import { API_URL } from '../config/api'
+import ApiService from './ApiService'
 
 export default {
   async create(payload: any) {
-    const token = AuthService.getToken()
-    const res = await fetch(`${API_URL}/lessons`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(payload),
-    })
+    return ApiService.post('/lessons', payload)
+  },
 
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`HTTP ${res.status}: ${text}`)
-    }
+  async getAll() {
+    return ApiService.get('/lessons', { requiresAuth: false })
+  },
 
-    return res.json()
+  async getById(id: number) {
+    return ApiService.get(`/lessons/${id}`, { requiresAuth: false })
+  },
+
+  async getAvailableForUser(userId: number) {
+    return ApiService.get(`/lessons/user/${userId}/available`)
+  },
+
+  async update(id: number, payload: any) {
+    return ApiService.patch(`/lessons/${id}`, payload)
+  },
+
+  async delete(id: number) {
+    return ApiService.delete(`/lessons/${id}`)
   }
 }

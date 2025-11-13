@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { API_URL } from '../config/api';
+import AuthService from '../services/AuthService';
 
 const email = ref('');
 const errorMessage = ref('');
@@ -30,27 +30,14 @@ const handleForgotPassword = async () => {
   isLoading.value = true;
 
   try {
-    const response = await fetch(`${API_URL}/auth/forgot-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email: email.value }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      successMessage.value =
-        'Si tu correo está registrado, recibirás un enlace para restablecer tu contraseña. Por favor revisa tu bandeja de entrada.';
-      email.value = '';
-    } else {
-      errorMessage.value = data.message || 'Error al procesar la solicitud';
-    }
-  } catch (error) {
+    await AuthService.forgotPassword(email.value);
+    
+    successMessage.value =
+      'Si tu correo está registrado, recibirás un enlace para restablecer tu contraseña. Por favor revisa tu bandeja de entrada.';
+    email.value = '';
+  } catch (error: any) {
     console.error('Error:', error);
-    errorMessage.value =
-      'Error de conexión. Por favor intenta nuevamente más tarde.';
+    errorMessage.value = error.message || 'Error al procesar la solicitud';
   } finally {
     isLoading.value = false;
   }

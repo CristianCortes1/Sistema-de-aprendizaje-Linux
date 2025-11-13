@@ -9,7 +9,9 @@ import 'xterm/css/xterm.css'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
 import XPGainedAnimation from './XPGainedAnimation.vue'
-import { API_URL } from '../config/api'
+import LessonService from '../services/LessonService'
+import UserService from '../services/UserService'
+import ProgressService from '../services/ProgressService'
 
 // Función para obtener userId del token JWT
 function getUserIdForTerminal(): string | null {
@@ -124,15 +126,10 @@ export default defineComponent({
         // Cargar lección desde el backend
         const loadLesson = async () => {
             try {
-                const lessonId = route.params.id
-                const response = await fetch(`${API_URL}/lessons/${lessonId}`)
+                const lessonId = route.params.id as string;
+                const data = await LessonService.getById(parseInt(lessonId)) as Leccion;
                 
-                if (!response.ok) {
-                    throw new Error('Error loading lesson')
-                }
-                
-                const data = await response.json()
-                lessonData.value = data
+                lessonData.value = data;
                 
                 // Cargar progreso del usuario ANTES de asignar el reto inicial
                 await loadUserProgress()
@@ -153,29 +150,21 @@ export default defineComponent({
         // Actualizar datos del usuario en localStorage
         const updateUserData = async () => {
             try {
-                const response = await fetch(`${API_URL}/users/${userId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                })
+                const userData = await UserService.getById(parseInt(userId!)) as any;
                 
-                if (response.ok) {
-                    const userData = await response.json()
-                    
-                    // Actualizar localStorage con los nuevos datos
-                    const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-                    const updatedUser = {
-                        ...currentUser,
-                        experiencia: userData.experiencia,
-                        racha: userData.racha
-                    }
-                    localStorage.setItem('user', JSON.stringify(updatedUser))
-                    
-                    // Emitir evento para que el Header se actualice
-                    window.dispatchEvent(new CustomEvent('userUpdated', { detail: updatedUser }))
-                    
-                    console.log(`✅ Usuario actualizado: ${userData.experiencia} XP`)
+                // Actualizar localStorage con los nuevos datos
+                const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+                const updatedUser = {
+                    ...currentUser,
+                    experiencia: userData.experiencia,
+                    racha: userData.racha
                 }
+                localStorage.setItem('user', JSON.stringify(updatedUser))
+                
+                // Emitir evento para que el Header se actualice
+                window.dispatchEvent(new CustomEvent('userUpdated', { detail: updatedUser }))
+                
+                console.log(`✅ Usuario actualizado: ${userData.experiencia} XP`)
             } catch (error) {
                 console.error('Error updating user data:', error)
             }
@@ -184,43 +173,43 @@ export default defineComponent({
         // Cargar progreso del usuario
         const loadUserProgress = async () => {
             try {
-                const response = await fetch(`${API_URL}/progress?userId=${userId}&lessonId=${route.params.id}`)
+                const progressData = await ProgressService.getByUserAndLesson(
+                    parseInt(userId!),
+                    parseInt(route.params.id as string)
+                ) as any[];
                 
-                if (response.ok) {
-                    const progressData = await response.json()
-                    if (progressData && progressData.length > 0) {
-                        const savedProgress = progressData[0].progreso
-                        userProgress.value = savedProgress
-                        progress.value = savedProgress
-                        
-                        // Si el progreso es 100%, empezar desde el inicio
-                        if (savedProgress >= 100) {
-                            console.log('Lección ya completada, reiniciando desde el inicio')
-                            currentRetoIndex.value = 0
-                            if (lessonData.value && lessonData.value.retos[0]) {
-                                currentReto.value = lessonData.value.retos[0]
-                            }
-                            // No reiniciar el progreso, mantenerlo en 100%
-                            return
-                        }
-                        
-                        // Calcular qué reto mostrar basado en el progreso (solo si no está completado)
-                        if (lessonData.value && lessonData.value.retos.length > 0) {
-                            const totalRetos = lessonData.value.retos.length
-                            // Calcular índice: progreso 0-99% → reto correspondiente
-                            const retoIndex = Math.floor((savedProgress / 100) * totalRetos)
-                            // Asegurar que no exceda el límite
-                            currentRetoIndex.value = Math.min(retoIndex, totalRetos - 1)
-                            currentReto.value = lessonData.value.retos[currentRetoIndex.value]
-                            
-                            console.log(`Progreso cargado: ${savedProgress}%, mostrando reto ${currentRetoIndex.value + 1} de ${totalRetos}`)
-                        }
-                    } else {
-                        // Sin progreso guardado, empezar desde 0
-                        console.log('Sin progreso guardado, empezando desde el inicio')
+                if (progressData && progressData.length > 0) {
+                    const savedProgress = progressData[0].progreso
+                    userProgress.value = savedProgress
+                    progress.value = savedProgress
+                    
+                    // Si el progreso es 100%, empezar desde el inicio
+                    if (savedProgress >= 100) {
+                        console.log('Lección ya completada, reiniciando desde el inicio')
                         currentRetoIndex.value = 0
-                        progress.value = 0
+                        if (lessonData.value && lessonData.value.retos[0]) {
+                            currentReto.value = lessonData.value.retos[0]
+                        }
+                        // No reiniciar el progreso, mantenerlo en 100%
+                        return
                     }
+                    
+                    // Calcular qué reto mostrar basado en el progreso (solo si no está completado)
+                    if (lessonData.value && lessonData.value.retos.length > 0) {
+                        const totalRetos = lessonData.value.retos.length
+                        // Calcular índice: progreso 0-99% → reto correspondiente
+                        const retoIndex = Math.floor((savedProgress / 100) * totalRetos)
+                        // Asegurar que no exceda el límite
+                        currentRetoIndex.value = Math.min(retoIndex, totalRetos - 1)
+                        currentReto.value = lessonData.value.retos[currentRetoIndex.value]
+                        
+                        console.log(`Progreso cargado: ${savedProgress}%, mostrando reto ${currentRetoIndex.value + 1} de ${totalRetos}`)
+                    }
+                } else {
+                    // Sin progreso guardado, empezar desde 0
+                    console.log('Sin progreso guardado, empezando desde el inicio')
+                    currentRetoIndex.value = 0
+                    progress.value = 0
                 }
             } catch (error) {
                 console.error('Error loading progress:', error)
@@ -297,22 +286,14 @@ export default defineComponent({
                 const retosCompletados = currentRetoIndex.value + 1
                 const newProgress = Math.round((retosCompletados / totalRetos) * 100)
                 
-                const response = await fetch(`${API_URL}/progress`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        userId: parseInt(userId!),
-                        lessonId: parseInt(route.params.id as string),
-                        progress: newProgress,
-                    }),
-                })
+                await ProgressService.create({
+                    userId: parseInt(userId!),
+                    lessonId: parseInt(route.params.id as string),
+                    progress: newProgress
+                });
                 
-                if (response.ok) {
-                    progress.value = newProgress
-                    userProgress.value = newProgress
-                }
+                progress.value = newProgress
+                userProgress.value = newProgress
             } catch (error) {
                 console.error('Error updating progress:', error)
             }
@@ -331,34 +312,26 @@ export default defineComponent({
             } else {
                 // Lección completada - Asegurar que se guarde al 100%
                 try {
-                    const response = await fetch(`${API_URL}/progress`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            userId: parseInt(userId!),
-                            lessonId: parseInt(route.params.id as string),
-                            progress: 100,
-                        }),
-                    })
+                    await ProgressService.create({
+                        userId: parseInt(userId!),
+                        lessonId: parseInt(route.params.id as string),
+                        progress: 100
+                    });
                     
-                    if (response.ok) {
-                        progress.value = 100
-                        userProgress.value = 100
+                    progress.value = 100
+                    userProgress.value = 100
 
-                        // Actualizar datos del usuario en localStorage
-                        await updateUserData()
+                    // Actualizar datos del usuario en localStorage
+                    await updateUserData()
 
-                        // Mostrar animación de XP ganado
-                        xpGained.value = lessonData.value.experiencia || 100
-                        showXPAnimation.value = true
+                    // Mostrar animación de XP ganado
+                    xpGained.value = lessonData.value.experiencia || 100
+                    showXPAnimation.value = true
 
-                        // Ocultar animación después de 3 segundos
-                        setTimeout(() => {
-                            showXPAnimation.value = false
-                        }, 3000)
-                    }
+                    // Ocultar animación después de 3 segundos
+                    setTimeout(() => {
+                        showXPAnimation.value = false
+                    }, 3000)
                 } catch (error) {
                     console.error('Error updating final progress:', error)
                 }

@@ -2,9 +2,9 @@
 import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthService from '../services/AuthService'
+import UserService from '../services/UserService'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
-import { API_URL } from '../config/api'
 
 export default {
     name: 'Ranking',
@@ -45,18 +45,8 @@ export default {
 
         const fetchRanking = async () => {
             try {
-                const token = AuthService.getToken()
-                const response = await fetch(`${API_URL}/users/ranking`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                })
-
-                if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
-
-                const data = await response.json()
-                ranking.value = data
+                const data = await UserService.getRanking();
+                ranking.value = data;
             } catch (error) {
                 console.error('Error fetching ranking:', error)
                 ranking.value = [

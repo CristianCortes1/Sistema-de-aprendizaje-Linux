@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { API_URL } from '../config/api'
+import AuthService from '../services/AuthService'
 
 const router = useRouter()
 const route = useRoute()
@@ -21,13 +21,8 @@ onMounted(async () => {
     }
 
     try {
-        const response = await fetch(`${API_URL}/auth/confirm-email?token=${token}`)
+        await AuthService.confirmEmail(token)
         
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`)
-        }
-
-        const data = await response.json()
         message.value = 'Email confirmado exitosamente. ¡Ya puedes iniciar sesión!'
         isSuccess.value = true
         
@@ -40,9 +35,9 @@ onMounted(async () => {
             }
         }, 1000)
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error confirmando email:', error)
-        message.value = 'Error al confirmar el email. El token puede haber expirado o ser inválido.'
+        message.value = error.message || 'Error al confirmar el email. El token puede haber expirado o ser inválido.'
         isSuccess.value = false
     } finally {
         loading.value = false

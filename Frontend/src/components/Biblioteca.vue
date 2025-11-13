@@ -2,7 +2,7 @@
 import { useRouter } from 'vue-router'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
-import { API_URL } from '../config/api'
+import CommandService from '../services/CommandService'
 
 export default {
     name: 'Biblioteca',
@@ -41,11 +41,7 @@ export default {
             this.isLoading = true
             this.error = ''
             try {
-                const res = await fetch(`${API_URL}/commands`, {
-                    headers: { 'Content-Type': 'application/json' }
-                })
-                if (!res.ok) throw new Error(`Error HTTP: ${res.status}`)
-                const data = await res.json()
+                const data = await CommandService.getAll();
                 // Mapear resultados del backend al formato usado en la UI
                 this.commands = (Array.isArray(data) ? data : []).map((d, i) => ({
                     id: d.id ?? d.id_Comando ?? `${d.comando}-${i}`,

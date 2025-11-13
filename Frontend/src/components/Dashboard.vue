@@ -1,10 +1,10 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
 import AuthService from '../services/AuthService'
+import LessonService from '../services/LessonService'
 import { useRouter } from 'vue-router'
 import Header from './Header.vue'
 import Footer from './Footer.vue'
-import { API_URL } from '../config/api'
 
 export default defineComponent({
     setup() {
@@ -39,11 +39,7 @@ export default defineComponent({
                     return
                 }
 
-                const res = await fetch(`${API_URL}/lessons/user/${userId}/available`, {
-                    headers: { 'Content-Type': 'application/json' }
-                })
-                if (!res.ok) throw new Error(`HTTP ${res.status}`)
-                const data = await res.json()
+                const data = await LessonService.getAvailableForUser(userId);
                 modules.value = (Array.isArray(data) ? data : []).map((l: any) => ({
                     id: l.id,
                     name: l.titulo,

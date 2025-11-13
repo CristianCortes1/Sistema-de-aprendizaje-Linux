@@ -7,17 +7,21 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { ChallengesService } from './challenges.service';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('challenges')
+@ApiBearerAuth()
 @Controller('challenges')
 export class ChallengesController {
   constructor(private readonly challengesService: ChallengesService) {}
 
   @Post()
+  @Roles('admin')
   @ApiOperation({
     summary: 'Crear nuevo reto',
     description: 'Crea un nuevo reto/desafío y lo asocia a una lección',
@@ -40,6 +44,7 @@ export class ChallengesController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({
     summary: 'Obtener todos los retos',
     description: 'Obtiene la lista completa de retos/desafíos disponibles',
@@ -69,6 +74,7 @@ export class ChallengesController {
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({
     summary: 'Obtener reto por ID',
     description: 'Obtiene un reto específico con su información detallada',
@@ -96,6 +102,7 @@ export class ChallengesController {
   }
 
   @Patch(':id')
+  @Roles('admin')
   @ApiOperation({
     summary: 'Actualizar reto',
     description: 'Actualiza la información de un reto existente',
@@ -114,6 +121,7 @@ export class ChallengesController {
   }
 
   @Delete(':id')
+  @Roles('admin')
   @ApiOperation({
     summary: 'Eliminar reto',
     description: 'Elimina un reto del sistema',

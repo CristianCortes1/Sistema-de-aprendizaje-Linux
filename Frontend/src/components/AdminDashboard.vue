@@ -3,8 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthService from '../services/AuthService'
 import LessonService from '../services/LessonService'
+import UserService from '../services/UserService'
 import Modales from './Modales.vue'
-import { API_URL } from '../config/api'
 
 const router = useRouter()
 
@@ -66,16 +66,9 @@ const filteredUsuarios = computed(() => {
 const fetchUsers = async () => {
     isLoadingUsers.value = true
     try {
-        const response = await fetch(`${API_URL}/users`, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
-
-        const data = await response.json()
-        usuarios.value = data.map((u: any) => ({
+        const data: any = await UserService.getAll()
+        const usersData = Array.isArray(data) ? data : []
+        usuarios.value = usersData.map((u: any) => ({
             id: u.id_Usuario,
             nombre: u.username,
             username: u.username,
@@ -87,8 +80,9 @@ const fetchUsers = async () => {
             avatar: u.avatar || getDefaultAvatar(u.username),
             estado: u.activo ? 'Activo' : 'Inactivo'
         }))
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching users:', error)
+        alert(error.message || 'Error al cargar usuarios')
         usuarios.value = []
     } finally {
         isLoadingUsers.value = false
@@ -98,15 +92,7 @@ const fetchUsers = async () => {
 const fetchLessons = async () => {
     isLoadingLessons.value = true
     try {
-        const response = await fetch(`${API_URL}/lessons`, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
-
-        const data = await response.json()
+        const data: any = await LessonService.getAll()
         console.log('Lecciones recibidas de la API:', data)
 
         lecciones.value = data.map((leccion: any) => ({
@@ -116,8 +102,9 @@ const fetchLessons = async () => {
         }))
 
         console.log('Lecciones mapeadas:', lecciones.value)
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching lessons:', error)
+        alert(error.message || 'Error al cargar lecciones')
         lecciones.value = []
     } finally {
         isLoadingLessons.value = false
@@ -191,10 +178,7 @@ const openAddLesson = () => {
 const editLesson = async (id: number) => {
     try {
         // Obtener los detalles completos de la lección
-        const response = await fetch(`${API_URL}/lessons/${id}`)
-        if (!response.ok) throw new Error('Error al cargar la lección')
-
-        const leccion = await response.json()
+        const leccion: any = await LessonService.getById(id)
         console.log('Lección cargada para editar:', leccion)
 
         // Mapear los datos al formato del formulario (incluye descripcion de comandos)
@@ -215,9 +199,9 @@ const editLesson = async (id: number) => {
 
         currentItemId = id
         showAddLesson.value = true
-    } catch (err) {
+    } catch (err: any) {
         console.error('Error cargando lección:', err)
-        alert('Error al cargar la lección para editar')
+        alert(err.message || 'Error al cargar la lección para editar')
     }
 }
 
@@ -252,52 +236,38 @@ const cerrarModal = () => {
 
 const guardarCambios = async (data: any) => {
     try {
-
         if (currentContext === 'usuarios') {
-            const url = currentItemId
-                ? `${API_URL}/users/${currentItemId}`
-                : `${API_URL}/users`
+            const userData = {
+                username: data.nombre,
+                email: data.correo,
+                rol: data.rol,
+                activo: data.estado === 'activo'
+            }
 
-            const method = currentItemId ? 'PATCH' : 'POST'
+            if (currentItemId) {
+                await UserService.update(currentItemId, userData)
+                alert('Usuario actualizado correctamente')
+            } else {
+                await UserService.create(userData)
+                alert('Usuario creado correctamente')
+            }
 
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    username: data.nombre,
-                    email: data.correo,
-                    rol: data.rol,
-                    activo: data.estado === 'activo'
-                })
-            })
-
-            if (!response.ok) throw new Error('Error al guardar usuario')
             await fetchUsers()
-            alert(currentItemId ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente')
-
         } else {
-            const url = currentItemId
-                ? `${API_URL}/lessons/${currentItemId}`
-                : `${API_URL}/lessons`
+            const lessonData = {
+                Titulo: data.titulo,
+                Descripcion: data.descripcion
+            }
 
-            const method = currentItemId ? 'PUT' : 'POST'
+            if (currentItemId) {
+                await LessonService.update(currentItemId, lessonData)
+                alert('Lección actualizada correctamente')
+            } else {
+                await LessonService.create(lessonData)
+                alert('Lección creada correctamente')
+            }
 
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    Titulo: data.titulo,
-                    Descripcion: data.descripcion
-                })
-            })
-
-            if (!response.ok) throw new Error('Error al guardar lección')
             await fetchLessons()
-            alert(currentItemId ? 'Lección actualizada correctamente' : 'Lección creada correctamente')
         }
 
         cerrarModal()
@@ -309,18 +279,13 @@ const guardarCambios = async (data: any) => {
 
 const confirmarEliminacion = async () => {
     try {
-        const endpoint = currentContext === 'usuarios'
-            ? `${API_URL}/users/${currentItemId}`
-            : `${API_URL}/lessons/${currentItemId}`
-
-        const response = await fetch(endpoint, {
-            method: 'DELETE'
-        })
-
-        if (!response.ok) throw new Error('Error al eliminar')
-
-        if (currentContext === 'usuarios') await fetchUsers()
-        else await fetchLessons()
+        if (currentContext === 'usuarios') {
+            await UserService.delete(currentItemId!)
+            await fetchUsers()
+        } else {
+            await LessonService.delete(currentItemId!)
+            await fetchLessons()
+        }
 
         alert('Eliminado correctamente')
         cerrarModal()
@@ -437,19 +402,7 @@ const saveLesson = async () => {
 
         if (currentItemId) {
             // Editar lección existente
-            const response = await fetch(`${API_URL}/lessons/${currentItemId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            })
-
-            if (!response.ok) {
-                const errorData = await response.json()
-                console.error('Error del servidor:', errorData)
-                throw new Error(errorData.message || 'Error al actualizar la lección')
-            }
+            await LessonService.update(currentItemId, payload)
             saveSuccess.value = 'Lección actualizada correctamente.'
         } else {
             // Crear nueva lección

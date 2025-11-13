@@ -81,7 +81,11 @@ export class AuthService {
         },
       });
 
-      const payload = { username: updated.username, sub: updated.id_Usuario };
+      const payload = { 
+        username: updated.username, 
+        sub: updated.id_Usuario,
+        rol: updated.rol 
+      };
       const { contraseña, ...userSafe } = updated as any;
       return {
         access_token: this.jwtService.sign(payload),
@@ -251,7 +255,7 @@ export class AuthService {
       data: {
         resetPasswordToken: resetToken,
         resetPasswordExpires: resetExpires,
-      },
+      } as any,
     });
 
     // Enviar correo con el link de recuperación
@@ -275,7 +279,7 @@ export class AuthService {
         resetPasswordExpires: {
           gt: new Date(), // Token no expirado
         },
-      },
+      }as any,
     });
 
     if (!user) {
@@ -294,7 +298,7 @@ export class AuthService {
         contraseña: hashedPassword,
         resetPasswordToken: null,
         resetPasswordExpires: null,
-      },
+      }as any,
     });
 
     return { message: 'Contraseña restablecida exitosamente' };

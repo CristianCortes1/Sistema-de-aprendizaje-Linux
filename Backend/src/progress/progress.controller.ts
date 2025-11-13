@@ -6,13 +6,17 @@ import {
   Patch,
   Param,
   Delete,
+  ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { ProgressService } from './progress.service';
 import { CreateProgressDto } from './dto/create-progress.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { GetUser } from '../auth/decorators/get-user.decorator';
 
 @ApiTags('progress')
+@ApiBearerAuth()
 @Controller('progress')
 export class ProgressController {
   constructor(private readonly progressService: ProgressService) {}
@@ -37,11 +41,16 @@ export class ProgressController {
     },
   })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
-  create(@Body() createProgressDto: CreateProgressDto) {
+  create(@Body() createProgressDto: CreateProgressDto, @GetUser() user: any) {
+    // Los usuarios solo pueden crear su propio progreso
+    if (user.rol !== 'admin' && user.id_Usuario !== createProgressDto.userId) {
+      throw new ForbiddenException('No tienes permiso para crear progreso de otro usuario');
+    }
     return this.progressService.createOrUpdate(createProgressDto);
   }
 
   @Get()
+  @Roles('admin')
   @ApiOperation({
     summary: 'Obtener todos los registros de progreso',
     description: 'Obtiene todos los registros de progreso del sistema',

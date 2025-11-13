@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { API_URL } from '../config/api';
+import AuthService from '../services/AuthService';
 
 const router = useRouter();
 const route = useRoute();
@@ -50,40 +50,25 @@ const handleResetPassword = async () => {
   isLoading.value = true;
 
   try {
-    const response = await fetch(`${API_URL}/auth/reset-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        token: token.value,
-        newPassword: newPassword.value,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      successMessage.value = '¡Contraseña restablecida exitosamente! Redirigiendo al inicio de sesión...';
-      
-      // Limpiar el formulario
-      newPassword.value = '';
-      confirmNewPassword.value = '';
-      
-      // Redirigir después de 3 segundos
-      setTimeout(() => {
-        router.push('/');
-      }, 3000);
-    } else {
-      if (data.message && data.message.includes('Token inválido o expirado')) {
-        errorMessage.value = 'El enlace de recuperación ha expirado o no es válido. Por favor solicita uno nuevo.';
-      } else {
-        errorMessage.value = data.message || 'Error al restablecer la contraseña';
-      }
-    }
-  } catch (error) {
+    await AuthService.resetPassword(token.value, newPassword.value);
+    
+    successMessage.value = '¡Contraseña restablecida exitosamente! Redirigiendo al inicio de sesión...';
+    
+    // Limpiar el formulario
+    newPassword.value = '';
+    confirmNewPassword.value = '';
+    
+    // Redirigir después de 3 segundos
+    setTimeout(() => {
+      router.push('/');
+    }, 3000);
+  } catch (error: any) {
     console.error('Error:', error);
-    errorMessage.value = 'Error de conexión. Por favor intenta nuevamente más tarde.';
+    if (error.message && error.message.includes('Token inválido o expirado')) {
+      errorMessage.value = 'El enlace de recuperación ha expirado o no es válido. Por favor solicita uno nuevo.';
+    } else {
+      errorMessage.value = error.message || 'Error al restablecer la contraseña';
+    }
   } finally {
     isLoading.value = false;
   }

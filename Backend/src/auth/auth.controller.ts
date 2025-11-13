@@ -11,12 +11,14 @@ import { RegisterDto, LoginDto } from './dto/create-auth.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { Public } from './decorators/public.decorator';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('register')
   @ApiOperation({
     summary: 'Registrar nuevo usuario',
@@ -51,6 +53,7 @@ export class AuthController {
     return this.authService.register(body.username, body.correo, body.password);
   }
 
+  @Public()
   @Post('login')
   @ApiOperation({
     summary: 'Iniciar sesión',
@@ -91,6 +94,7 @@ export class AuthController {
     return this.authService.login(user);
   }
 
+  @Public()
   @Get('confirm-email')
   @ApiOperation({
     summary: 'Confirmar email',
@@ -169,6 +173,7 @@ export class AuthController {
     );
   }
 
+  @Public()
   @Post('forgot-password')
   @ApiOperation({
     summary: 'Solicitar recuperación de contraseña',
@@ -191,6 +196,7 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
+  @Public()
   @Post('reset-password')
   @ApiOperation({
     summary: 'Restablecer contraseña',

@@ -6,18 +6,25 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import { GetUser } from '../auth/decorators/get-user.decorator';
 
 @ApiTags('users')
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @Roles('admin')
   @ApiOperation({
     summary: 'Crear nuevo usuario',
     description: 'Crea un nuevo usuario en el sistema',
@@ -44,6 +51,7 @@ export class UsersController {
   }
 
   @Get('ranking')
+  @Public()
   @ApiOperation({
     summary: 'Obtener ranking de usuarios',
     description:
@@ -76,6 +84,7 @@ export class UsersController {
   }
 
   @Get()
+  @Roles('admin')
   @ApiOperation({
     summary: 'Obtener todos los usuarios',
     description: 'Obtiene la lista completa de usuarios registrados',
@@ -122,8 +131,13 @@ export class UsersController {
     },
   })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  findOne(@Param('id') id: string, @GetUser() user: any) {
+    const userId = +id;
+    // Los usuarios solo pueden ver su propio perfil, a menos que sean admin
+    if (user.rol !== 'admin' && user.id_Usuario !== userId) {
+      throw new ForbiddenException('No tienes permiso para acceder a este recurso');
+    }
+    return this.usersService.findOne(userId);
   }
 
   @Patch(':id')
@@ -145,11 +159,17 @@ export class UsersController {
     },
   })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @GetUser() user: any) {
+    const userId = +id;
+    // Los usuarios solo pueden actualizar su propio perfil, a menos que sean admin
+    if (user.rol !== 'admin' && user.id_Usuario !== userId) {
+      throw new ForbiddenException('No tienes permiso para modificar este recurso');
+    }
+    return this.usersService.update(userId, updateUserDto);
   }
 
   @Delete(':id')
+  @Roles('admin')
   @ApiOperation({
     summary: 'Eliminar usuario',
     description: 'Elimina un usuario del sistema',
