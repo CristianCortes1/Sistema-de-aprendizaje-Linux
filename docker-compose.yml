@@ -53,6 +53,9 @@ services:
     build:
       context: ./Frontend
       dockerfile: Dockerfile
+      args:
+        # Pasar la URL del API como build argument
+        VITE_API_URL: http://localhost:3000
     container_name: penguinpath-frontend
     ports:
       - "5173:80"
