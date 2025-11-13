@@ -1,6 +1,14 @@
 User-agent: *
 Allow: /
+Allow: /login
+Allow: /registro
+Allow: /privacy.md
+Allow: /terms.md
 Disallow: /admin
 Disallow: /api/
+Disallow: /dashboard
+Disallow: /biblioteca
+Disallow: /ranking
+Disallow: /configuracion
 
 Sitemap: https://penguinpath.duckdns.org/sitemap.xml
