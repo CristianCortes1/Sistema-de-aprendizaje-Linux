@@ -1,17 +1,58 @@
+# Dependencies
 node_modules
+
+# Build outputs (se genera durante docker build)
 dist
+
+# Environment files
 .env
 .env.*
+
+# Logs
 npm-debug.log
 pnpm-debug.log
+yarn-debug.log
+yarn-error.log
+*.log
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Git
 .git
 .gitignore
-README.md
+.gitattributes
+
+# Editor
 .vscode
 .idea
-*.log
+*.swp
+*.swo
+*~
+
+# Documentation
+README.md
+*.md
+!package.json
+
+# Testing
 coverage
 test
 **/*.spec.ts
 **/*.test.ts
+**/*.spec.js
+**/*.test.js
+
+# Vue compiled files (evitar archivos .js de componentes .vue)
+src/**/*.vue.js
+src/components/**/*.js
+src/services/**/*.js
+!src/**/*.config.js
+
+# Vite cache
+.vite
+node_modules/.vite
+
+# Build artifacts
+*.local

@@ -1,1 +1,52 @@
+# Dependencies
 node_modules
+
+# Build outputs
+dist
+*.local
+
+# Vite cache
+.vite
+node_modules/.vite
+
+# Vue compiled files
+*.vue.js
+src/**/*.js
+!src/**/*.config.js
+!vite.config.js
+
+# TypeScript compiled files (keep only .ts files in services)
+src/services/**/*.js
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage
+*.lcov
+.nyc_output
+
+# OS files
+Thumbs.db
+.DS_Store
