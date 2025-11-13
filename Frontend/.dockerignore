@@ -1,38 +1,50 @@
-# --- Ignorar todo por defecto ---
-*
-
-# --- Archivos necesarios para construir la app ---
-!package.json
-!package-lock.json
-!pnpm-lock.yaml
-!yarn.lock
-!vite.config.*
-!vue.config.*
-!tsconfig.json
-!tailwind.config.*
-!postcss.config.*
-!nginx.conf
-
-# --- Código fuente y públicos ---
-!src/
-!public/
-
-# --- Archivos que no deben ir dentro del contenedor ---
+# Dependencies
 node_modules
+
+# Build outputs (se genera durante docker build)
 dist
+
+# Environment files
 .env
 .env.*
 
-# --- Logs ---
+# Logs
+npm-debug.log
+pnpm-debug.log
+yarn-debug.log
+yarn-error.log
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# --- Sistema / editor ---
+# OS files
 .DS_Store
 Thumbs.db
-.vscode
-.idea
+
+# Git
 .git
 .gitignore
+.gitattributes
+
+# Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Documentation (opcional)
+README.md
+
+# Testing
+coverage
+test
+**/*.spec.ts
+**/*.test.ts
+**/*.spec.js
+**/*.test.js
+
+# Vite cache
+.vite
+node_modules/.vite
+
+# Build artifacts
+*.local
