@@ -2,11 +2,23 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import AuthService from '../services/AuthService';
 import LessonService from '../services/LessonService';
+import UserService from '../services/UserService';
 import Modales from './Modales.vue';
-import { API_URL } from '../config/api';
 const router = useRouter();
 const activeTab = ref('users');
 const searchTerm = ref('');
+const selectedPage = ref('');
+const navigateToPage = () => {
+    if (!selectedPage.value)
+        return;
+    if (selectedPage.value === 'admin') {
+        router.push({ name: 'AdminDashboard' });
+    }
+    else if (selectedPage.value === 'dashboard') {
+        router.push({ name: 'Dashboard' });
+    }
+    selectedPage.value = '';
+};
 // Control de modales con Modales.vue
 const modalVisible = ref(false);
 const modalType = ref('usuario');
@@ -28,12 +40,13 @@ const isLoadingLessons = ref(false);
 const showAddLesson = ref(false);
 const newLesson = ref({
     title: '',
+    experiencia: 100,
     challenges: [{
             tipo: 'reto',
             description: '',
             contenido: '',
             feedback: '',
-            commands: [{ comando: '' }]
+            commands: [{ comando: '', descripcion: '' }]
         }]
 });
 const filteredUsuarios = computed(() => {
@@ -43,15 +56,9 @@ const filteredUsuarios = computed(() => {
 const fetchUsers = async () => {
     isLoadingUsers.value = true;
     try {
-        const response = await fetch(`${API_URL}/users`, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        if (!response.ok)
-            throw new Error(`Error HTTP: ${response.status}`);
-        const data = await response.json();
-        usuarios.value = data.map((u) => ({
+        const data = await UserService.getAll();
+        const usersData = Array.isArray(data) ? data : [];
+        usuarios.value = usersData.map((u) => ({
             id: u.id_Usuario,
             nombre: u.username,
             username: u.username,
@@ -66,6 +73,7 @@ const fetchUsers = async () => {
     }
     catch (error) {
         console.error('Error fetching users:', error);
+        alert(error.message || 'Error al cargar usuarios');
         usuarios.value = [];
     }
     finally {
@@ -75,14 +83,7 @@ const fetchUsers = async () => {
 const fetchLessons = async () => {
     isLoadingLessons.value = true;
     try {
-        const response = await fetch(`${API_URL}/lessons`, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        if (!response.ok)
-            throw new Error(`Error HTTP: ${response.status}`);
-        const data = await response.json();
+        const data = await LessonService.getAll();
         console.log('Lecciones recibidas de la API:', data);
         lecciones.value = data.map((leccion) => ({
             id: leccion.id_Leccion,
@@ -93,6 +94,7 @@ const fetchLessons = async () => {
     }
     catch (error) {
         console.error('Error fetching lessons:', error);
+        alert(error.message || 'Error al cargar lecciones');
         lecciones.value = [];
     }
     finally {
@@ -159,18 +161,21 @@ const openAddLesson = () => {
 const editLesson = async (id) => {
     try {
         // Obtener los detalles completos de la lección
-        const response = await fetch(`${API_URL}/lessons/${id}`);
-        if (!response.ok)
-            throw new Error('Error al cargar la lección');
-        const leccion = await response.json();
+        const leccion = await LessonService.getById(id);
         console.log('Lección cargada para editar:', leccion);
-        // Mapear los datos al formato del formulario
+        // Mapear los datos al formato del formulario (incluye descripcion de comandos)
         newLesson.value = {
             title: leccion.Titulo,
+            experiencia: leccion.experiencia || 100,
             challenges: leccion.retos.map((reto) => ({
+                tipo: reto.tipo || 'reto',
                 description: reto.descripcion,
+                contenido: reto.contenido || '',
                 feedback: reto.Retroalimentacion || '',
-                commands: reto.comandos.map((cmd) => ({ comando: cmd.comando }))
+                commands: reto.comandos.map((cmd) => ({
+                    comando: cmd.comando,
+                    descripcion: cmd.descripcion || ''
+                }))
             }))
         };
         currentItemId = id;
@@ -178,7 +183,7 @@ const editLesson = async (id) => {
     }
     catch (err) {
         console.error('Error cargando lección:', err);
-        alert('Error al cargar la lección para editar');
+        alert(err.message || 'Error al cargar la lección para editar');
     }
 };
 const confirmDeleteUser = (id) => {
@@ -210,46 +215,36 @@ const cerrarModal = () => {
 const guardarCambios = async (data) => {
     try {
         if (currentContext === 'usuarios') {
-            const url = currentItemId
-                ? `${API_URL}/users/${currentItemId}`
-                : `${API_URL}/users`;
-            const method = currentItemId ? 'PATCH' : 'POST';
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    username: data.nombre,
-                    email: data.correo,
-                    rol: data.rol,
-                    activo: data.estado === 'activo'
-                })
-            });
-            if (!response.ok)
-                throw new Error('Error al guardar usuario');
+            const userData = {
+                username: data.nombre,
+                email: data.correo,
+                rol: data.rol,
+                activo: data.estado === 'activo'
+            };
+            if (currentItemId) {
+                await UserService.update(currentItemId, userData);
+                alert('Usuario actualizado correctamente');
+            }
+            else {
+                await UserService.create(userData);
+                alert('Usuario creado correctamente');
+            }
             await fetchUsers();
-            alert(currentItemId ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente');
         }
         else {
-            const url = currentItemId
-                ? `${API_URL}/lessons/${currentItemId}`
-                : `${API_URL}/lessons`;
-            const method = currentItemId ? 'PUT' : 'POST';
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    Titulo: data.titulo,
-                    Descripcion: data.descripcion
-                })
-            });
-            if (!response.ok)
-                throw new Error('Error al guardar lección');
+            const lessonData = {
+                Titulo: data.titulo,
+                Descripcion: data.descripcion
+            };
+            if (currentItemId) {
+                await LessonService.update(currentItemId, lessonData);
+                alert('Lección actualizada correctamente');
+            }
+            else {
+                await LessonService.create(lessonData);
+                alert('Lección creada correctamente');
+            }
             await fetchLessons();
-            alert(currentItemId ? 'Lección actualizada correctamente' : 'Lección creada correctamente');
         }
         cerrarModal();
     }
@@ -260,18 +255,14 @@ const guardarCambios = async (data) => {
 };
 const confirmarEliminacion = async () => {
     try {
-        const endpoint = currentContext === 'usuarios'
-            ? `${API_URL}/users/${currentItemId}`
-            : `${API_URL}/lessons/${currentItemId}`;
-        const response = await fetch(endpoint, {
-            method: 'DELETE'
-        });
-        if (!response.ok)
-            throw new Error('Error al eliminar');
-        if (currentContext === 'usuarios')
+        if (currentContext === 'usuarios') {
+            await UserService.delete(currentItemId);
             await fetchUsers();
-        else
+        }
+        else {
+            await LessonService.delete(currentItemId);
             await fetchLessons();
+        }
         alert('Eliminado correctamente');
         cerrarModal();
     }
@@ -287,14 +278,14 @@ const addChallenge = () => {
         description: '',
         contenido: '',
         feedback: '',
-        commands: [{ comando: '' }]
+        commands: [{ comando: '', descripcion: '' }]
     });
 };
 const addCommand = (challengeIndex) => {
     const ch = newLesson.value.challenges[challengeIndex];
     if (!ch.commands)
         ch.commands = [];
-    ch.commands.push({ comando: '' });
+    ch.commands.push({ comando: '', descripcion: '' });
 };
 const removeCommand = (challengeIndex, cmdIndex) => {
     const ch = newLesson.value.challenges[challengeIndex];
@@ -316,7 +307,10 @@ const toRequestPayload = () => {
             descripcion: c.description,
             contenido: c.contenido || null,
             Retroalimentacion: c.feedback || null,
-            comandos: c.tipo === 'explicacion' ? [] : c.commands.map((cmd) => ({ comando: cmd.comando }))
+            comandos: c.tipo === 'explicacion' ? [] : c.commands.map((cmd) => ({
+                comando: cmd.comando,
+                descripcion: cmd.descripcion?.trim() || undefined
+            }))
         }))
     };
 };
@@ -328,15 +322,42 @@ const saveLesson = async () => {
         saveError.value = 'El título y al menos un reto/explicación son obligatorios.';
         return;
     }
+    // Validaciones de longitud (alineadas con la base de datos)
+    // - Lecciones.Titulo: VARCHAR(150)
+    // - Retos.descripcion: VARCHAR(500)
+    // - Comandos.comando: VARCHAR(100)
+    // - Comandos.descripcion: VARCHAR(200)
+    if (newLesson.value.title.length > 150) {
+        saveError.value = 'El título no puede superar 150 caracteres.';
+        return;
+    }
     // Validar que cada reto tenga al menos un comando (solo si es tipo "reto")
     for (const challenge of newLesson.value.challenges) {
         if (!challenge.description) {
             saveError.value = 'Todos los elementos deben tener una descripción/título.';
             return;
         }
+        if (challenge.description.length > 500) {
+            saveError.value = 'La descripción/título de cada elemento no puede superar 500 caracteres.';
+            return;
+        }
         if (challenge.tipo === 'reto' && (!challenge.commands || challenge.commands.length === 0 || !challenge.commands[0].comando)) {
             saveError.value = 'Cada reto debe tener al menos un comando válido.';
             return;
+        }
+        if (challenge.tipo === 'reto' && challenge.commands) {
+            for (const cmd of challenge.commands) {
+                if (!cmd || typeof cmd.comando !== 'string')
+                    continue;
+                if (cmd.comando.length > 100) {
+                    saveError.value = 'Cada comando no puede superar 100 caracteres.';
+                    return;
+                }
+                if (cmd.descripcion && cmd.descripcion.length > 200) {
+                    saveError.value = 'La descripción de cada comando no puede superar 200 caracteres.';
+                    return;
+                }
+            }
         }
         if (challenge.tipo === 'explicacion' && !challenge.contenido) {
             saveError.value = 'Cada explicación debe tener contenido.';
@@ -349,18 +370,7 @@ const saveLesson = async () => {
         console.log('Enviando payload:', JSON.stringify(payload, null, 2));
         if (currentItemId) {
             // Editar lección existente
-            const response = await fetch(`${API_URL}/lessons/${currentItemId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Error del servidor:', errorData);
-                throw new Error(errorData.message || 'Error al actualizar la lección');
-            }
+            await LessonService.update(currentItemId, payload);
             saveSuccess.value = 'Lección actualizada correctamente.';
         }
         else {
@@ -372,10 +382,11 @@ const saveLesson = async () => {
         // Reset form
         newLesson.value = {
             title: '',
+            experiencia: 100,
             challenges: [{
                     description: '',
                     feedback: '',
-                    commands: [{ comando: '' }]
+                    commands: [{ comando: '', descripcion: '' }]
                 }]
         };
         currentItemId = null;
@@ -402,6 +413,9 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['sidebar']} */ ;
 /** @type {__VLS_StyleScopedClasses['nav-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['nav-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-select']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-select']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-select']} */ ;
 /** @type {__VLS_StyleScopedClasses['section-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['btn-add']} */ ;
 /** @type {__VLS_StyleScopedClasses['search-input']} */ ;
@@ -467,6 +481,30 @@ __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
 [user,];
 __VLS_asFunctionalElement(__VLS_elements.aside, __VLS_elements.aside)({
     ...{ class: "sidebar" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "nav-selector" },
+});
+__VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
+    for: "pagina",
+    ...{ class: "nav-label" },
+});
+__VLS_asFunctionalElement(__VLS_elements.select, __VLS_elements.select)({
+    ...{ onChange: (__VLS_ctx.navigateToPage) },
+    id: "pagina",
+    value: (__VLS_ctx.selectedPage),
+    ...{ class: "nav-select" },
+});
+// @ts-ignore
+[navigateToPage, selectedPage,];
+__VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+    value: "",
+});
+__VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+    value: "admin",
+});
+__VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+    value: "dashboard",
 });
 __VLS_asFunctionalElement(__VLS_elements.nav, __VLS_elements.nav)({});
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
@@ -787,6 +825,22 @@ if (__VLS_ctx.showAddLesson) {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "form-group" },
     });
+    __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({});
+    __VLS_asFunctionalElement(__VLS_elements.input)({
+        type: "number",
+        min: "1",
+        placeholder: "100",
+        ...{ class: "form-input" },
+    });
+    (__VLS_ctx.newLesson.experiencia);
+    // @ts-ignore
+    [newLesson,];
+    __VLS_asFunctionalElement(__VLS_elements.small, __VLS_elements.small)({
+        ...{ style: {} },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "form-group" },
+    });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "challenges-header" },
         ...{ style: {} },
@@ -927,6 +981,12 @@ if (__VLS_ctx.showAddLesson) {
                     ...{ style: {} },
                 });
                 (cmd.comando);
+                __VLS_asFunctionalElement(__VLS_elements.input)({
+                    placeholder: "Descripción del comando (opcional)",
+                    ...{ class: "form-input" },
+                    ...{ style: {} },
+                });
+                (cmd.descripcion);
                 if (challenge.commands.length > 1) {
                     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
                         ...{ onClick: (...[$event]) => {
@@ -991,9 +1051,9 @@ if (__VLS_ctx.showAddLesson) {
     });
     // @ts-ignore
     [saveLesson, isSaving,];
-    (__VLS_ctx.isSaving ? 'Guardando...' : (__VLS_ctx.currentItemId ? 'Actualizar Lección' : 'Guardar Lección'));
+    (__VLS_ctx.isSaving ? 'Guardando...' : 'Guardar Lección');
     // @ts-ignore
-    [currentItemId, isSaving,];
+    [isSaving,];
 }
 /** @type {[typeof Modales, ]} */ ;
 // @ts-ignore
@@ -1034,6 +1094,9 @@ var __VLS_2;
 /** @type {__VLS_StyleScopedClasses['perfil']} */ ;
 /** @type {__VLS_StyleScopedClasses['user-avatar-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['sidebar']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-selector']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-select']} */ ;
 /** @type {__VLS_StyleScopedClasses['active']} */ ;
 /** @type {__VLS_StyleScopedClasses['nav-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['active']} */ ;
@@ -1075,6 +1138,8 @@ var __VLS_2;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-input']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenges-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['btn-add']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenges-list']} */ ;
@@ -1092,6 +1157,7 @@ var __VLS_2;
 /** @type {__VLS_StyleScopedClasses['btn-add']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['mono']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['btn-delete']} */ ;
 /** @type {__VLS_StyleScopedClasses['btn-cancel']} */ ;
 /** @type {__VLS_StyleScopedClasses['btn-save']} */ ;

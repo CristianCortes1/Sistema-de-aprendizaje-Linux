@@ -1,9 +1,9 @@
 import { defineComponent, ref, onMounted } from 'vue';
 import AuthService from '../services/AuthService';
+import LessonService from '../services/LessonService';
 import { useRouter } from 'vue-router';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
-import { API_URL } from '../config/api';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = defineComponent({
     setup() {
@@ -14,9 +14,11 @@ const __VLS_export = defineComponent({
             racha: 0,
             experiencia: 0,
             avatar: "",
-            id: 0
+            id: 0,
+            rol: ''
         });
         const modules = ref([]);
+        const selectedPage = ref('');
         const pickIcon = (title) => {
             const t = (title || '').toLowerCase();
             if (t.includes('archivo'))
@@ -36,12 +38,7 @@ const __VLS_export = defineComponent({
                     console.error('No user ID found');
                     return;
                 }
-                const res = await fetch(`${API_URL}/lessons/user/${userId}/available`, {
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                if (!res.ok)
-                    throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
+                const data = await LessonService.getAvailableForUser(userId);
                 modules.value = (Array.isArray(data) ? data : []).map((l) => ({
                     id: l.id,
                     name: l.titulo,
@@ -65,6 +62,7 @@ const __VLS_export = defineComponent({
                 user.value.avatar = parsed.avatar;
                 user.value.correo = parsed.correo;
                 user.value.id = parsed.id_Usuario || parsed.id;
+                user.value.rol = parsed.rol || parsed.role || '';
             }
             // Cargar lecciones después de obtener el usuario
             fetchLessons();
@@ -84,7 +82,19 @@ const __VLS_export = defineComponent({
                 router.push(`/leccion/${module.id}`);
             }
         };
-        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion };
+        const navigateToPage = () => {
+            if (!selectedPage.value)
+                return;
+            if (selectedPage.value === 'admin') {
+                router.push({ name: 'AdminDashboard' });
+            }
+            else if (selectedPage.value === 'dashboard') {
+                router.push({ name: 'Dashboard' });
+            }
+            selectedPage.value = '';
+        };
+        const isAdmin = () => user.value.rol === 'admin';
+        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion, selectedPage, navigateToPage, isAdmin };
     },
     components: {
         Header,
@@ -100,9 +110,11 @@ const __VLS_self = (await import('vue')).defineComponent({
             racha: 0,
             experiencia: 0,
             avatar: "",
-            id: 0
+            id: 0,
+            rol: ''
         });
         const modules = ref([]);
+        const selectedPage = ref('');
         const pickIcon = (title) => {
             const t = (title || '').toLowerCase();
             if (t.includes('archivo'))
@@ -122,12 +134,7 @@ const __VLS_self = (await import('vue')).defineComponent({
                     console.error('No user ID found');
                     return;
                 }
-                const res = await fetch(`${API_URL}/lessons/user/${userId}/available`, {
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                if (!res.ok)
-                    throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
+                const data = await LessonService.getAvailableForUser(userId);
                 modules.value = (Array.isArray(data) ? data : []).map((l) => ({
                     id: l.id,
                     name: l.titulo,
@@ -151,6 +158,7 @@ const __VLS_self = (await import('vue')).defineComponent({
                 user.value.avatar = parsed.avatar;
                 user.value.correo = parsed.correo;
                 user.value.id = parsed.id_Usuario || parsed.id;
+                user.value.rol = parsed.rol || parsed.role || '';
             }
             // Cargar lecciones después de obtener el usuario
             fetchLessons();
@@ -170,7 +178,19 @@ const __VLS_self = (await import('vue')).defineComponent({
                 router.push(`/leccion/${module.id}`);
             }
         };
-        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion };
+        const navigateToPage = () => {
+            if (!selectedPage.value)
+                return;
+            if (selectedPage.value === 'admin') {
+                router.push({ name: 'AdminDashboard' });
+            }
+            else if (selectedPage.value === 'dashboard') {
+                router.push({ name: 'Dashboard' });
+            }
+            selectedPage.value = '';
+        };
+        const isAdmin = () => user.value.rol === 'admin';
+        return { user, modules, logout, goInicio, goBiblioteca, goRanking, goConfig, goLeccion, selectedPage, navigateToPage, isAdmin };
     },
     components: {
         Header,
@@ -199,6 +219,9 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['locked']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;
 /** @type {__VLS_StyleScopedClasses['logout-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-select']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-select']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-select']} */ ;
 /** @type {__VLS_StyleScopedClasses['header']} */ ;
 /** @type {__VLS_StyleScopedClasses['logo']} */ ;
 /** @type {__VLS_StyleScopedClasses['brand']} */ ;
@@ -225,6 +248,34 @@ const __VLS_2 = __VLS_1({
 }, ...__VLS_functionalComponentArgsRest(__VLS_1));
 // @ts-ignore
 [user, logout,];
+if (__VLS_ctx.isAdmin()) {
+    // @ts-ignore
+    [isAdmin,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "nav-selector" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
+        for: "pagina",
+        ...{ class: "nav-label" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.select, __VLS_elements.select)({
+        ...{ onChange: (__VLS_ctx.navigateToPage) },
+        id: "pagina",
+        value: (__VLS_ctx.selectedPage),
+        ...{ class: "nav-select" },
+    });
+    // @ts-ignore
+    [navigateToPage, selectedPage,];
+    __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+        value: "",
+    });
+    __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+        value: "admin",
+    });
+    __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+        value: "dashboard",
+    });
+}
 __VLS_asFunctionalElement(__VLS_elements.h1, __VLS_elements.h1)({
     ...{ class: "titulo" },
 });
@@ -294,6 +345,9 @@ const __VLS_7 = __VLS_6({
 // @ts-ignore
 [goInicio, goBiblioteca, goRanking, goConfig,];
 /** @type {__VLS_StyleScopedClasses['dashboard']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-selector']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['nav-select']} */ ;
 /** @type {__VLS_StyleScopedClasses['titulo']} */ ;
 /** @type {__VLS_StyleScopedClasses['subtitulo']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-group']} */ ;

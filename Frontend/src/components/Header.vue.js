@@ -1,4 +1,4 @@
-import { defineComponent, computed, onMounted, ref } from 'vue';
+import { defineComponent, computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AuthService from '../services/AuthService';
 debugger; /* PartiallyEnd: #3632/script.vue */
@@ -23,7 +23,7 @@ const __VLS_export = defineComponent({
             experiencia: 0,
             avatar: ""
         });
-        onMounted(() => {
+        const loadUserFromStorage = () => {
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
                 const parsed = JSON.parse(storedUser);
@@ -33,6 +33,22 @@ const __VLS_export = defineComponent({
                 localUser.value.avatar = parsed.avatar;
                 localUser.value.correo = parsed.correo;
             }
+        };
+        const handleUserUpdated = (event) => {
+            const updatedUser = event.detail;
+            localUser.value = {
+                ...localUser.value,
+                experiencia: updatedUser.experiencia,
+                racha: updatedUser.racha
+            };
+        };
+        onMounted(() => {
+            loadUserFromStorage();
+            // Escuchar cambios en los datos del usuario
+            window.addEventListener('userUpdated', handleUserUpdated);
+        });
+        onUnmounted(() => {
+            window.removeEventListener('userUpdated', handleUserUpdated);
         });
         const displayUser = computed(() => {
             // Si se pasa un user prop con datos, usarlo; si no, usar localUser
@@ -73,7 +89,7 @@ const __VLS_self = (await import('vue')).defineComponent({
             experiencia: 0,
             avatar: ""
         });
-        onMounted(() => {
+        const loadUserFromStorage = () => {
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
                 const parsed = JSON.parse(storedUser);
@@ -83,6 +99,22 @@ const __VLS_self = (await import('vue')).defineComponent({
                 localUser.value.avatar = parsed.avatar;
                 localUser.value.correo = parsed.correo;
             }
+        };
+        const handleUserUpdated = (event) => {
+            const updatedUser = event.detail;
+            localUser.value = {
+                ...localUser.value,
+                experiencia: updatedUser.experiencia,
+                racha: updatedUser.racha
+            };
+        };
+        onMounted(() => {
+            loadUserFromStorage();
+            // Escuchar cambios en los datos del usuario
+            window.addEventListener('userUpdated', handleUserUpdated);
+        });
+        onUnmounted(() => {
+            window.removeEventListener('userUpdated', handleUserUpdated);
         });
         const displayUser = computed(() => {
             // Si se pasa un user prop con datos, usarlo; si no, usar localUser

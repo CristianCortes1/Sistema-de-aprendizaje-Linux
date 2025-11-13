@@ -1,9 +1,9 @@
 import { onMounted, ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AuthService from '../services/AuthService';
+import UserService from '../services/UserService';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
-import { API_URL } from '../config/api';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = (await import('vue')).defineComponent({
     name: 'Ranking',
@@ -39,16 +39,7 @@ const __VLS_export = (await import('vue')).defineComponent({
         });
         const fetchRanking = async () => {
             try {
-                const token = AuthService.getToken();
-                const response = await fetch(`${API_URL}/users/ranking`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                if (!response.ok)
-                    throw new Error(`Error HTTP: ${response.status}`);
-                const data = await response.json();
+                const data = await UserService.getRanking();
                 ranking.value = data;
             }
             catch (error) {
@@ -114,16 +105,7 @@ const __VLS_self = (await import('vue')).defineComponent({
         });
         const fetchRanking = async () => {
             try {
-                const token = AuthService.getToken();
-                const response = await fetch(`${API_URL}/users/ranking`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                if (!response.ok)
-                    throw new Error(`Error HTTP: ${response.status}`);
-                const data = await response.json();
+                const data = await UserService.getRanking();
                 ranking.value = data;
             }
             catch (error) {

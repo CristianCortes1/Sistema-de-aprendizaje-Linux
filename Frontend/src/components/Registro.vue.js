@@ -1,6 +1,6 @@
 import { defineComponent, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { API_URL } from '../config/api';
+import AuthService from '../services/AuthService';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = defineComponent({
     name: 'RegistroComponent',
@@ -42,35 +42,8 @@ const __VLS_export = defineComponent({
             }
             loading.value = true;
             try {
-                const response = await fetch(`${API_URL}/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: username.value,
-                        correo: correo.value,
-                        password: password.value
-                    })
-                });
-                const data = await response.json();
-                if (!response.ok) {
-                    // Manejar errores específicos del backend
-                    if (data.message) {
-                        if (data.message.includes('Username already exists')) {
-                            errorMessage.value = 'Este nombre de usuario ya está en uso';
-                        }
-                        else if (data.message.includes('Email already exists')) {
-                            errorMessage.value = 'Este correo ya está registrado';
-                        }
-                        else {
-                            errorMessage.value = data.message;
-                        }
-                    }
-                    else {
-                        errorMessage.value = 'Error al registrar usuario';
-                    }
-                    return;
-                }
-                console.log('✅ Registro exitoso:', data);
+                await AuthService.register(username.value, correo.value, password.value);
+                console.log('✅ Registro exitoso');
                 successMessage.value = '¡Registro exitoso! Revisa tu correo para confirmar tu cuenta';
                 // Redirigir después de 3 segundos
                 setTimeout(() => {
@@ -79,7 +52,16 @@ const __VLS_export = defineComponent({
             }
             catch (err) {
                 console.error('❌ Error en registro:', err);
-                errorMessage.value = 'Error de conexión. Por favor intenta de nuevo';
+                // Manejar errores específicos
+                if (err.message.includes('Username already exists') || err.message.includes('usuario ya existe')) {
+                    errorMessage.value = 'Este nombre de usuario ya está en uso';
+                }
+                else if (err.message.includes('Email already exists') || err.message.includes('correo ya existe')) {
+                    errorMessage.value = 'Este correo ya está registrado';
+                }
+                else {
+                    errorMessage.value = err.message || 'Error al registrar usuario';
+                }
             }
             finally {
                 loading.value = false;
@@ -139,35 +121,8 @@ const __VLS_self = (await import('vue')).defineComponent({
             }
             loading.value = true;
             try {
-                const response = await fetch(`${API_URL}/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: username.value,
-                        correo: correo.value,
-                        password: password.value
-                    })
-                });
-                const data = await response.json();
-                if (!response.ok) {
-                    // Manejar errores específicos del backend
-                    if (data.message) {
-                        if (data.message.includes('Username already exists')) {
-                            errorMessage.value = 'Este nombre de usuario ya está en uso';
-                        }
-                        else if (data.message.includes('Email already exists')) {
-                            errorMessage.value = 'Este correo ya está registrado';
-                        }
-                        else {
-                            errorMessage.value = data.message;
-                        }
-                    }
-                    else {
-                        errorMessage.value = 'Error al registrar usuario';
-                    }
-                    return;
-                }
-                console.log('✅ Registro exitoso:', data);
+                await AuthService.register(username.value, correo.value, password.value);
+                console.log('✅ Registro exitoso');
                 successMessage.value = '¡Registro exitoso! Revisa tu correo para confirmar tu cuenta';
                 // Redirigir después de 3 segundos
                 setTimeout(() => {
@@ -176,7 +131,16 @@ const __VLS_self = (await import('vue')).defineComponent({
             }
             catch (err) {
                 console.error('❌ Error en registro:', err);
-                errorMessage.value = 'Error de conexión. Por favor intenta de nuevo';
+                // Manejar errores específicos
+                if (err.message.includes('Username already exists') || err.message.includes('usuario ya existe')) {
+                    errorMessage.value = 'Este nombre de usuario ya está en uso';
+                }
+                else if (err.message.includes('Email already exists') || err.message.includes('correo ya existe')) {
+                    errorMessage.value = 'Este correo ya está registrado';
+                }
+                else {
+                    errorMessage.value = err.message || 'Error al registrar usuario';
+                }
             }
             finally {
                 loading.value = false;

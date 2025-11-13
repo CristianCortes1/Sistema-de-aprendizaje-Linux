@@ -7,7 +7,10 @@ import { WebLinksAddon } from 'xterm-addon-web-links';
 import 'xterm/css/xterm.css';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
-import { API_URL } from '../config/api';
+import XPGainedAnimation from './XPGainedAnimation.vue';
+import LessonService from '../services/LessonService';
+import UserService from '../services/UserService';
+import ProgressService from '../services/ProgressService';
 // Función para obtener userId del token JWT
 function getUserIdForTerminal() {
     const token = localStorage.getItem('token');
@@ -30,7 +33,7 @@ function getUserIdForTerminal() {
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = defineComponent({
     name: 'Leccion',
-    components: { Header, Footer },
+    components: { Header, Footer, XPGainedAnimation },
     setup() {
         const router = useRouter();
         const route = useRoute();
@@ -53,6 +56,9 @@ const __VLS_export = defineComponent({
         const showError = ref(false);
         const errorMessage = ref('');
         const userProgress = ref(0);
+        // XP Animation
+        const showXPAnimation = ref(false);
+        const xpGained = ref(0);
         // ❌ Redirigir a login si no está autenticado
         if (!userId) {
             console.warn('No authenticated user - redirecting to login');
@@ -88,17 +94,15 @@ const __VLS_export = defineComponent({
         const loadLesson = async () => {
             try {
                 const lessonId = route.params.id;
-                const response = await fetch(`${API_URL}/lessons/${lessonId}`);
-                if (!response.ok) {
-                    throw new Error('Error loading lesson');
-                }
-                const data = await response.json();
+                const data = await LessonService.getById(parseInt(lessonId));
                 lessonData.value = data;
-                if (data.retos && data.retos.length > 0) {
-                    currentReto.value = data.retos[0];
-                }
-                // Cargar progreso del usuario
+                // Cargar progreso del usuario ANTES de asignar el reto inicial
                 await loadUserProgress();
+                // Si no hay progreso cargado, empezar desde el primer reto
+                if (!currentReto.value && data.retos && data.retos.length > 0) {
+                    currentReto.value = data.retos[0];
+                    currentRetoIndex.value = 0;
+                }
             }
             catch (error) {
                 console.error('Error loading lesson:', error);
@@ -107,22 +111,60 @@ const __VLS_export = defineComponent({
                 setTimeout(() => showError.value = false, 3000);
             }
         };
+        // Actualizar datos del usuario en localStorage
+        const updateUserData = async () => {
+            try {
+                const userData = await UserService.getById(parseInt(userId));
+                // Actualizar localStorage con los nuevos datos
+                const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                const updatedUser = {
+                    ...currentUser,
+                    experiencia: userData.experiencia,
+                    racha: userData.racha
+                };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                // Emitir evento para que el Header se actualice
+                window.dispatchEvent(new CustomEvent('userUpdated', { detail: updatedUser }));
+                console.log(`✅ Usuario actualizado: ${userData.experiencia} XP`);
+            }
+            catch (error) {
+                console.error('Error updating user data:', error);
+            }
+        };
         // Cargar progreso del usuario
         const loadUserProgress = async () => {
             try {
-                const response = await fetch(`${API_URL}/progress?userId=${userId}&lessonId=${route.params.id}`);
-                if (response.ok) {
-                    const progressData = await response.json();
-                    if (progressData && progressData.length > 0) {
-                        userProgress.value = progressData[0].progreso;
-                        progress.value = progressData[0].progreso;
-                        // Si hay progreso, calcular qué reto mostrar
-                        const retosCompletados = Math.floor((userProgress.value / 100) * (lessonData.value?.retos.length || 1));
-                        currentRetoIndex.value = Math.min(retosCompletados, (lessonData.value?.retos.length || 1) - 1);
-                        if (lessonData.value && lessonData.value.retos[currentRetoIndex.value]) {
-                            currentReto.value = lessonData.value.retos[currentRetoIndex.value];
+                const progressData = await ProgressService.getByUserAndLesson(parseInt(userId), parseInt(route.params.id));
+                if (progressData && progressData.length > 0) {
+                    const savedProgress = progressData[0].progreso;
+                    userProgress.value = savedProgress;
+                    progress.value = savedProgress;
+                    // Si el progreso es 100%, empezar desde el inicio
+                    if (savedProgress >= 100) {
+                        console.log('Lección ya completada, reiniciando desde el inicio');
+                        currentRetoIndex.value = 0;
+                        if (lessonData.value && lessonData.value.retos[0]) {
+                            currentReto.value = lessonData.value.retos[0];
                         }
+                        // No reiniciar el progreso, mantenerlo en 100%
+                        return;
                     }
+                    // Calcular qué reto mostrar basado en el progreso (solo si no está completado)
+                    if (lessonData.value && lessonData.value.retos.length > 0) {
+                        const totalRetos = lessonData.value.retos.length;
+                        // Calcular índice: progreso 0-99% → reto correspondiente
+                        const retoIndex = Math.floor((savedProgress / 100) * totalRetos);
+                        // Asegurar que no exceda el límite
+                        currentRetoIndex.value = Math.min(retoIndex, totalRetos - 1);
+                        currentReto.value = lessonData.value.retos[currentRetoIndex.value];
+                        console.log(`Progreso cargado: ${savedProgress}%, mostrando reto ${currentRetoIndex.value + 1} de ${totalRetos}`);
+                    }
+                }
+                else {
+                    // Sin progreso guardado, empezar desde 0
+                    console.log('Sin progreso guardado, empezando desde el inicio');
+                    currentRetoIndex.value = 0;
+                    progress.value = 0;
                 }
             }
             catch (error) {
@@ -191,21 +233,13 @@ const __VLS_export = defineComponent({
                 const totalRetos = lessonData.value.retos.length;
                 const retosCompletados = currentRetoIndex.value + 1;
                 const newProgress = Math.round((retosCompletados / totalRetos) * 100);
-                const response = await fetch(`${API_URL}/progress`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        userId: parseInt(userId),
-                        lessonId: parseInt(route.params.id),
-                        progress: newProgress,
-                    }),
+                await ProgressService.create({
+                    userId: parseInt(userId),
+                    lessonId: parseInt(route.params.id),
+                    progress: newProgress
                 });
-                if (response.ok) {
-                    progress.value = newProgress;
-                    userProgress.value = newProgress;
-                }
+                progress.value = newProgress;
+                userProgress.value = newProgress;
             }
             catch (error) {
                 console.error('Error updating progress:', error);
@@ -224,21 +258,22 @@ const __VLS_export = defineComponent({
             else {
                 // Lección completada - Asegurar que se guarde al 100%
                 try {
-                    const response = await fetch(`${API_URL}/progress`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            userId: parseInt(userId),
-                            lessonId: parseInt(route.params.id),
-                            progress: 100,
-                        }),
+                    await ProgressService.create({
+                        userId: parseInt(userId),
+                        lessonId: parseInt(route.params.id),
+                        progress: 100
                     });
-                    if (response.ok) {
-                        progress.value = 100;
-                        userProgress.value = 100;
-                    }
+                    progress.value = 100;
+                    userProgress.value = 100;
+                    // Actualizar datos del usuario en localStorage
+                    await updateUserData();
+                    // Mostrar animación de XP ganado
+                    xpGained.value = lessonData.value.experiencia || 100;
+                    showXPAnimation.value = true;
+                    // Ocultar animación después de 3 segundos
+                    setTimeout(() => {
+                        showXPAnimation.value = false;
+                    }, 3000);
                 }
                 catch (error) {
                     console.error('Error updating final progress:', error);
@@ -247,7 +282,7 @@ const __VLS_export = defineComponent({
                 showSuccess.value = true;
                 setTimeout(() => {
                     router.push('/dashboard');
-                }, 3000);
+                }, 4000); // Aumentado a 4 segundos para dar tiempo a ver la animación
             }
         };
         // API URL usando la configuración centralizada
@@ -455,12 +490,14 @@ const __VLS_export = defineComponent({
             showError,
             errorMessage,
             isVerifying,
+            showXPAnimation,
+            xpGained,
         };
     },
 });
 const __VLS_self = (await import('vue')).defineComponent({
     name: 'Leccion',
-    components: { Header, Footer },
+    components: { Header, Footer, XPGainedAnimation },
     setup() {
         const router = useRouter();
         const route = useRoute();
@@ -483,6 +520,9 @@ const __VLS_self = (await import('vue')).defineComponent({
         const showError = ref(false);
         const errorMessage = ref('');
         const userProgress = ref(0);
+        // XP Animation
+        const showXPAnimation = ref(false);
+        const xpGained = ref(0);
         // ❌ Redirigir a login si no está autenticado
         if (!userId) {
             console.warn('No authenticated user - redirecting to login');
@@ -518,17 +558,15 @@ const __VLS_self = (await import('vue')).defineComponent({
         const loadLesson = async () => {
             try {
                 const lessonId = route.params.id;
-                const response = await fetch(`${API_URL}/lessons/${lessonId}`);
-                if (!response.ok) {
-                    throw new Error('Error loading lesson');
-                }
-                const data = await response.json();
+                const data = await LessonService.getById(parseInt(lessonId));
                 lessonData.value = data;
-                if (data.retos && data.retos.length > 0) {
-                    currentReto.value = data.retos[0];
-                }
-                // Cargar progreso del usuario
+                // Cargar progreso del usuario ANTES de asignar el reto inicial
                 await loadUserProgress();
+                // Si no hay progreso cargado, empezar desde el primer reto
+                if (!currentReto.value && data.retos && data.retos.length > 0) {
+                    currentReto.value = data.retos[0];
+                    currentRetoIndex.value = 0;
+                }
             }
             catch (error) {
                 console.error('Error loading lesson:', error);
@@ -537,22 +575,60 @@ const __VLS_self = (await import('vue')).defineComponent({
                 setTimeout(() => showError.value = false, 3000);
             }
         };
+        // Actualizar datos del usuario en localStorage
+        const updateUserData = async () => {
+            try {
+                const userData = await UserService.getById(parseInt(userId));
+                // Actualizar localStorage con los nuevos datos
+                const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                const updatedUser = {
+                    ...currentUser,
+                    experiencia: userData.experiencia,
+                    racha: userData.racha
+                };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                // Emitir evento para que el Header se actualice
+                window.dispatchEvent(new CustomEvent('userUpdated', { detail: updatedUser }));
+                console.log(`✅ Usuario actualizado: ${userData.experiencia} XP`);
+            }
+            catch (error) {
+                console.error('Error updating user data:', error);
+            }
+        };
         // Cargar progreso del usuario
         const loadUserProgress = async () => {
             try {
-                const response = await fetch(`${API_URL}/progress?userId=${userId}&lessonId=${route.params.id}`);
-                if (response.ok) {
-                    const progressData = await response.json();
-                    if (progressData && progressData.length > 0) {
-                        userProgress.value = progressData[0].progreso;
-                        progress.value = progressData[0].progreso;
-                        // Si hay progreso, calcular qué reto mostrar
-                        const retosCompletados = Math.floor((userProgress.value / 100) * (lessonData.value?.retos.length || 1));
-                        currentRetoIndex.value = Math.min(retosCompletados, (lessonData.value?.retos.length || 1) - 1);
-                        if (lessonData.value && lessonData.value.retos[currentRetoIndex.value]) {
-                            currentReto.value = lessonData.value.retos[currentRetoIndex.value];
+                const progressData = await ProgressService.getByUserAndLesson(parseInt(userId), parseInt(route.params.id));
+                if (progressData && progressData.length > 0) {
+                    const savedProgress = progressData[0].progreso;
+                    userProgress.value = savedProgress;
+                    progress.value = savedProgress;
+                    // Si el progreso es 100%, empezar desde el inicio
+                    if (savedProgress >= 100) {
+                        console.log('Lección ya completada, reiniciando desde el inicio');
+                        currentRetoIndex.value = 0;
+                        if (lessonData.value && lessonData.value.retos[0]) {
+                            currentReto.value = lessonData.value.retos[0];
                         }
+                        // No reiniciar el progreso, mantenerlo en 100%
+                        return;
                     }
+                    // Calcular qué reto mostrar basado en el progreso (solo si no está completado)
+                    if (lessonData.value && lessonData.value.retos.length > 0) {
+                        const totalRetos = lessonData.value.retos.length;
+                        // Calcular índice: progreso 0-99% → reto correspondiente
+                        const retoIndex = Math.floor((savedProgress / 100) * totalRetos);
+                        // Asegurar que no exceda el límite
+                        currentRetoIndex.value = Math.min(retoIndex, totalRetos - 1);
+                        currentReto.value = lessonData.value.retos[currentRetoIndex.value];
+                        console.log(`Progreso cargado: ${savedProgress}%, mostrando reto ${currentRetoIndex.value + 1} de ${totalRetos}`);
+                    }
+                }
+                else {
+                    // Sin progreso guardado, empezar desde 0
+                    console.log('Sin progreso guardado, empezando desde el inicio');
+                    currentRetoIndex.value = 0;
+                    progress.value = 0;
                 }
             }
             catch (error) {
@@ -621,21 +697,13 @@ const __VLS_self = (await import('vue')).defineComponent({
                 const totalRetos = lessonData.value.retos.length;
                 const retosCompletados = currentRetoIndex.value + 1;
                 const newProgress = Math.round((retosCompletados / totalRetos) * 100);
-                const response = await fetch(`${API_URL}/progress`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        userId: parseInt(userId),
-                        lessonId: parseInt(route.params.id),
-                        progress: newProgress,
-                    }),
+                await ProgressService.create({
+                    userId: parseInt(userId),
+                    lessonId: parseInt(route.params.id),
+                    progress: newProgress
                 });
-                if (response.ok) {
-                    progress.value = newProgress;
-                    userProgress.value = newProgress;
-                }
+                progress.value = newProgress;
+                userProgress.value = newProgress;
             }
             catch (error) {
                 console.error('Error updating progress:', error);
@@ -654,21 +722,22 @@ const __VLS_self = (await import('vue')).defineComponent({
             else {
                 // Lección completada - Asegurar que se guarde al 100%
                 try {
-                    const response = await fetch(`${API_URL}/progress`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            userId: parseInt(userId),
-                            lessonId: parseInt(route.params.id),
-                            progress: 100,
-                        }),
+                    await ProgressService.create({
+                        userId: parseInt(userId),
+                        lessonId: parseInt(route.params.id),
+                        progress: 100
                     });
-                    if (response.ok) {
-                        progress.value = 100;
-                        userProgress.value = 100;
-                    }
+                    progress.value = 100;
+                    userProgress.value = 100;
+                    // Actualizar datos del usuario en localStorage
+                    await updateUserData();
+                    // Mostrar animación de XP ganado
+                    xpGained.value = lessonData.value.experiencia || 100;
+                    showXPAnimation.value = true;
+                    // Ocultar animación después de 3 segundos
+                    setTimeout(() => {
+                        showXPAnimation.value = false;
+                    }, 3000);
                 }
                 catch (error) {
                     console.error('Error updating final progress:', error);
@@ -677,7 +746,7 @@ const __VLS_self = (await import('vue')).defineComponent({
                 showSuccess.value = true;
                 setTimeout(() => {
                     router.push('/dashboard');
-                }, 3000);
+                }, 4000); // Aumentado a 4 segundos para dar tiempo a ver la animación
             }
         };
         // API URL usando la configuración centralizada
@@ -885,12 +954,14 @@ const __VLS_self = (await import('vue')).defineComponent({
             showError,
             errorMessage,
             isVerifying,
+            showXPAnimation,
+            xpGained,
         };
     },
 });
 const __VLS_ctx = {};
 let __VLS_elements;
-const __VLS_componentsOption = { Header, Footer };
+const __VLS_componentsOption = { Header, Footer, XPGainedAnimation };
 let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['explicacion-content']} */ ;
@@ -905,6 +976,7 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['verify-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['continue-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['continue-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['dot']} */ ;
 /** @type {__VLS_StyleScopedClasses['dot']} */ ;
 /** @type {__VLS_StyleScopedClasses['dot']} */ ;
@@ -912,13 +984,22 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['shortcut-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['leccion']} */ ;
 /** @type {__VLS_StyleScopedClasses['content']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['lesson-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['content']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['hidden-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['challenge-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['content']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['hidden-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['challenge-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['content']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['challenge-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
@@ -933,6 +1014,7 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['progress-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['content']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['hidden-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['xterm']} */ ;
@@ -946,6 +1028,21 @@ Header;
 // @ts-ignore
 const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({}));
 const __VLS_2 = __VLS_1({}, ...__VLS_functionalComponentArgsRest(__VLS_1));
+const __VLS_5 = {}.XPGainedAnimation;
+/** @type {[typeof __VLS_components.XPGainedAnimation, ]} */ ;
+// @ts-ignore
+XPGainedAnimation;
+// @ts-ignore
+const __VLS_6 = __VLS_asFunctionalComponent(__VLS_5, new __VLS_5({
+    show: (__VLS_ctx.showXPAnimation),
+    xpAmount: (__VLS_ctx.xpGained ?? 0),
+}));
+const __VLS_7 = __VLS_6({
+    show: (__VLS_ctx.showXPAnimation),
+    xpAmount: (__VLS_ctx.xpGained ?? 0),
+}, ...__VLS_functionalComponentArgsRest(__VLS_6));
+// @ts-ignore
+[showXPAnimation, xpGained,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "content" },
 });
@@ -1087,106 +1184,105 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 (__VLS_ctx.progress);
 // @ts-ignore
 [progress,];
-if (__VLS_ctx.currentReto?.tipo !== 'explicacion') {
-    // @ts-ignore
-    [currentReto,];
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "terminal-section" },
-    });
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "terminal-wrapper" },
-    });
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "terminal-header" },
-    });
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "terminal-controls" },
-    });
-    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-        ...{ class: "dot red" },
-    });
-    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-        ...{ class: "dot yellow" },
-    });
-    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-        ...{ class: "dot green" },
-    });
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "terminal-title" },
-    });
-    (__VLS_ctx.terminalTitle);
-    // @ts-ignore
-    [terminalTitle,];
-    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-        ...{ class: "status-dot" },
-        ...{ class: ({ connected: __VLS_ctx.isConnected }) },
-    });
-    // @ts-ignore
-    [isConnected,];
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ref: "terminalContainer",
-        ...{ class: "terminal-container" },
-    });
-    /** @type {typeof __VLS_ctx.terminalContainer} */ ;
-    // @ts-ignore
-    [terminalContainer,];
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "terminal-shortcuts" },
-    });
-    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-        ...{ onClick: (__VLS_ctx.sendTab) },
-        ...{ class: "shortcut-btn" },
-    });
-    // @ts-ignore
-    [sendTab,];
-    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-        ...{ onClick: (__VLS_ctx.sendCtrlC) },
-        ...{ class: "shortcut-btn" },
-    });
-    // @ts-ignore
-    [sendCtrlC,];
-    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-        ...{ onClick: (__VLS_ctx.sendCtrlX) },
-        ...{ class: "shortcut-btn" },
-    });
-    // @ts-ignore
-    [sendCtrlX,];
-    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-        ...{ onClick: (__VLS_ctx.sendCtrlS) },
-        ...{ class: "shortcut-btn" },
-    });
-    // @ts-ignore
-    [sendCtrlS,];
-    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-        ...{ onClick: (__VLS_ctx.sendCtrlZ) },
-        ...{ class: "shortcut-btn" },
-    });
-    // @ts-ignore
-    [sendCtrlZ,];
-    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-        ...{ onClick: (__VLS_ctx.sendCtrlD) },
-        ...{ class: "shortcut-btn" },
-    });
-    // @ts-ignore
-    [sendCtrlD,];
-}
-const __VLS_5 = {}.Footer;
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "terminal-section" },
+    ...{ class: ({ 'hidden-section': __VLS_ctx.currentReto?.tipo === 'explicacion' }) },
+});
+// @ts-ignore
+[currentReto,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "terminal-wrapper" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "terminal-header" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "terminal-controls" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "dot red" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "dot yellow" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "dot green" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "terminal-title" },
+});
+(__VLS_ctx.terminalTitle);
+// @ts-ignore
+[terminalTitle,];
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "status-dot" },
+    ...{ class: ({ connected: __VLS_ctx.isConnected }) },
+});
+// @ts-ignore
+[isConnected,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ref: "terminalContainer",
+    ...{ class: "terminal-container" },
+});
+/** @type {typeof __VLS_ctx.terminalContainer} */ ;
+// @ts-ignore
+[terminalContainer,];
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "terminal-shortcuts" },
+});
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendTab) },
+    ...{ class: "shortcut-btn" },
+});
+// @ts-ignore
+[sendTab,];
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendCtrlC) },
+    ...{ class: "shortcut-btn" },
+});
+// @ts-ignore
+[sendCtrlC,];
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendCtrlX) },
+    ...{ class: "shortcut-btn" },
+});
+// @ts-ignore
+[sendCtrlX,];
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendCtrlS) },
+    ...{ class: "shortcut-btn" },
+});
+// @ts-ignore
+[sendCtrlS,];
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendCtrlZ) },
+    ...{ class: "shortcut-btn" },
+});
+// @ts-ignore
+[sendCtrlZ,];
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.sendCtrlD) },
+    ...{ class: "shortcut-btn" },
+});
+// @ts-ignore
+[sendCtrlD,];
+const __VLS_10 = {}.Footer;
 /** @type {[typeof __VLS_components.Footer, ]} */ ;
 // @ts-ignore
 Footer;
 // @ts-ignore
-const __VLS_6 = __VLS_asFunctionalComponent(__VLS_5, new __VLS_5({
+const __VLS_11 = __VLS_asFunctionalComponent(__VLS_10, new __VLS_10({
     goInicio: (__VLS_ctx.goInicio),
     goBiblioteca: (__VLS_ctx.goBiblioteca),
     goRanking: (__VLS_ctx.goRanking),
     goConfig: (__VLS_ctx.goConfig),
 }));
-const __VLS_7 = __VLS_6({
+const __VLS_12 = __VLS_11({
     goInicio: (__VLS_ctx.goInicio),
     goBiblioteca: (__VLS_ctx.goBiblioteca),
     goRanking: (__VLS_ctx.goRanking),
     goConfig: (__VLS_ctx.goConfig),
-}, ...__VLS_functionalComponentArgsRest(__VLS_6));
+}, ...__VLS_functionalComponentArgsRest(__VLS_11));
 // @ts-ignore
 [goInicio, goBiblioteca, goRanking, goConfig,];
 /** @type {__VLS_StyleScopedClasses['leccion']} */ ;
@@ -1212,6 +1308,7 @@ const __VLS_7 = __VLS_6({
 /** @type {__VLS_StyleScopedClasses['progress-fill']} */ ;
 /** @type {__VLS_StyleScopedClasses['progress-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['hidden-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-wrapper']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['terminal-controls']} */ ;

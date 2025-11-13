@@ -1,6 +1,7 @@
 import { useRouter } from 'vue-router';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
+import CommandService from '../services/CommandService';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = (await import('vue')).defineComponent({
     name: 'Biblioteca',
@@ -23,46 +24,40 @@ const __VLS_export = (await import('vue')).defineComponent({
     },
     data() {
         return {
-            descripciones: {
-                ls: "Muestra el contenido de un directorio.",
-                pwd: "Muestra el directorio actual del archivo.",
-                cd: "Cambia el directorio de trabajo.",
-                echo: "Muestra un mensaje o valor de variable.",
-                clear: "Limpia la pantalla del terminal.",
-                touch: "Crea un archivo vacío.",
-                mkdir: "Crea un nuevo directorio.",
-                rm: "Elimina archivos.",
-                rmdir: "Elimina directorios vacíos.",
-                cp: "Copia archivos o directorios.",
-                mv: "Mueve o renombra archivos o directorios.",
-                cat: "Muestra el contenido de un archivo.",
-                nano: "Editor de texto en línea de comandos.",
-                grep: "Busca texto dentro de archivos.",
-                sudo: "Ejecuta comandos con privilegios de superusuario.",
-                chmod: "Cambia los permisos de archivos o directorios."
-            }
+            isLoading: false,
+            error: '',
+            commands: [],
+            openCommandId: null,
         };
     },
+    mounted() {
+        this.fetchCommands();
+    },
     methods: {
-        toggleDescripcion(comando, event) {
-            const row = event.target.closest('tr');
-            const table = event.target.closest('table');
-            // Si ya existe una descripción justo después, la eliminamos (cerrar)
-            if (row.nextElementSibling && row.nextElementSibling.classList.contains('descripcion')) {
-                row.nextElementSibling.remove();
-                return;
+        async fetchCommands() {
+            this.isLoading = true;
+            this.error = '';
+            try {
+                const data = await CommandService.getAll();
+                // Mapear resultados del backend al formato usado en la UI
+                this.commands = (Array.isArray(data) ? data : []).map((d, i) => ({
+                    id: d.id ?? d.id_Comando ?? `${d.comando}-${i}`,
+                    comando: d.comando,
+                    descripcion: d.descripcion || ''
+                })).sort((a, b) => a.comando.localeCompare(b.comando));
             }
-            // Remover cualquier otra descripción abierta
-            table.querySelectorAll('.descripcion').forEach(r => r.remove());
-            // Crear nueva descripción
-            const descRow = document.createElement('tr');
-            descRow.className = 'descripcion';
-            const descCell = document.createElement('td');
-            descCell.colSpan = 1; // Una sola columna ahora
-            descCell.textContent = this.descripciones[comando] || 'Descripción no disponible.';
-            descRow.appendChild(descCell);
-            row.insertAdjacentElement('afterend', descRow);
-        }
+            catch (err) {
+                console.error('Error cargando comandos:', err);
+                this.error = 'No se pudieron cargar los comandos.';
+                this.commands = [];
+            }
+            finally {
+                this.isLoading = false;
+            }
+        },
+        toggleDescripcion(cmd) {
+            this.openCommandId = this.openCommandId === cmd.id ? null : cmd.id;
+        },
     }
 });
 const __VLS_self = (await import('vue')).defineComponent({
@@ -86,46 +81,40 @@ const __VLS_self = (await import('vue')).defineComponent({
     },
     data() {
         return {
-            descripciones: {
-                ls: "Muestra el contenido de un directorio.",
-                pwd: "Muestra el directorio actual del archivo.",
-                cd: "Cambia el directorio de trabajo.",
-                echo: "Muestra un mensaje o valor de variable.",
-                clear: "Limpia la pantalla del terminal.",
-                touch: "Crea un archivo vacío.",
-                mkdir: "Crea un nuevo directorio.",
-                rm: "Elimina archivos.",
-                rmdir: "Elimina directorios vacíos.",
-                cp: "Copia archivos o directorios.",
-                mv: "Mueve o renombra archivos o directorios.",
-                cat: "Muestra el contenido de un archivo.",
-                nano: "Editor de texto en línea de comandos.",
-                grep: "Busca texto dentro de archivos.",
-                sudo: "Ejecuta comandos con privilegios de superusuario.",
-                chmod: "Cambia los permisos de archivos o directorios."
-            }
+            isLoading: false,
+            error: '',
+            commands: [],
+            openCommandId: null,
         };
     },
+    mounted() {
+        this.fetchCommands();
+    },
     methods: {
-        toggleDescripcion(comando, event) {
-            const row = event.target.closest('tr');
-            const table = event.target.closest('table');
-            // Si ya existe una descripción justo después, la eliminamos (cerrar)
-            if (row.nextElementSibling && row.nextElementSibling.classList.contains('descripcion')) {
-                row.nextElementSibling.remove();
-                return;
+        async fetchCommands() {
+            this.isLoading = true;
+            this.error = '';
+            try {
+                const data = await CommandService.getAll();
+                // Mapear resultados del backend al formato usado en la UI
+                this.commands = (Array.isArray(data) ? data : []).map((d, i) => ({
+                    id: d.id ?? d.id_Comando ?? `${d.comando}-${i}`,
+                    comando: d.comando,
+                    descripcion: d.descripcion || ''
+                })).sort((a, b) => a.comando.localeCompare(b.comando));
             }
-            // Remover cualquier otra descripción abierta
-            table.querySelectorAll('.descripcion').forEach(r => r.remove());
-            // Crear nueva descripción
-            const descRow = document.createElement('tr');
-            descRow.className = 'descripcion';
-            const descCell = document.createElement('td');
-            descCell.colSpan = 1; // Una sola columna ahora
-            descCell.textContent = this.descripciones[comando] || 'Descripción no disponible.';
-            descRow.appendChild(descCell);
-            row.insertAdjacentElement('afterend', descRow);
-        }
+            catch (err) {
+                console.error('Error cargando comandos:', err);
+                this.error = 'No se pudieron cargar los comandos.';
+                this.commands = [];
+            }
+            finally {
+                this.isLoading = false;
+            }
+        },
+        toggleDescripcion(cmd) {
+            this.openCommandId = this.openCommandId === cmd.id ? null : cmd.id;
+        },
     }
 });
 const __VLS_ctx = {};
@@ -138,8 +127,10 @@ let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['logo']} */ ;
 /** @type {__VLS_StyleScopedClasses['descripcion']} */ ;
-/** @type {__VLS_StyleScopedClasses['permisos']} */ ;
-/** @type {__VLS_StyleScopedClasses['procesos']} */ ;
+/** @type {__VLS_StyleScopedClasses['descripcion']} */ ;
+/** @type {__VLS_StyleScopedClasses['desc-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['desc-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['desc-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
@@ -151,9 +142,10 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['comandos-basicos']} */ ;
 /** @type {__VLS_StyleScopedClasses['archivos-y-directorios']} */ ;
 /** @type {__VLS_StyleScopedClasses['descripcion']} */ ;
-/** @type {__VLS_StyleScopedClasses['bloqueados']} */ ;
-/** @type {__VLS_StyleScopedClasses['permisos']} */ ;
-/** @type {__VLS_StyleScopedClasses['procesos']} */ ;
+/** @type {__VLS_StyleScopedClasses['desc-wrapper']} */ ;
+/** @type {__VLS_StyleScopedClasses['desc-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['cmd-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['desc-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer']} */ ;
@@ -177,6 +169,7 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "comandos-basicos" },
+    ...{ style: {} },
 });
 __VLS_asFunctionalElement(__VLS_elements.table, __VLS_elements.table)({});
 __VLS_asFunctionalElement(__VLS_elements.thead, __VLS_elements.thead)({});
@@ -185,159 +178,72 @@ __VLS_asFunctionalElement(__VLS_elements.th, __VLS_elements.th)({
     ...{ class: "titulo" },
 });
 __VLS_asFunctionalElement(__VLS_elements.tbody, __VLS_elements.tbody)({});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('ls', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('pwd', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('cd', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('echo', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('clear', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('cat', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('nano', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('grep', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('sudo', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('chmod', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "archivos-y-directorios" },
-});
-__VLS_asFunctionalElement(__VLS_elements.table, __VLS_elements.table)({});
-__VLS_asFunctionalElement(__VLS_elements.thead, __VLS_elements.thead)({});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.th, __VLS_elements.th)({
-    ...{ class: "titulo" },
-});
-__VLS_asFunctionalElement(__VLS_elements.tbody, __VLS_elements.tbody)({});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('touch', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('mkdir', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('rm', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('rmdir', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('cp', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
-__VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.toggleDescripcion('mv', $event);
-            // @ts-ignore
-            [toggleDescripcion,];
-        } },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "bloqueados" },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "permisos" },
-});
-__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-    ...{ class: "permiso" },
-});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "procesos" },
-});
-__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-    ...{ class: "proceso" },
-});
+if (__VLS_ctx.isLoading || __VLS_ctx.error) {
+    // @ts-ignore
+    [isLoading, error,];
+    __VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+    __VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({});
+    if (__VLS_ctx.isLoading) {
+        // @ts-ignore
+        [isLoading,];
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
+    }
+    else {
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
+        (__VLS_ctx.error);
+        // @ts-ignore
+        [error,];
+    }
+}
+for (const [cmd] of __VLS_getVForSourceType((__VLS_ctx.commands))) {
+    (cmd.id);
+    // @ts-ignore
+    [commands,];
+    __VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+    __VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({
+        ...{ onClick: (...[$event]) => {
+                __VLS_ctx.toggleDescripcion(cmd);
+                // @ts-ignore
+                [toggleDescripcion,];
+            } },
+    });
+    (cmd.comando);
+    if (__VLS_ctx.openCommandId === cmd.id) {
+        // @ts-ignore
+        [openCommandId,];
+        __VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({
+            ...{ class: "descripcion" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({});
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "desc-wrapper" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "desc-header" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.strong, __VLS_elements.strong)({
+            ...{ class: "cmd-label" },
+        });
+        (cmd.comando);
+        if (cmd.descripcion && cmd.descripcion.trim()) {
+            __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+                ...{ class: "desc-text" },
+            });
+            (cmd.descripcion);
+        }
+        else {
+            __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+                ...{ class: "desc-text muted" },
+            });
+        }
+    }
+}
+if (!__VLS_ctx.isLoading && __VLS_ctx.commands.length === 0 && !__VLS_ctx.error) {
+    // @ts-ignore
+    [isLoading, error, commands,];
+    __VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({});
+    __VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({});
+}
 const __VLS_5 = {}.Footer;
 /** @type {[typeof __VLS_components.Footer, ]} */ ;
 // @ts-ignore
@@ -362,11 +268,11 @@ const __VLS_7 = __VLS_6({
 /** @type {__VLS_StyleScopedClasses['tablas-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['comandos-basicos']} */ ;
 /** @type {__VLS_StyleScopedClasses['titulo']} */ ;
-/** @type {__VLS_StyleScopedClasses['archivos-y-directorios']} */ ;
-/** @type {__VLS_StyleScopedClasses['titulo']} */ ;
-/** @type {__VLS_StyleScopedClasses['bloqueados']} */ ;
-/** @type {__VLS_StyleScopedClasses['permisos']} */ ;
-/** @type {__VLS_StyleScopedClasses['permiso']} */ ;
-/** @type {__VLS_StyleScopedClasses['procesos']} */ ;
-/** @type {__VLS_StyleScopedClasses['proceso']} */ ;
+/** @type {__VLS_StyleScopedClasses['descripcion']} */ ;
+/** @type {__VLS_StyleScopedClasses['desc-wrapper']} */ ;
+/** @type {__VLS_StyleScopedClasses['desc-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['cmd-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['desc-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['desc-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['muted']} */ ;
 export default {};

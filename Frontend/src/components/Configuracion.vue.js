@@ -1,9 +1,9 @@
 import { onMounted, ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AuthService from '../services/AuthService';
+import UserService from '../services/UserService';
 import Header from './Header.vue';
 import Footer from './Footer.vue';
-import { API_URL } from '../config/api';
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = (await import('vue')).defineComponent({
     name: 'Configuracion',
@@ -66,23 +66,11 @@ const __VLS_export = (await import('vue')).defineComponent({
                 const token = AuthService.getToken();
                 const userInfo = JSON.parse(atob(token.split('.')[1]));
                 const userId = userInfo.sub;
-                const response = await fetch(`${API_URL}/users/${userId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ username: newUsername.value })
-                });
-                if (response.ok) {
-                    const updatedUser = { ...localUser.value, username: newUsername.value };
-                    localUser.value = updatedUser;
-                    localStorage.setItem('user', JSON.stringify(updatedUser));
-                    alert('Nombre de usuario actualizado correctamente');
-                }
-                else {
-                    alert('Error al actualizar el nombre de usuario');
-                }
+                await UserService.update(userId, { username: newUsername.value });
+                const updatedUser = { ...localUser.value, username: newUsername.value };
+                localUser.value = updatedUser;
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                alert('Nombre de usuario actualizado correctamente');
             }
             catch (error) {
                 console.error('Error:', error);
@@ -103,36 +91,18 @@ const __VLS_export = (await import('vue')).defineComponent({
                 return;
             }
             try {
-                const token = AuthService.getToken();
-                const response = await fetch(`${API_URL}/auth/change-password`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: localUser.value.correo,
-                        currentPassword: passwordData.value.current,
-                        newPassword: passwordData.value.new
-                    })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert('Contraseña actualizada correctamente');
-                    passwordData.value = { current: '', new: '', confirm: '' };
-                }
-                else {
-                    if (data.message && data.message.includes('contraseña actual es incorrecta')) {
-                        alert('La contraseña actual es incorrecta');
-                    }
-                    else {
-                        alert('Error al actualizar la contraseña');
-                    }
-                }
+                await AuthService.changePassword(localUser.value.correo, passwordData.value.current, passwordData.value.new);
+                alert('Contraseña actualizada correctamente');
+                passwordData.value = { current: '', new: '', confirm: '' };
             }
             catch (error) {
                 console.error('Error:', error);
-                alert('Error al actualizar la contraseña');
+                if (error.message && error.message.includes('contraseña actual es incorrecta')) {
+                    alert('La contraseña actual es incorrecta');
+                }
+                else {
+                    alert('Error al actualizar la contraseña');
+                }
             }
         };
         const handleLogout = () => {
@@ -153,29 +123,13 @@ const __VLS_export = (await import('vue')).defineComponent({
                 }
                 // Obtener el ID del usuario del token decodificado
                 const userInfo = JSON.parse(atob(token.split('.')[1]));
-                const userId = userInfo.sub; // El ID del usuario está en el campo 'sub' del token JWT
+                const userId = userInfo.sub;
                 console.log('Enviando actualización de avatar:', {
                     selectedAvatar: selectedAvatar.value,
-                    token: token,
-                    url: `${API_URL}/users/${userId}`
+                    userId: userId
                 });
-                const response = await fetch(`${API_URL}/users/${userId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        avatar: selectedAvatar.value
-                    })
-                });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    console.error('Error response:', errorData);
-                    throw new Error(errorData.message || 'Error al actualizar el avatar');
-                }
-                const data = await response.json();
-                console.log('Respuesta exitosa:', data);
+                await UserService.update(userId, { avatar: selectedAvatar.value });
+                console.log('Avatar actualizado exitosamente');
                 // Actualizar localStorage y estado local
                 const storedUser = localStorage.getItem('user');
                 if (storedUser) {
@@ -268,23 +222,11 @@ const __VLS_self = (await import('vue')).defineComponent({
                 const token = AuthService.getToken();
                 const userInfo = JSON.parse(atob(token.split('.')[1]));
                 const userId = userInfo.sub;
-                const response = await fetch(`${API_URL}/users/${userId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ username: newUsername.value })
-                });
-                if (response.ok) {
-                    const updatedUser = { ...localUser.value, username: newUsername.value };
-                    localUser.value = updatedUser;
-                    localStorage.setItem('user', JSON.stringify(updatedUser));
-                    alert('Nombre de usuario actualizado correctamente');
-                }
-                else {
-                    alert('Error al actualizar el nombre de usuario');
-                }
+                await UserService.update(userId, { username: newUsername.value });
+                const updatedUser = { ...localUser.value, username: newUsername.value };
+                localUser.value = updatedUser;
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                alert('Nombre de usuario actualizado correctamente');
             }
             catch (error) {
                 console.error('Error:', error);
@@ -305,36 +247,18 @@ const __VLS_self = (await import('vue')).defineComponent({
                 return;
             }
             try {
-                const token = AuthService.getToken();
-                const response = await fetch(`${API_URL}/auth/change-password`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: localUser.value.correo,
-                        currentPassword: passwordData.value.current,
-                        newPassword: passwordData.value.new
-                    })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert('Contraseña actualizada correctamente');
-                    passwordData.value = { current: '', new: '', confirm: '' };
-                }
-                else {
-                    if (data.message && data.message.includes('contraseña actual es incorrecta')) {
-                        alert('La contraseña actual es incorrecta');
-                    }
-                    else {
-                        alert('Error al actualizar la contraseña');
-                    }
-                }
+                await AuthService.changePassword(localUser.value.correo, passwordData.value.current, passwordData.value.new);
+                alert('Contraseña actualizada correctamente');
+                passwordData.value = { current: '', new: '', confirm: '' };
             }
             catch (error) {
                 console.error('Error:', error);
-                alert('Error al actualizar la contraseña');
+                if (error.message && error.message.includes('contraseña actual es incorrecta')) {
+                    alert('La contraseña actual es incorrecta');
+                }
+                else {
+                    alert('Error al actualizar la contraseña');
+                }
             }
         };
         const handleLogout = () => {
@@ -355,29 +279,13 @@ const __VLS_self = (await import('vue')).defineComponent({
                 }
                 // Obtener el ID del usuario del token decodificado
                 const userInfo = JSON.parse(atob(token.split('.')[1]));
-                const userId = userInfo.sub; // El ID del usuario está en el campo 'sub' del token JWT
+                const userId = userInfo.sub;
                 console.log('Enviando actualización de avatar:', {
                     selectedAvatar: selectedAvatar.value,
-                    token: token,
-                    url: `${API_URL}/users/${userId}`
+                    userId: userId
                 });
-                const response = await fetch(`${API_URL}/users/${userId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        avatar: selectedAvatar.value
-                    })
-                });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    console.error('Error response:', errorData);
-                    throw new Error(errorData.message || 'Error al actualizar el avatar');
-                }
-                const data = await response.json();
-                console.log('Respuesta exitosa:', data);
+                await UserService.update(userId, { avatar: selectedAvatar.value });
+                console.log('Avatar actualizado exitosamente');
                 // Actualizar localStorage y estado local
                 const storedUser = localStorage.getItem('user');
                 if (storedUser) {
