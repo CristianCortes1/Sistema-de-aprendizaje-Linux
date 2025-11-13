@@ -40,7 +40,7 @@
 - **Tipo**: `reto`
 - **Descripción**: Usa el comando para mostrar en qué directorio te encuentras actualmente. Este comando te ayudará a saber tu ubicación en todo momento.
 - **Comandos válidos**: 
-  - `pwd`
+  - `pwd` - Muestra la ruta completa del directorio actual (print working directory)
 - **Mensaje de retroalimentación**: "¡Excelente! El comando 'pwd' (print working directory) muestra la ruta completa del directorio donde te encuentras. Es útil para orientarte en el sistema de archivos."
 
 #### Elemento 3: Explicación - Sistema de Archivos de Linux
@@ -81,9 +81,9 @@
 - **Tipo**: `reto`
 - **Descripción**: Muestra todos los archivos y carpetas que hay en tu directorio actual. Esto te permite ver qué contenido está disponible.
 - **Comandos válidos**: 
-  - `ls`
-  - `ls -l`
-  - `ls -a`
+  - `ls` - Lista archivos y directorios del directorio actual
+  - `ls -l` - Lista en formato largo con detalles (permisos, propietario, tamaño, fecha)
+  - `ls -a` - Lista todos los archivos, incluidos los ocultos (que empiezan con .)
 - **Mensaje de retroalimentación**: "¡Perfecto! El comando 'ls' lista el contenido del directorio. Puedes usar 'ls -l' para más detalles o 'ls -a' para ver archivos ocultos."
 
 #### Elemento 5: Explicación - Creando tu Primer Directorio
@@ -117,24 +117,24 @@
 - **Tipo**: `reto`
 - **Descripción**: Crea una carpeta nueva llamada 'practica' usando el comando para crear directorios.
 - **Comandos válidos**: 
-  - `mkdir practica`
-  - `mkdir ./practica`
+  - `mkdir practica` - Crea un nuevo directorio llamado 'practica' (make directory)
+  - `mkdir ./practica` - Crea el directorio en la ubicación actual (forma explícita)
 - **Mensaje de retroalimentación**: "¡Muy bien! El comando 'mkdir' (make directory) crea un nuevo directorio. Ahora puedes organizarte mejor creando carpetas."
 
 #### Elemento 7: Reto - Navegar a un directorio
 - **Tipo**: `reto`
 - **Descripción**: Entra al directorio 'practica' que acabas de crear usando el comando de cambio de directorio.
 - **Comandos válidos**: 
-  - `cd practica`
-  - `cd ./practica`
+  - `cd practica` - Cambia al directorio 'practica' (change directory)
+  - `cd ./practica` - Cambia al directorio usando ruta relativa explícita
 - **Mensaje de retroalimentación**: "¡Genial! El comando 'cd' (change directory) te permite moverte entre directorios. Ahora estás dentro de 'practica'."
 
 #### Elemento 8: Reto - Regresar al directorio anterior
 - **Tipo**: `reto`
 - **Descripción**: Regresa al directorio padre (un nivel arriba) usando el símbolo especial para el directorio padre.
 - **Comandos válidos**: 
-  - `cd ..`
-  - `cd ../`
+  - `cd ..` - Sube un nivel en la jerarquía de directorios (al directorio padre)
+  - `cd ../` - Sube al directorio padre (forma alternativa con barra)
 - **Mensaje de retroalimentación**: "¡Correcto! El símbolo '..' representa el directorio padre. Usar 'cd ..' te mueve un nivel arriba en la jerarquía de directorios."
 
 #### Elemento 9: Explicación - Herramientas de Ayuda
@@ -171,15 +171,15 @@
 - **Tipo**: `reto`
 - **Descripción**: La terminal está llena de texto. Usa el comando para limpiar la pantalla y tener una vista más clara.
 - **Comandos válidos**: 
-  - `clear`
+  - `clear` - Limpia la pantalla de la terminal (equivalente a Ctrl+L)
 - **Mensaje de retroalimentación**: "¡Perfecto! El comando 'clear' limpia la terminal, dándote una pantalla limpia para seguir trabajando. También puedes usar Ctrl+L."
 
 #### Elemento 11: Reto - Ver el manual de un comando
 - **Tipo**: `reto`
 - **Descripción**: Muestra el manual de ayuda del comando 'ls' para aprender más sobre sus opciones disponibles.
 - **Comandos válidos**: 
-  - `man ls`
-  - `ls --help`
+  - `man ls` - Muestra el manual completo del comando ls (presiona 'q' para salir)
+  - `ls --help` - Muestra un resumen rápido de las opciones del comando ls
 - **Mensaje de retroalimentación**: "¡Excelente! El comando 'man' muestra el manual completo de cualquier comando. Es tu mejor amigo para aprender Linux. Presiona 'q' para salir del manual."
 
 ---
@@ -226,24 +226,24 @@
 - **Tipo**: `reto`
 - **Descripción**: Crea un archivo vacío llamado 'nota.txt' usando el comando touch.
 - **Comandos válidos**: 
-  - `touch nota.txt`
-  - `touch ./nota.txt`
+  - `touch nota.txt` - Crea un archivo vacío o actualiza fecha de modificación
+  - `touch ./nota.txt` - Crea el archivo en la ubicación actual (forma explícita)
 - **Mensaje de retroalimentación**: "¡Bien hecho! El comando 'touch' crea archivos vacíos o actualiza la fecha de modificación de archivos existentes."
 
 #### Elemento 3: Reto - Escribir en un archivo
 - **Tipo**: `reto`
 - **Descripción**: Escribe el texto 'Hola Linux' en el archivo 'nota.txt' usando redirección.
 - **Comandos válidos**: 
-  - `echo "Hola Linux" > nota.txt`
-  - `echo 'Hola Linux' > nota.txt`
+  - `echo "Hola Linux" > nota.txt` - Escribe texto en archivo (sobrescribe contenido)
+  - `echo 'Hola Linux' > nota.txt` - Escribe texto usando comillas simples
 - **Mensaje de retroalimentación**: "¡Excelente! El operador '>' redirige la salida del comando 'echo' hacia el archivo, sobrescribiendo su contenido anterior."
 
 #### Elemento 4: Reto - Ver el contenido de un archivo
 - **Tipo**: `reto`
 - **Descripción**: Muestra el contenido del archivo 'nota.txt' en la terminal.
 - **Comandos válidos**: 
-  - `cat nota.txt`
-  - `cat ./nota.txt`
+  - `cat nota.txt` - Muestra el contenido completo del archivo (concatenate)
+  - `cat ./nota.txt` - Muestra el contenido usando ruta relativa explícita
 - **Mensaje de retroalimentación**: "¡Perfecto! El comando 'cat' (concatenate) muestra el contenido de archivos de texto. Es ideal para archivos pequeños."
 
 #### Elemento 5: Explicación - Copiando y Moviendo Archivos
@@ -284,16 +284,16 @@
 - **Tipo**: `reto`
 - **Descripción**: Crea una copia del archivo 'nota.txt' con el nombre 'nota_copia.txt'.
 - **Comandos válidos**: 
-  - `cp nota.txt nota_copia.txt`
-  - `cp ./nota.txt ./nota_copia.txt`
+  - `cp nota.txt nota_copia.txt` - Copia un archivo (copy)
+  - `cp ./nota.txt ./nota_copia.txt` - Copia usando rutas relativas explícitas
 - **Mensaje de retroalimentación**: "¡Muy bien! El comando 'cp' (copy) copia archivos. Ahora tienes dos archivos idénticos con diferentes nombres."
 
 #### Elemento 7: Reto - Renombrar o mover un archivo
 - **Tipo**: `reto`
 - **Descripción**: Renombra el archivo 'nota_copia.txt' a 'respaldo.txt'.
 - **Comandos válidos**: 
-  - `mv nota_copia.txt respaldo.txt`
-  - `mv ./nota_copia.txt ./respaldo.txt`
+  - `mv nota_copia.txt respaldo.txt` - Mueve o renombra archivos (move)
+  - `mv ./nota_copia.txt ./respaldo.txt` - Renombra usando rutas explícitas
 - **Mensaje de retroalimentación**: "¡Correcto! El comando 'mv' (move) sirve tanto para mover como para renombrar archivos. Es muy versátil."
 
 #### Elemento 8: Explicación - Directorios Anidados
@@ -337,8 +337,8 @@ mkdir -p mi_proyecto/tests</code></pre>
 - **Tipo**: `reto`
 - **Descripción**: Crea un directorio llamado 'proyectos' y dentro de él crea 'proyecto1' usando la opción -p.
 - **Comandos válidos**: 
-  - `mkdir -p proyectos/proyecto1`
-  - `mkdir -p ./proyectos/proyecto1`
+  - `mkdir -p proyectos/proyecto1` - Crea directorios anidados (padres + hijo)
+  - `mkdir -p ./proyectos/proyecto1` - Crea estructura de directorios completa
 - **Mensaje de retroalimentación**: "¡Excelente! La opción '-p' de mkdir crea directorios anidados en un solo comando, creando directorios padres si no existen."
 
 #### Elemento 10: Explicación - Eliminación Segura
@@ -382,16 +382,16 @@ mkdir -p mi_proyecto/tests</code></pre>
 - **Tipo**: `reto`
 - **Descripción**: Elimina el archivo 'respaldo.txt' usando el comando de eliminación. Ten cuidado, esta acción no se puede deshacer fácilmente.
 - **Comandos válidos**: 
-  - `rm respaldo.txt`
-  - `rm ./respaldo.txt`
+  - `rm respaldo.txt` - Elimina un archivo (remove - acción permanente)
+  - `rm ./respaldo.txt` - Elimina archivo usando ruta relativa explícita
 - **Mensaje de retroalimentación**: "¡Bien! El comando 'rm' (remove) elimina archivos. Úsalo con precaución ya que no hay papelera de reciclaje en la terminal."
 
 #### Elemento 12: Reto - Eliminar un directorio vacío
 - **Tipo**: `reto`
 - **Descripción**: Intenta eliminar el directorio 'proyectos/proyecto1' usando el comando para directorios vacíos.
 - **Comandos válidos**: 
-  - `rmdir proyectos/proyecto1`
-  - `rmdir ./proyectos/proyecto1`
+  - `rmdir proyectos/proyecto1` - Elimina directorios vacíos (remove directory)
+  - `rmdir ./proyectos/proyecto1` - Elimina directorio vacío con ruta explícita
 - **Mensaje de retroalimentación**: "¡Correcto! El comando 'rmdir' elimina directorios vacíos. Para directorios con contenido, necesitarías usar 'rm -r'."
 
 ---
@@ -451,17 +451,17 @@ mkdir -p mi_proyecto/tests</code></pre>
 - **Tipo**: `reto`
 - **Descripción**: Lista los archivos del directorio actual con formato largo para ver sus permisos, propietario y grupo.
 - **Comandos válidos**: 
-  - `ls -l`
-  - `ls -la`
-  - `ll`
+  - `ls -l` - Lista en formato largo (permisos, propietario, tamaño, fecha)
+  - `ls -la` - Lista formato largo incluyendo archivos ocultos
+  - `ll` - Alias de 'ls -l' (si está configurado en el sistema)
 - **Mensaje de retroalimentación**: "¡Excelente! La opción '-l' muestra información detallada incluyendo permisos (rwx), propietario, grupo, tamaño y fecha de modificación."
 
 #### Elemento 3: Reto - Crear un script ejecutable
 - **Tipo**: `reto`
 - **Descripción**: Crea un archivo llamado 'script.sh' con el comando touch.
 - **Comandos válidos**: 
-  - `touch script.sh`
-  - `touch ./script.sh`
+  - `touch script.sh` - Crea un archivo vacío (extensión .sh = shell script)
+  - `touch ./script.sh` - Crea el archivo en el directorio actual
 - **Mensaje de retroalimentación**: "¡Bien! Ahora tienes un archivo que convertiremos en un script ejecutable."
 
 #### Elemento 4: Explicación - El Comando chmod
@@ -503,9 +503,9 @@ chmod 777 compartido    # rwxrwxrwx (todos los permisos, ¡poco seguro!)</code><
 - **Tipo**: `reto`
 - **Descripción**: Agrega permisos de ejecución al archivo 'script.sh' para poder ejecutarlo como un programa.
 - **Comandos válidos**: 
-  - `chmod +x script.sh`
-  - `chmod u+x script.sh`
-  - `chmod 755 script.sh`
+  - `chmod +x script.sh` - Añade permiso de ejecución a todos (change mode)
+  - `chmod u+x script.sh` - Añade permiso de ejecución solo al usuario
+  - `chmod 755 script.sh` - Establece permisos rwxr-xr-x (formato numérico)
 - **Mensaje de retroalimentación**: "¡Perfecto! El comando 'chmod' (change mode) modifica permisos. '+x' añade permiso de ejecución. Ahora puedes ejecutar el script."
 
 #### Elemento 6: Explicación - Usuarios y Grupos
@@ -545,16 +545,16 @@ chmod 777 compartido    # rwxrwxrwx (todos los permisos, ¡poco seguro!)</code><
 - **Tipo**: `reto`
 - **Descripción**: Muestra tu nombre de usuario actual en el sistema.
 - **Comandos válidos**: 
-  - `whoami`
-  - `id -un`
+  - `whoami` - Muestra tu nombre de usuario actual
+  - `id -un` - Muestra el nombre de usuario (user name) usando el comando id
 - **Mensaje de retroalimentación**: "¡Correcto! El comando 'whoami' te dice qué usuario eres actualmente. Útil cuando trabajas con múltiples usuarios."
 
 #### Elemento 8: Reto - Ver grupos del usuario
 - **Tipo**: `reto`
 - **Descripción**: Muestra todos los grupos a los que pertenece tu usuario actual.
 - **Comandos válidos**: 
-  - `groups`
-  - `id`
+  - `groups` - Lista todos los grupos a los que perteneces
+  - `id` - Muestra información completa (UID, GID y grupos)
 - **Mensaje de retroalimentación**: "¡Muy bien! El comando 'groups' lista todos los grupos de tu usuario. Los grupos determinan qué recursos puedes acceder."
 
 #### Elemento 9: Explicación - Permisos Numéricos en Detalle
@@ -614,16 +614,16 @@ chmod 600 privado.txt
 - **Tipo**: `reto`
 - **Descripción**: Cambia los permisos de 'nota.txt' a solo lectura y escritura para el propietario (600).
 - **Comandos válidos**: 
-  - `chmod 600 nota.txt`
-  - `chmod 600 ./nota.txt`
+  - `chmod 600 nota.txt` - Establece permisos rw------- (solo propietario)
+  - `chmod 600 ./nota.txt` - Establece permisos 600 con ruta explícita
 - **Mensaje de retroalimentación**: "¡Excelente! Los permisos numéricos: 6=rw- (lectura+escritura), 0=--- (sin permisos). El formato es: propietario-grupo-otros."
 
 #### Elemento 11: Reto - Ver detalles con stat
 - **Tipo**: `reto`
 - **Descripción**: Usa el comando 'stat' para ver información detallada del archivo 'script.sh', incluyendo permisos en diferentes formatos.
 - **Comandos válidos**: 
-  - `stat script.sh`
-  - `stat ./script.sh`
+  - `stat script.sh` - Muestra información detallada del archivo (tamaño, permisos, fechas)
+  - `stat ./script.sh` - Muestra estadísticas completas con ruta explícita
 - **Mensaje de retroalimentación**: "¡Perfecto! El comando 'stat' muestra información completa: permisos (octal y simbólico), tamaño, bloques, inodo y fechas de acceso/modificación."
 
 ---
@@ -680,17 +680,17 @@ chmod 600 privado.txt
 - **Tipo**: `reto`
 - **Descripción**: Usa el comando 'find' para buscar todos los archivos que terminen en '.txt' en el directorio actual y sus subdirectorios.
 - **Comandos válidos**: 
-  - `find . -name "*.txt"`
-  - `find . -name '*.txt'`
-  - `find -name "*.txt"`
+  - `find . -name "*.txt"` - Busca archivos por patrón de nombre (* = comodín)
+  - `find . -name '*.txt'` - Busca archivos .txt (con comillas simples)
+  - `find -name "*.txt"` - Busca desde directorio actual (. implícito)
 - **Mensaje de retroalimentación**: "¡Excelente! El comando 'find' es muy poderoso para buscar archivos. El punto '.' indica el directorio actual, y '-name' busca por nombre de archivo."
 
 #### Elemento 3: Reto - Buscar archivos por tipo
 - **Tipo**: `reto`
 - **Descripción**: Busca solo directorios en el directorio actual usando find con la opción de tipo.
 - **Comandos válidos**: 
-  - `find . -type d`
-  - `find -type d`
+  - `find . -type d` - Busca solo directorios (d = directory)
+  - `find -type d` - Busca directorios desde ubicación actual
 - **Mensaje de retroalimentación**: "¡Perfecto! La opción '-type d' filtra solo directorios. También puedes usar '-type f' para buscar solo archivos regulares."
 
 #### Elemento 4: Explicación - Búsqueda de Contenido con grep
@@ -744,18 +744,18 @@ find . -name "*.js" -exec grep "TODO" {} \;</code></pre>
 - **Tipo**: `reto`
 - **Descripción**: Busca la palabra 'Linux' dentro de todos los archivos .txt del directorio actual usando grep.
 - **Comandos válidos**: 
-  - `grep "Linux" *.txt`
-  - `grep 'Linux' *.txt`
-  - `grep Linux *.txt`
+  - `grep "Linux" *.txt` - Busca texto en archivos (* = todos los .txt)
+  - `grep 'Linux' *.txt` - Busca patrón usando comillas simples
+  - `grep Linux *.txt` - Busca palabra sin comillas (funciona si no hay espacios)
 - **Mensaje de retroalimentación**: "¡Muy bien! El comando 'grep' busca patrones de texto dentro de archivos. Es esencial para encontrar contenido específico."
 
 #### Elemento 6: Reto - Buscar de forma recursiva
 - **Tipo**: `reto`
 - **Descripción**: Busca la palabra 'Hola' en todos los archivos del directorio actual y subdirectorios usando grep con la opción recursiva.
 - **Comandos válidos**: 
-  - `grep -r "Hola" .`
-  - `grep -r 'Hola' .`
-  - `grep -R "Hola" .`
+  - `grep -r "Hola" .` - Busca recursivamente en todos los archivos
+  - `grep -r 'Hola' .` - Búsqueda recursiva con comillas simples
+  - `grep -R "Hola" .` - Búsqueda recursiva (R mayúscula, sigue links simbólicos)
 - **Mensaje de retroalimentación**: "¡Correcto! La opción '-r' o '-R' hace que grep busque recursivamente en todos los subdirectorios."
 
 #### Elemento 7: Explicación - Tuberías y Procesamiento de Texto
@@ -813,33 +813,33 @@ grep "error" app.log | sort</code></pre>
 - **Tipo**: `reto`
 - **Descripción**: Usa el comando 'wc' para contar cuántas líneas tiene el archivo 'nota.txt'.
 - **Comandos válidos**: 
-  - `wc -l nota.txt`
-  - `wc -l ./nota.txt`
+  - `wc -l nota.txt` - Cuenta número de líneas (word count -lines)
+  - `wc -l ./nota.txt` - Cuenta líneas con ruta explícita
 - **Mensaje de retroalimentación**: "¡Bien hecho! El comando 'wc' (word count) cuenta líneas (-l), palabras (-w) o caracteres (-c) en archivos."
 
 #### Elemento 9: Reto - Usar tuberías para combinar comandos
 - **Tipo**: `reto`
 - **Descripción**: Lista todos los archivos del directorio actual y cuenta cuántas líneas devuelve usando el operador pipe '|'.
 - **Comandos válidos**: 
-  - `ls | wc -l`
-  - `ls -1 | wc -l`
+  - `ls | wc -l` - Lista archivos y cuenta cuántos hay (pipe/tubería)
+  - `ls -1 | wc -l` - Lista uno por línea y cuenta (más preciso)
 - **Mensaje de retroalimentación**: "¡Excelente! El operador '|' (pipe) conecta la salida de un comando con la entrada de otro. Es una de las características más poderosas de Linux."
 
 #### Elemento 10: Reto - Ordenar resultados
 - **Tipo**: `reto`
 - **Descripción**: Lista los archivos del directorio actual y ordénalos alfabéticamente usando 'sort'.
 - **Comandos válidos**: 
-  - `ls | sort`
-  - `ls -1 | sort`
+  - `ls | sort` - Lista archivos y los ordena alfabéticamente
+  - `ls -1 | sort` - Lista uno por línea y ordena
 - **Mensaje de retroalimentación**: "¡Perfecto! El comando 'sort' ordena líneas de texto. Puedes usar '-r' para orden inverso o '-n' para orden numérico."
 
 #### Elemento 11: Reto - Filtrar y mostrar las primeras líneas
 - **Tipo**: `reto`
 - **Descripción**: Muestra solo las primeras 5 líneas del resultado de listar archivos usando el comando 'head'.
 - **Comandos válidos**: 
-  - `ls | head -5`
-  - `ls | head -n 5`
-  - `ls -1 | head -5`
+  - `ls | head -5` - Muestra solo las primeras 5 líneas
+  - `ls | head -n 5` - Muestra primeras 5 líneas (formato explícito)
+  - `ls -1 | head -5` - Lista uno por línea, muestra primeras 5
 - **Mensaje de retroalimentación**: "¡Muy bien! El comando 'head' muestra las primeras líneas de un archivo o salida. Para ver las últimas líneas, usa 'tail'."
 
 #### Elemento 12: Explicación - Búsquedas Avanzadas
@@ -907,8 +907,8 @@ find . -name "*.pdf" -exec cp {} /destino/ \;</code></pre>
 - **Tipo**: `reto`
 - **Descripción**: Busca archivos que se hayan modificado en las últimas 24 horas (1 día) usando find.
 - **Comandos válidos**: 
-  - `find . -mtime -1`
-  - `find -mtime -1`
+  - `find . -mtime -1` - Busca archivos modificados en últimas 24 horas
+  - `find -mtime -1` - Busca modificados recientemente (. implícito)
 - **Mensaje de retroalimentación**: "¡Excelente! La opción '-mtime -1' encuentra archivos modificados en el último día. Es útil para encontrar cambios recientes en tu sistema."
 
 ---
