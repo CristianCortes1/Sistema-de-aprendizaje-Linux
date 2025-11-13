@@ -15,6 +15,9 @@ RUN pnpm install --frozen-lockfile
 # Copiar código fuente
 COPY . .
 
+# Limpiar caché de Vite
+RUN rm -rf node_modules/.vite
+
 # ARG para la URL del backend (se pasa en build time)
 ARG VITE_API_URL=http://localhost:3000
 
