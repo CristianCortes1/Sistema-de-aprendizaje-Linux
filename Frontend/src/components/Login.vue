@@ -46,11 +46,14 @@ async function handleLogin() {
         console.error('❌ Error en login:', err)
         
         // Manejar errores específicos
-        if (err.message.includes('Account not activated') || err.message.includes('not activated')) {
+        if (err.message.includes('Sesión expirada')) {
+            // No mostrar este error en login, simplemente limpiar
+            errorMessage.value = 'Por favor inicia sesión'
+        } else if (err.message.includes('Account not activated') || err.message.includes('not activated') || err.message.includes('no está activada')) {
             errorMessage.value = 'Tu cuenta aún no está activada. Por favor revisa tu correo para confirmar tu cuenta.'
-        } else if (err.message.includes('Invalid credentials') || err.message.includes('Unauthorized')) {
+        } else if (err.message.includes('Invalid credentials') || err.message.includes('Unauthorized') || err.message.includes('401')) {
             errorMessage.value = 'Usuario o contraseña incorrectos'
-        } else if (err.message.includes('conexión')) {
+        } else if (err.message.includes('conexión') || err.message.includes('network')) {
             errorMessage.value = 'Error de conexión. Por favor verifica tu internet e intenta de nuevo.'
         } else {
             errorMessage.value = err.message || 'Error al iniciar sesión. Por favor intenta de nuevo.'

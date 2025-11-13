@@ -48,11 +48,14 @@ class ApiService {
         headers: requestHeaders,
       })
 
-      // Manejar errores de autenticación
-      if (response.status === 401) {
+      // Manejar errores de autenticación (solo si requiere auth)
+      if (response.status === 401 && requiresAuth) {
         AuthService.logout()
         localStorage.removeItem('user')
-        window.location.href = '/login'
+        // Usar router en lugar de window.location para evitar página en blanco
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('unauthorized'))
+        }
         throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.')
       }
 
