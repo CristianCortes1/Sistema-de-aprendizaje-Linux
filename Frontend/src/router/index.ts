@@ -13,6 +13,7 @@ import PrivacyPolicy from '../components/PrivacyPolicy.vue';
 import TermsConditions from '../components/TermsConditions.vue';
 import ForgotPassword from '../components/ForgotPassword.vue';
 import ResetPassword from '../components/ResetPassword.vue';
+import AuthCallback from '../components/AuthCallback.vue';
 
 const routes = [
     {
@@ -36,6 +37,11 @@ const routes = [
         path: '/reset-password',
         name: 'ResetPassword',
         component: ResetPassword
+    },
+    {
+        path: '/auth/callback',
+        name: 'AuthCallback',
+        component: AuthCallback
     },
     {
         path: '/privacy-policy',

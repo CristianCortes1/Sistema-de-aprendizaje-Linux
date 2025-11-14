@@ -303,4 +303,75 @@ export class AuthService {
 
     return { message: 'Contraseña restablecida exitosamente' };
   }
+
+  async googleLogin(req: any) {
+    const googleUser = req.user;
+    
+    if (!googleUser || !googleUser.email) {
+      throw new UnauthorizedException('No user from Google');
+    }
+
+    // Buscar usuario por email
+    let user = await this.prisma.user.findFirst({
+      where: {
+        correo: { equals: googleUser.email.toLowerCase(), mode: 'insensitive' },
+      },
+    });
+
+    // Si no existe, crear nuevo usuario
+    if (!user) {
+      const username = googleUser.email.split('@')[0] + '_' + Math.floor(Math.random() * 1000);
+      
+      user = await this.prisma.user.create({
+        data: {
+          username,
+          correo: googleUser.email.toLowerCase(),
+          contraseña: '', // Sin contraseña para OAuth users
+          avatar: googleUser.picture || '',
+          activo: true, // Ya verificado por Google
+        },
+      });
+    }
+
+    // Actualizar racha y login
+    const now = new Date();
+    let newRacha = user.racha;
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const twoDaysMs = 48 * 60 * 60 * 1000;
+
+    if (user.ultimoLogin) {
+      const diffMs = now.getTime() - user.ultimoLogin.getTime();
+      if (diffMs < oneDayMs) {
+        // Mismo día, mantener racha
+      } else if (diffMs >= oneDayMs && diffMs < twoDaysMs) {
+        newRacha = user.racha + 1;
+      } else {
+        newRacha = 1;
+      }
+    } else {
+      newRacha = 1;
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id_Usuario: user.id_Usuario },
+      data: {
+        racha: newRacha,
+        ultimoLogin: now,
+      },
+    });
+
+    // Generar JWT
+    const payload = { 
+      username: updated.username, 
+      sub: updated.id_Usuario,
+      rol: updated.rol 
+    };
+    
+    const { contraseña, ...userSafe } = updated as any;
+    
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: userSafe,
+    };
+  }
 }
