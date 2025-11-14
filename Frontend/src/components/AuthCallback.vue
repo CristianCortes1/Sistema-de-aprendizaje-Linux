@@ -24,8 +24,12 @@ onMounted(async () => {
 
     // Guardar token y obtener datos del usuario
     AuthService.setToken(token);
-    const user = await AuthService.getProfile();
-    
+    const userId = AuthService.getUserId();
+    if (!userId) {
+      throw new Error('No se pudo obtener el perfil del usuario');
+    }
+    const user = { id: userId };
+        
     // Guardar usuario en localStorage
     localStorage.setItem('user', JSON.stringify(user));
 
