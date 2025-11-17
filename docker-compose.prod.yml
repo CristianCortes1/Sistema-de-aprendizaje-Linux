@@ -71,7 +71,10 @@ services:
       - penguinpath-network
     restart: unless-stopped
     volumes:
-      - /etc/letsencrypt/archive/penguinpath.duckdns.org:/etc/nginx/ssl:ro
+      # Volumen para challenges de certbot
+      - /var/www/certbot:/var/www/certbot
+      # Volumen para certificados SSL (nuevo dominio)
+      - /etc/letsencrypt:/etc/nginx/ssl:ro
 
 volumes:
   postgres_data:
