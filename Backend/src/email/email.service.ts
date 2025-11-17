@@ -222,7 +222,6 @@ export class EmailService implements OnModuleInit {
       process.env.EMAIL_FROM ||
       '"Penguin Path 🐧" <noreply@penguinpath.app>';
 
-    const html = `
             const html = `
 <!DOCTYPE html>
 <html lang="es">
@@ -293,7 +292,6 @@ export class EmailService implements OnModuleInit {
     </table>
 </body>
 </html>`;
-      `;
 
     if (this.useSendgrid) {
       const res = await sgMail.send({
