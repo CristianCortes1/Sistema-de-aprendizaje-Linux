@@ -34,13 +34,24 @@ services:
       PORT: 3000
       NODE_ENV: production
       DOCKER_HOST: unix:///var/run/docker.sock
-      # Otras variables de entorno
+      # JWT y Seguridad
       JWT_SECRET: ${JWT_SECRET}
-      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      # Email - SMTP Configuration (Gmail)
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
       EMAIL_FROM: ${EMAIL_FROM}
+      # Email - SendGrid (alternativo)
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
       EMAIL_USER: ${EMAIL_USER}
+      # URLs y CORS
       FRONTEND_URL: ${FRONTEND_URL}
       CORS_ORIGIN: ${CORS_ORIGIN}
+      # Google OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:rw
     # Puerto 3000 NO expuesto externamente - solo accesible en red interna
