@@ -13,9 +13,13 @@ import { DockerService } from './docker.service';
     origin: [
       process.env.FRONTEND_URL || 'http://localhost:5173',
       'http://localhost:5173',
+      'https://localhost:5173',
+      'https://penguinpath.online',
+      'http://penguinpath.online',
+      'https://www.penguinpath.online',
       'http://localhost:8080',
-      /^http:\/\/localhost:\d+$/,
-      /^http:\/\/\d+\.\d+\.\d+\.\d+(:\d+)?$/,
+      /^https?:\/\/localhost:\d+$/,
+      /^https?:\/\/\d+\.\d+\.\d+\.\d+(:\d+)?$/,
     ],
     credentials: true 
   } 
