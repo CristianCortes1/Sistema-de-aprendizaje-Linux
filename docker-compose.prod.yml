@@ -52,6 +52,12 @@ services:
     networks:
       - penguinpath-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Frontend Vue/Nginx
   frontend:
@@ -66,7 +72,10 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     networks:
       - penguinpath-network
     restart: unless-stopped
