@@ -79,26 +79,36 @@ export class EmailService implements OnModuleInit {
         }
       }
 
-      // Si estamos en producción sin API key (no recomendado), intentamos SMTP como último recurso
-      if (useProd) {
+      // Configuración SMTP (Gmail o similar) - se ejecuta si no hay SendGrid o en desarrollo
+      if (useProd || process.env.SMTP_HOST) {
+        console.log('🔧 Configurando SMTP con:', process.env.SMTP_HOST);
+        
         this.transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
+          host: process.env.SMTP_HOST || 'smtp.gmail.com',
           port: Number(process.env.SMTP_PORT ?? 587),
-          secure:
-            process.env.SMTP_SECURE === 'true' ||
-            Number(process.env.SMTP_PORT) === 465,
+          secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465,
           auth: {
             user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
+            pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS, // Soportar ambos nombres
           },
-          // Timeouts más holgados
-          connectionTimeout: 20000,
-          greetingTimeout: 15000,
-          socketTimeout: 30000,
+          // Configuración optimizada para Gmail
+          connectionTimeout: 30000,
+          greetingTimeout: 20000,
+          socketTimeout: 45000,
+          // Configuración adicional para Gmail
+          tls: {
+            rejectUnauthorized: false
+          }
         });
-        await this.transporter.verify();
-        this.ready = true;
-        console.log('✅ Email: SMTP verificado');
+        
+        try {
+          await this.transporter.verify();
+          this.ready = true;
+          console.log('✅ SMTP configurado correctamente con:', process.env.SMTP_HOST);
+        } catch (error) {
+          console.error('❌ Error verificando SMTP:', error.message);
+          this.ready = false;
+        }
       }
     } catch (err: any) {
       console.error('❌ Error inicializando email transporter:', err?.message);
