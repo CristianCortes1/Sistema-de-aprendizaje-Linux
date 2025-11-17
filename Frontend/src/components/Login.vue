@@ -83,19 +83,21 @@ async function handleLogin() {
                 {{ errorMessage }}
             </div>
 
-            <div class="form-group">
-                <label class="label-left">Apodo</label>
-                <input type="text" placeholder="Ingresa tu apodo" v-model="email" />
-            </div>
+            <form @submit.prevent="handleLogin">
+                <div class="form-group">
+                    <label class="label-left">Apodo</label>
+                    <input type="text" placeholder="Ingresa tu apodo" v-model="email" autocomplete="username" />
+                </div>
 
-            <div class="form-group">
-                <label class="label-left">Contraseña</label>
-                <input type="password" placeholder="Ingresa tu contraseña" v-model="password" />
-            </div>
+                <div class="form-group">
+                    <label class="label-left">Contraseña</label>
+                    <input type="password" placeholder="Ingresa tu contraseña" v-model="password" autocomplete="current-password" />
+                </div>
 
-            <button class="login-btn" :disabled="loading" @click="handleLogin">
-                {{ loading ? 'Cargando...' : 'Iniciar sesión' }}
-            </button>
+                <button type="submit" class="login-btn" :disabled="loading">
+                    {{ loading ? 'Cargando...' : 'Iniciar sesión' }}
+                </button>
+            </form>
 
             <div class="links">
                 <router-link to="/forgot-password" class="forgot-password">¿Olvidaste tu contraseña?</router-link>
@@ -107,9 +109,6 @@ async function handleLogin() {
         </div>
     </div>
 </template>
-
-
-
 <style scoped>
 * {
     margin: 0;
@@ -128,7 +127,6 @@ html {
     padding: 0;
 }
 
-/* Si estás usando Vue, también resetea el div principal */
 #app {
     margin: 0;
     padding: 0;
