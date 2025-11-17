@@ -59,6 +59,11 @@ services:
     container_name: penguinpath-frontend
     ports:
       - "5173:80"
+    volumes:
+      # Volumen para challenges de certbot
+      - /var/www/certbot:/var/www/certbot
+      # Volumen para certificados SSL
+      - /etc/letsencrypt:/etc/nginx/ssl
     depends_on:
       - backend
     networks:
