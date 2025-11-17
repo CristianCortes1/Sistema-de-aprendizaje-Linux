@@ -41,6 +41,10 @@ class ApiService {
 
     // Construir URL completa
     const url = `${this.baseURL}${endpoint}`
+    
+    // Debug: Log de la URL que se está usando
+    console.log('🔗 Making request to:', url)
+    console.log('📋 Headers:', requestHeaders)
 
     try {
       const response = await fetch(url, {
