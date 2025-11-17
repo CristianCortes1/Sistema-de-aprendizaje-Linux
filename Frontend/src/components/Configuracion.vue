@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import AuthService from '../services/AuthService'
 import UserService from '../services/UserService'
 import Header from './Header.vue'
-import Footer from './Footer.vue'
+import Footer from './Sidebar.vue'
 
 export default {
   name: 'Configuracion',
@@ -318,7 +318,7 @@ export default {
       </div>
     </div>
 
-    <Footer 
+  <Footer 
       :goInicio="() => $router.push('/dashboard')" 
       :goBiblioteca="() => $router.push('/biblioteca')" 
       :goRanking="() => $router.push('/ranking')" 

@@ -7,7 +7,7 @@ import { FitAddon } from 'xterm-addon-fit'
 import { WebLinksAddon } from 'xterm-addon-web-links'
 import 'xterm/css/xterm.css'
 import Header from './Header.vue'
-import Footer from './Footer.vue'
+import Footer from './Sidebar.vue'
 import XPGainedAnimation from './XPGainedAnimation.vue'
 import LessonService from '../services/LessonService'
 import UserService from '../services/UserService'
@@ -701,7 +701,7 @@ export default defineComponent({
             </div>
         </div>
 
-        <Footer :goInicio="goInicio" :goBiblioteca="goBiblioteca" :goRanking="goRanking" :goConfig="goConfig" />
+    <Footer :goInicio="goInicio" :goBiblioteca="goBiblioteca" :goRanking="goRanking" :goConfig="goConfig" />
     </div>
 </template>
 

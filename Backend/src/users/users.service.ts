@@ -63,9 +63,36 @@ export class UsersService {
     });
   }
 
-  remove(id: number) {
-    return this.prisma.user.delete({
-      where: { id_Usuario: id },
+  async remove(id: number) {
+    // Usar una transacción para eliminar todo en orden correcto
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Verificar que el usuario existe
+      const user = await tx.user.findUnique({
+        where: { id_Usuario: id },
+      });
+
+      if (!user) {
+        throw new Error(`Usuario con ID ${id} no encontrado`);
+      }
+
+      // 2. Eliminar progresos del usuario (tabla Progresos)
+      await tx.progresos.deleteMany({
+        where: { Usuarios_id_Usuario: id },
+      });
+
+      // 3. Eliminar cualquier otro registro relacionado que pueda existir
+      // (Aquí puedes agregar otras tablas cuando las implementes)
+
+      // 4. Finalmente eliminar el usuario
+      const deletedUser = await tx.user.delete({
+        where: { id_Usuario: id },
+      });
+
+      return {
+        message: 'Usuario y todos sus datos relacionados eliminados exitosamente',
+        id: deletedUser.id_Usuario,
+        username: deletedUser.username,
+      };
     });
   }
 }

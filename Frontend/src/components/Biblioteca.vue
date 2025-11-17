@@ -1,7 +1,7 @@
 <script>
 import { useRouter } from 'vue-router'
 import Header from './Header.vue'
-import Footer from './Footer.vue'
+import Footer from './Sidebar.vue'
 import CommandService from '../services/CommandService'
 
 export default {
@@ -326,7 +326,7 @@ tr.descripcion td::after {
 
 /* Se elimina el estilo de las tarjetas de lecciones por defecto */
 
-.footer {
+.sidebar {
     display: flex;
     justify-content: space-around;
     align-items: center;
@@ -339,7 +339,7 @@ tr.descripcion td::after {
     width: 100%;
 }
 
-.footer button {
+.sidebar button {
     background: none;
     border: none;
     color: white;
@@ -353,13 +353,13 @@ tr.descripcion td::after {
     gap: 6px;
 }
 
-.footer button img {
+.sidebar button img {
     width: 32px;
     height: 32px;
     object-fit: contain;
 }
 
-.footer .barra-inicio button img {
+.sidebar .barra-inicio button img {
     width: 45px;
     height: 45px;
     object-fit: contain;
@@ -452,21 +452,21 @@ tr.descripcion td::after {
         font-size: 14px;
     }
 
-    .footer {
+    .sidebar {
         padding: 10px 15px;
     }
 
-    .footer button {
+    .sidebar button {
         font-size: 11px;
         gap: 4px;
     }
 
-    .footer button img {
+    .sidebar button img {
         width: 24px;
         height: 24px;
     }
 
-    .footer .barra-inicio button img {
+    .sidebar .barra-inicio button img {
         width: 32px;
         height: 32px;
     }
