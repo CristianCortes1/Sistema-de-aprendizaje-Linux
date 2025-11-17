@@ -28,9 +28,14 @@ async function bootstrap() {
     origin: [
       frontendUrl,
       'http://localhost:5173',
+      'https://localhost:5173',
+      'https://penguinpath.online',
+      'http://penguinpath.online',
+      'https://www.penguinpath.online',
       'http://penguinpath.duckdns.org/',
       'http://localhost:8080',
       /^http:\/\/\d+\.\d+\.\d+\.\d+(:\d+)?$/,
+      /^https:\/\/\d+\.\d+\.\d+\.\d+(:\d+)?$/,
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
@@ -65,8 +70,8 @@ async function bootstrap() {
     )
     .setContact(
       'Equipo PenguinPath',
-      'http://penguinpath.duckdns.org',
-      'contact@penguinpath.com',
+      'https://penguinpath.online',
+      'admin@penguinpath.online',
     )
     .setLicense('MIT', 'https://opensource.org/licenses/MIT')
     .build();

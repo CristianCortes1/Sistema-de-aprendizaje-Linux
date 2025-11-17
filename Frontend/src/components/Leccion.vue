@@ -345,8 +345,10 @@ export default defineComponent({
             }
         }
 
-        // API URL usando la configuración centralizada
-        const WS_URL = import.meta.env.MODE === 'production' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+        // WebSocket URL - en producción usa la URL actual, en desarrollo usa localhost
+        const WS_URL = import.meta.env.MODE === 'production' 
+            ? `${window.location.protocol}//${window.location.host}` 
+            : (import.meta.env.VITE_API_URL || 'http://localhost:3000')
 
         console.log('🔌 Conectando al WebSocket:', WS_URL)
         console.log('👤 User ID:', userId)
