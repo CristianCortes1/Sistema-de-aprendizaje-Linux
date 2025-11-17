@@ -9,6 +9,10 @@ import Modales from './Modales.vue'
 const router = useRouter()
 
 const activeTab = ref<'users' | 'lessons'>('users')
+// Mobile sidebar drawer state
+const mobileSidebarOpen = ref(false)
+const toggleSidebar = () => { mobileSidebarOpen.value = !mobileSidebarOpen.value }
+const closeSidebar = () => { mobileSidebarOpen.value = false }
 const searchTerm = ref('')
 const selectedPage = ref('')
 
@@ -22,7 +26,6 @@ const navigateToPage = () => {
     selectedPage.value = ''
 }
 
-// Control de modales con Modales.vue
 const modalVisible = ref(false)
 const modalType = ref<'usuario' | 'leccion' | 'eliminar'>('usuario')
 const modalTitle = ref('')
@@ -139,7 +142,6 @@ const logout = () => {
     router.push('/')
 }
 
-// Funciones para abrir modales con Modales.vue
 const openAddUser = () => {
     modalTitle.value = 'Agregar Usuario'
     modalType.value = 'usuario'
@@ -435,9 +437,15 @@ const saveLesson = async () => {
 
 <template>
     <div class="admin">
-        <!-- Header -->
         <header class="admin-header">
             <div class="brand">
+                <button class="menu-toggle" type="button" @click="toggleSidebar" aria-label="Abrir menú">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
                 <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Penguin"
                     class="logo-penguin" />
                 <h1>Penguin Path</h1>
@@ -450,7 +458,7 @@ const saveLesson = async () => {
             </div>
         </header>
 
-        <aside class="sidebar">
+        <aside class="sidebar" :class="{ 'mobile-open': mobileSidebarOpen }">
             <div class="nav-selector">
                 <label for="pagina" class="nav-label">Ir a:</label>
                 <select id="pagina" v-model="selectedPage" @change="navigateToPage" class="nav-select">
@@ -495,7 +503,6 @@ const saveLesson = async () => {
             </div>
         </aside>
 
-        <!-- Content -->
         <main class="content">
             <!-- Users Tab -->
             <section v-if="activeTab === 'users'" class="users-section">
@@ -528,15 +535,15 @@ const saveLesson = async () => {
                         </thead>
                         <tbody>
                             <tr v-for="usuario in filteredUsuarios" :key="usuario.id">
-                                <td class="nombre-col">{{ usuario.nombre }}</td>
-                                <td class="email-col">{{ usuario.email }}</td>
-                                <td>{{ usuario.rol }}</td>
-                                <td>
+                                <td class="nombre-col" :data-label="'Nombre'">{{ usuario.nombre }}</td>
+                                <td class="email-col" :data-label="'Correo'">{{ usuario.email }}</td>
+                                <td :data-label="'Rol'">{{ usuario.rol }}</td>
+                                <td :data-label="'Estado'">
                                     <span
                                         :class="['badge', usuario.estado === 'Activo' ? 'badge-active' : 'badge-inactive']">{{
                                             usuario.estado }}</span>
                                 </td>
-                                <td class="actions-col">
+                                <td class="actions-col" :data-label="'Acciones'">
                                     <button class="btn-action btn-edit" @click="editUser(usuario.id)">Editar</button>
                                     <button class="btn-action btn-delete"
                                         @click="confirmDeleteUser(usuario.id)">Eliminar</button>
@@ -568,7 +575,10 @@ const saveLesson = async () => {
                     </div>
                 </div>
             </section>
-        </main>
+    </main>
+
+    <!-- Overlay for mobile sidebar -->
+    <div v-if="mobileSidebarOpen" class="sidebar-overlay" @click="closeSidebar" aria-label="Cerrar menú"></div>
 
         <!-- Modal: Add Lesson con Challenges (mantener original) -->
         <div v-if="showAddLesson" class="modal-overlay" @click="showAddLesson = false; currentItemId = null">
@@ -729,6 +739,7 @@ const saveLesson = async () => {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 20;
 }
 
 .brand {
@@ -736,6 +747,18 @@ const saveLesson = async () => {
     align-items: center;
     gap: 12px;
 }
+
+.menu-toggle {
+    display: none;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    border-radius: 8px;
+    padding: 6px 8px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.menu-toggle:hover { background: rgba(255,255,255,0.2); }
 
 .logo-penguin {
     width: 40px;
@@ -979,7 +1002,7 @@ const saveLesson = async () => {
     color: white;
 }
 
-.nome-col {
+.nombre-col {
     font-weight: 500;
 }
 
@@ -1308,5 +1331,67 @@ const saveLesson = async () => {
 
 .mono {
     font-family: 'Courier New', monospace;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .menu-toggle { display: inline-flex; }
+    .admin {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60px 1fr;
+    }
+    .admin-header {
+        padding: 0 12px;
+        min-height: 60px;
+    }
+    .logo-penguin { width: 32px; height: 32px; }
+    .brand h1 { font-size: 18px; }
+
+    /* Sidebar becomes off-canvas drawer */
+    .sidebar {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        height: calc(100vh - 60px);
+        width: 80%;
+        max-width: 320px;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 30;
+    }
+    .sidebar.mobile-open { transform: translateX(0); }
+    .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 25;
+    }
+    .content { padding: 16px; }
+
+    /* Users table -> cards */
+    .users-table thead { display: none; }
+    .users-table, .users-table tbody, .users-table tr, .users-table td { display: block; width: 100%; }
+    .users-table tr {
+        margin-bottom: 12px;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .users-table td {
+        padding: 10px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .users-table tr td:first-child { border-top: none; }
+    .users-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: rgba(255,255,255,0.85);
+    }
+    .actions-col { justify-content: flex-end; }
 }
 </style>

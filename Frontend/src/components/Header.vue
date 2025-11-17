@@ -57,7 +57,6 @@ export default defineComponent({
         })
 
         const displayUser = computed(() => {
-            // Si se pasa un user prop con datos, usarlo; si no, usar localUser
             return Object.keys(props.user || {}).length > 0 ? props.user : localUser.value
         })
 
@@ -72,7 +71,11 @@ export default defineComponent({
             }
         }
 
-        return { displayUser, handleLogout }
+        const toggleSidebar = () => {
+            window.dispatchEvent(new Event('toggleSidebar'))
+        }
+
+        return { displayUser, handleLogout, toggleSidebar }
     }
 })
 </script>
@@ -80,13 +83,21 @@ export default defineComponent({
 <template>
     <header class="header">
         <div class="logo">
+            <button type="button" class="menu-toggle-header" @click="toggleSidebar" aria-label="Abrir menú">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+            </button>
             <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Penguin" class="logo" />
             <span class="brand">Penguin Path</span>
         </div>
         <div class="status">
             <div class="streak">
                 <img src="/Assets/Racha.svg" alt="Racha" />
-                <span>Racha: {{ displayUser.racha }} días</span>
+                <span class="streak-days">{{ displayUser.racha }} días</span>
             </div>
             <div class="xp">
                 <img src="/Assets/xp.svg" alt="XP" />
@@ -114,6 +125,7 @@ export default defineComponent({
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .logo {
     display: flex;
     align-items: center;
@@ -121,34 +133,58 @@ export default defineComponent({
     font-size: 20px;
     font-weight: bold;
 }
+
 .logo img {
     width: 40px;
     height: 40px;
     object-fit: contain;
 }
+
 .brand {
     font-size: 22px;
     font-weight: bold;
     color: white;
 }
+
+.menu-toggle-header {
+    background: transparent;
+    border: none;
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 6px;
+    padding: 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.menu-toggle-header:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
 .status {
     display: flex;
     align-items: center;
     gap: 15px;
     font-size: 14px;
 }
+
 .status div {
     display: flex;
     align-items: center;
     gap: 6px;
     color: white;
 }
+
 .status img {
     width: 28px;
     height: 28px;
     object-fit: contain;
     border-radius: 50%;
 }
+
 .status .perfil img {
     background-color: white;
     border-radius: 90%;
@@ -157,13 +193,15 @@ export default defineComponent({
     height: 40px;
     backdrop-filter: blur(10px);
 }
+
 .perfil span {
-    max-width: 140px; /* ancho razonable en desktop */
+    max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     display: inline-block;
 }
+
 .logout-btn {
     background: none;
     border: none;
@@ -179,34 +217,64 @@ export default defineComponent({
     position: relative;
     transition: all 0.3s ease;
 }
+
 .logout-btn:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
 }
+
+.streak-days::before {
+    content: 'Racha: ';
+    margin-right: 2px;
+}
+
 @media (max-width: 768px) {
     .header {
-        padding: 15px 15px;
+        padding: 8px 8px;
         min-height: 70px;
     }
+
     .header img.logo {
         width: 32px;
         height: 32px;
     }
+
     .brand {
         font-size: 10px;
     }
+
+    .menu-toggle-header {
+        padding: 2px;
+        margin-right: 4px;
+    }
+
     .status {
-        gap: 10px;
+        gap: 6px;
         font-size: 10px;
     }
+
+    .status img {
+        width: 24px;
+        height: 24px;
+    }
+
     .perfil {
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 3px;
         font-size: 0.8rem;
     }
+
     .perfil span {
-        max-width: 90px; /* más estrecho en móvil */
+        max-width: min(70vw, 300px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .streak-days::before {
+        content: '';
+        margin: 0;
     }
 }
 </style>

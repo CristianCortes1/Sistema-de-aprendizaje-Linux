@@ -4,7 +4,7 @@ import AuthService from '../services/AuthService'
 import LessonService from '../services/LessonService'
 import { useRouter } from 'vue-router'
 import Header from './Header.vue'
-import Footer from './Footer.vue'
+import Footer from './Sidebar.vue'
 
 export default defineComponent({
     setup() {
@@ -112,7 +112,7 @@ export default defineComponent({
     <div class="dashboard">
 
 
-        <Header :user="user" :logout="logout" />
+    <Header :user="user" :logout="logout" />
 
         <div v-if="isAdmin()" class="nav-selector">
             <label for="pagina" class="nav-label">Ir a:</label>
@@ -124,9 +124,9 @@ export default defineComponent({
         </div>
 
         <!-- PROGRESO -->
-        <h1 class="titulo">Tu progreso en Linux</h1>
+    <h1 class="titulo">Tu progreso en Linux</h1>
         <p class="subtitulo">Domina la línea de comandos paso a paso</p>
-
+        
         <div class="form-group">
             <div class="card" v-for="module in modules" :key="module.id" :class="{ 'locked': module.locked }">
                 <button type="button" @click="goLeccion(module)" :disabled="module.locked">
@@ -138,26 +138,25 @@ export default defineComponent({
                 </button>
             </div>
         </div>
-
-        <Footer :goInicio="goInicio" :goBiblioteca="goBiblioteca" :goRanking="goRanking" :goConfig="goConfig" />
+        
+    <Footer :goInicio="goInicio" :goBiblioteca="goBiblioteca" :goRanking="goRanking" :goConfig="goConfig" />
     </div>
 </template>
-
-
+        
+        
 <style scoped>
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
-
+        
 .dashboard {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    /* background: linear-gradient(135deg, #ff6b35 0%, #dc8522 25%, #c2185b 75%, #7b1fa2 100%); */
     background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     display: flex;
@@ -425,7 +424,7 @@ export default defineComponent({
         padding: 10px;
     }
 
-    .footer {
+    .sidebar {
         flex-direction: row;
         justify-content: space-around;
     }
