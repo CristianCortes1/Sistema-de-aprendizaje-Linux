@@ -9,11 +9,11 @@ sleep 5
 
 # Ejecutar migraciones de Prisma
 echo "📊 Running database migrations..."
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 # Generar Prisma Client (por si acaso)
 echo "🔧 Generating Prisma Client..."
-npx prisma generate
+pnpm prisma generate
 
 # Iniciar la aplicación
 echo "✅ Starting NestJS application..."

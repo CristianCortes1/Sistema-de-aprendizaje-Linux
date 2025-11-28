@@ -124,19 +124,10 @@ export class AuthService {
     
     const hashed = await bcrypt.hash(password, 10);
     const confirmationToken = crypto.randomBytes(32).toString('hex');
+    const confirmationExpires = new Date();
+    confirmationExpires.setHours(confirmationExpires.getHours() + 1); // Token válido por 24 horas
 
-    // 🖼️ Lee el archivo del avatar por defecto (ruta resuelta y fallback)
-    const imagenPath = path.resolve(process.cwd(), 'imagen.txt');
-    let base64 = '';
-    try {
-      base64 = (await fs.readFile(imagenPath, 'utf-8')).trim();
-    } catch (err) {
-      // Si no existe el archivo, usar un avatar SVG muy pequeño en base64
-      const fallbackSvg = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" fill="#4caf50"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="28" fill="#fff">🐧</text></svg>`;
-      base64 = Buffer.from(fallbackSvg).toString('base64');
-    }
-
-    const DEFAULT_AVATAR = `data:image/svg+xml;base64,${base64}`;
+    const DEFAULT_AVATAR = `/Assets/Avatar1.svg`;
 
     const user = await this.prisma.user.create({
       data: {
@@ -146,15 +137,19 @@ export class AuthService {
         avatar: DEFAULT_AVATAR,
         activo: false, // Usuario debe confirmar email
         confirmationToken,
+        confirmationTokenExpires: confirmationExpires,
       },
     });
 
-    // Enviar email de confirmación con SendGrid
-    await this.emailService.sendConfirmationEmail(
+    // Enviar email de confirmación de forma asíncrona (no bloqueante)
+    this.emailService.sendConfirmationEmail(
       cleanEmail,
       confirmationToken,
       cleanUsername,
-    );
+    ).catch(err => {
+      console.error('❌ Error enviando email de confirmación:', err?.message);
+      // No lanzar error, solo loguearlo
+    });
 
     const { contraseña, confirmationToken: token, ...result } = user;
     return result;
@@ -162,11 +157,16 @@ export class AuthService {
 
   async confirmEmail(token: string) {
     const user = await this.prisma.user.findFirst({
-      where: { confirmationToken: token },
+      where: {
+        confirmationToken: token,
+        confirmationTokenExpires: {
+          gt: new Date(), // Token no expirado
+        },
+      },
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid confirmation token');
+      throw new UnauthorizedException('Token de confirmación inválido o expirado. Por favor solicita un nuevo correo de confirmación.');
     }
 
     const updatedUser = await this.prisma.user.update({
@@ -174,6 +174,7 @@ export class AuthService {
       data: {
         activo: true,
         confirmationToken: null,
+        confirmationTokenExpires: null,
       },
     });
 
@@ -258,12 +259,15 @@ export class AuthService {
       } as any,
     });
 
-    // Enviar correo con el link de recuperación
-    await this.emailService.sendPasswordResetEmail(
+    // Enviar correo con el link de recuperación de forma asíncrona (no bloqueante)
+    this.emailService.sendPasswordResetEmail(
       user.correo,
       resetToken,
       user.username,
-    );
+    ).catch(err => {
+      console.error('❌ Error enviando email de recuperación:', err?.message);
+      // No lanzar error, solo loguearlo
+    });
 
     return {
       message:

@@ -1,21 +1,19 @@
-version: '3.8'
-
 services:
   # Base de datos PostgreSQL
   postgres:
     image: postgres:16-alpine
-    container_name: penguinpath-db
+    container_name: penguinpath-db-prod
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: penguinpath
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-penguinpath}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - penguinpath-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,50 +23,77 @@ services:
     build:
       context: ./Backend
       dockerfile: Dockerfile
-    container_name: penguinpath-backend
+    container_name: penguinpath-backend-prod
+    user: root  # Necesario para acceso a Docker socket
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/penguinpath?schema=public
-      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      # Variables que necesitan interpolación
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      # Variables fijas
       PORT: 3000
-      # Email config (opcional)
-      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
-      # Docker config para crear contenedores
+      NODE_ENV: production
       DOCKER_HOST: unix:///var/run/docker.sock
+      # JWT y Seguridad
+      JWT_SECRET: ${JWT_SECRET}
+      # Email - SMTP Configuration (Gmail)
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      EMAIL_FROM: ${EMAIL_FROM}
+      GMAIL_USER: ${GMAIL_USER}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
+      # Email - SendGrid (alternativo)
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      EMAIL_USER: ${EMAIL_USER}
+      # URLs y CORS
+      FRONTEND_URL: ${FRONTEND_URL}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      # Google OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
     volumes:
-      # Montar el socket de Docker para crear contenedores
-      - /var/run/docker.sock:/var/run/docker.sock
-      # Para desarrollo (comentar en producción)
-      # - ./Backend/src:/app/src
-    ports:
-      - "3000:3000"
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    # Puerto 3000 NO expuesto externamente - solo accesible en red interna
+    expose:
+      - "3000"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - penguinpath-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ps aux | grep -v grep | grep node || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  # Frontend Vue
+  # Frontend Vue/Nginx
   frontend:
     build:
       context: ./Frontend
       dockerfile: Dockerfile
       args:
-        # Pasar la URL del API como build argument
-        VITE_API_URL: http://localhost:3000
-    container_name: penguinpath-frontend
+        # En producción, el frontend usa /api que Nginx proxea a backend:3000
+        VITE_API_URL: /api
+    container_name: penguinpath-frontend-prod
     ports:
-      - "5173:80"
-    volumes:
-      # Volumen para challenges de certbot
-      - /var/www/certbot:/var/www/certbot
-      # Volumen para certificados SSL
-      - /etc/letsencrypt:/etc/nginx/ssl
+      - "80:80"
+      - "443:443"
     depends_on:
-      - backend
+      backend:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     networks:
       - penguinpath-network
     restart: unless-stopped
+    volumes:
+      # Volumen para challenges de certbot
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
 
 volumes:
   postgres_data:

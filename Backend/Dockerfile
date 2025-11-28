@@ -23,8 +23,8 @@ COPY . .
 RUN chmod +x docker-entrypoint.sh && \
     dos2unix docker-entrypoint.sh || sed -i 's/\r$//' docker-entrypoint.sh || true
 
-# Generar Prisma Client
-RUN npx prisma generate
+# Generar Prisma Client usando pnpm para asegurar que use la versión correcta
+RUN pnpm prisma generate
 
 # Compilar la aplicación
 RUN pnpm run build
@@ -47,19 +47,26 @@ WORKDIR /app
 # Copiar package.json y pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
 
-# Instalar solo dependencias de producción
-RUN pnpm install --prod --frozen-lockfile
+# Crear directorio para Prisma Client y cambiar permisos ANTES de instalar
+RUN mkdir -p /app/generated && chown -R node:node /app
+
+# Cambiar a usuario node para instalar dependencias (evita problemas de permisos)
+USER node
+
+# Instalar solo dependencias de producción y Prisma CLI
+RUN pnpm install --prod --frozen-lockfile && pnpm add -D prisma@^6.0.0
+
+# Volver a root temporalmente para copiar archivos
+USER root
 
 # Copiar archivos compilados desde builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
-# Asegurar permisos de ejecución
-RUN chmod +x ./docker-entrypoint.sh
-
-# Crear directorio para Prisma Client y dar permisos al usuario node
-RUN mkdir -p /app/generated && chown -R node:node /app
+# Asegurar permisos de ejecución y ajustar permisos de archivos copiados
+RUN chmod +x ./docker-entrypoint.sh && \
+    chown -R node:node ./dist ./prisma ./docker-entrypoint.sh
 
 # Exponer puerto
 EXPOSE 3000
