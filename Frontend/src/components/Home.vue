@@ -553,10 +553,22 @@ const handleRegisterSuccess = () => {
 @media (max-width: 900px) {
   .main-header {
     padding: 1rem 1.5rem;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .logo-container {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nav-links {
+    width: 100%;
+    justify-content: center;
   }
 
   .hero {
-    padding: 6rem 1.5rem 3rem;
+    padding: 8rem 1.5rem 3rem;
     min-height: auto;
   }
 

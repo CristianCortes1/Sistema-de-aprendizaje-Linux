@@ -23,11 +23,7 @@ export default defineComponent({
         const selectedPage = ref('')
 
         const pickIcon = (title: string) => {
-            const t = (title || '').toLowerCase()
-            if (t.includes('archivo')) return '/Assets/Archivos.svg'
-            if (t.includes('permiso')) return '/Assets/Permisos.svg'
-            if (t.includes('proceso') || t.includes('señal') || t.includes('senial')) return '/Assets/Procesos.svg'
-            if (t.includes('comando')) return '' // usa símbolo >_
+            // Todas las lecciones sin ícono (usan >_)
             return ''
         }
 
@@ -247,14 +243,14 @@ export default defineComponent({
 
 .card {
     flex: 0 0 auto;
-    width: 250px;
+    width: 280px;
 }
 
 .form-group button {
     width: 100%;
-    min-width: 180px;
-    max-width: 250px;
-    padding: 25px 20px;
+    min-width: 200px;
+    max-width: 280px;
+    padding: 20px;
     border-radius: 16px;
     border: none;
     text-align: left;
@@ -264,12 +260,14 @@ export default defineComponent({
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
-    align-items: center;
-    gap: 15px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
     font-size: 18px;
     font-weight: 600;
     color: white;
-    min-height: 120px;
+    min-height: 140px;
+    position: relative;
 }
 
 /* Estilos para lecciones desbloqueadas (por defecto) */
@@ -296,16 +294,16 @@ export default defineComponent({
 
 .lock-icon {
     position: absolute;
-    top: 15px;
-    right: 15px;
-    font-size: 20px;
+    top: 12px;
+    right: 12px;
+    font-size: 18px;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .progress-indicator {
     position: absolute;
-    top: 15px;
-    right: 15px;
+    top: 12px;
+    right: 12px;
     background: rgba(76, 175, 80, 0.9);
     color: white;
     padding: 4px 10px;
@@ -315,9 +313,22 @@ export default defineComponent({
 }
 
 .form-group button img {
-    width: 60px;
-    height: 60px;
+    width: 48px;
+    height: 48px;
     object-fit: contain;
+    flex-shrink: 0;
+}
+
+.form-group button > span:first-of-type {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.form-group button > span:not(.lock-icon):not(.progress-indicator):not(:first-of-type) {
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    width: 100%;
 }
 
 .logout-btn {
