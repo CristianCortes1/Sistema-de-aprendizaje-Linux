@@ -30,6 +30,19 @@ RUN echo 'export PS1="\[\033[01;32m\]penguinpath\[\033[00m\]:\[\033[01;34m\]\w\[
 RUN useradd -m -s /bin/bash student && \
     echo "student:student" | chpasswd
 
+# Crear estructura de directorios típica de un usuario
+RUN mkdir -p /home/student/Documents && \
+    mkdir -p /home/student/Downloads && \
+    mkdir -p /home/student/Pictures && \
+    mkdir -p /home/student/Music && \
+    mkdir -p /home/student/Videos && \
+    mkdir -p /home/student/Desktop && \
+    mkdir -p /home/student/Projects && \
+    chown -R student:student /home/student
+
+# Configurar man pages (regenerar la base de datos de manuales)
+RUN mandb
+
 # Mensaje de bienvenida
 RUN echo '#!/bin/bash\n\
 echo ""\n\

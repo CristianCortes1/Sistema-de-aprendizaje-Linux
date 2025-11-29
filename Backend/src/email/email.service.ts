@@ -144,7 +144,7 @@ El equipo de Penguin Path
 </html>`;    if (this.useSendgrid) {
       const res = await sgMail.send({
         to: email,
-        from: 'noreply@penguinpath.duckdns.org',
+        from: 'penguinpathemail@gmail.com', // Email verificado en SendGrid
         subject: 'Confirma tu cuenta - Penguin Path',
         text,
         html,
@@ -255,7 +255,7 @@ El equipo de Penguin Path
     if (this.useSendgrid) {
       const res = await sgMail.send({
         to: email,
-        from: 'noreply@penguinpath.duckdns.org',
+        from: 'penguinpathemail@gmail.com', // Email verificado en SendGrid
         subject: 'Recuperación de contraseña - Penguin Path',
         text,
         html,
