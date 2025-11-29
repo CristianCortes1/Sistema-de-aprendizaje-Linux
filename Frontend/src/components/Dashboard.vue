@@ -112,7 +112,7 @@ export default defineComponent({
     <div class="dashboard">
 
 
-    <Header :user="user" :logout="logout" />
+        <Header :user="user" :logout="logout" />
 
         <div v-if="isAdmin()" class="nav-selector">
             <label for="pagina" class="nav-label">Ir a:</label>
@@ -124,9 +124,9 @@ export default defineComponent({
         </div>
 
         <!-- PROGRESO -->
-    <h1 class="titulo">Tu progreso en Linux</h1>
+        <h1 class="titulo">Tu progreso en Linux</h1>
         <p class="subtitulo">Domina la línea de comandos paso a paso</p>
-        
+
         <div class="form-group">
             <div class="card" v-for="module in modules" :key="module.id" :class="{ 'locked': module.locked }">
                 <button type="button" @click="goLeccion(module)" :disabled="module.locked">
@@ -134,23 +134,24 @@ export default defineComponent({
                     <span v-else>>_</span>
                     <span>{{ module.name }}</span>
                     <span v-if="module.locked" class="lock-icon">🔒</span>
-                    <span v-if="!module.locked && module.progreso > 0" class="progress-indicator">{{ module.progreso }}%</span>
+                    <span v-if="!module.locked && module.progreso > 0" class="progress-indicator">{{ module.progreso
+                        }}%</span>
                 </button>
             </div>
         </div>
-        
-    <Footer :goInicio="goInicio" :goBiblioteca="goBiblioteca" :goRanking="goRanking" :goConfig="goConfig" />
+
+        <Footer :goInicio="goInicio" :goBiblioteca="goBiblioteca" :goRanking="goRanking" :goConfig="goConfig" />
     </div>
 </template>
-        
-        
+
+
 <style scoped>
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
-        
+
 .dashboard {
     position: fixed;
     top: 0;
@@ -245,8 +246,8 @@ export default defineComponent({
 }
 
 .card {
-    flex: 1 1 200px;
-    max-width: 250px;
+    flex: 0 0 auto;
+    width: 250px;
 }
 
 .form-group button {
@@ -298,7 +299,7 @@ export default defineComponent({
     top: 15px;
     right: 15px;
     font-size: 20px;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .progress-indicator {
