@@ -167,7 +167,7 @@ export default defineComponent({
             }
         }
 
-        // Cargar progreso del usuario
+        // Cargar progreso del usuario (solo para saber si está completada)
         const loadUserProgress = async () => {
             try {
                 const progressData = await ProgressService.getByUserAndLesson(
@@ -177,50 +177,22 @@ export default defineComponent({
                 
                 if (progressData && progressData.length > 0) {
                     const savedProgress = progressData[0].progreso
-                    userProgress.value = savedProgress
-                    progress.value = savedProgress
                     
-                    console.log(`📊 Progreso guardado encontrado: ${savedProgress}%`)
-                    
-                    // Si el progreso es 100%, empezar desde el inicio
+                    // Si está completada (100%), mostrar como completada
                     if (savedProgress >= 100) {
-                        console.log('✅ Lección completada, reiniciando desde el inicio')
-                        currentRetoIndex.value = 0
-                        if (lessonData.value && lessonData.value.retos[0]) {
-                            currentReto.value = lessonData.value.retos[0]
-                        }
-                        // Mantener el progreso en 100%
-                        return
-                    }
-                    
-                    // Calcular qué reto mostrar basado en el progreso
-                    if (lessonData.value && lessonData.value.retos.length > 0) {
-                        const totalRetos = lessonData.value.retos.length
-                        // Calcular índice basado en el progreso
-                        const retoIndex = Math.floor((savedProgress / 100) * totalRetos)
-                        // Asegurar que no exceda el límite
-                        currentRetoIndex.value = Math.min(retoIndex, totalRetos - 1)
-                        currentReto.value = lessonData.value.retos[currentRetoIndex.value]
-                        
-                        console.log(`🎯 Reanudando en reto ${currentRetoIndex.value + 1} de ${totalRetos}`)
-                    }
-                } else {
-                    // Sin progreso guardado, empezar desde 0
-                    console.log('🆕 Sin progreso guardado, empezando desde el inicio')
-                    currentRetoIndex.value = 0
-                    progress.value = 0
-                    if (lessonData.value && lessonData.value.retos.length > 0) {
-                        currentReto.value = lessonData.value.retos[0]
+                        userProgress.value = 100
+                        console.log('✅ Lección ya completada')
                     }
                 }
             } catch (error) {
-                console.error('Error loading progress:', error)
-                // En caso de error, empezar desde el inicio
-                currentRetoIndex.value = 0
-                progress.value = 0
-                if (lessonData.value && lessonData.value.retos.length > 0) {
-                    currentReto.value = lessonData.value.retos[0]
-                }
+                console.log('Sin progreso guardado o error al cargar')
+            }
+            
+            // SIEMPRE empezar desde el primer reto (contenedores temporales)
+            currentRetoIndex.value = 0
+            progress.value = 0
+            if (lessonData.value && lessonData.value.retos.length > 0) {
+                currentReto.value = lessonData.value.retos[0]
             }
         }
 
@@ -640,6 +612,7 @@ export default defineComponent({
             isVerifying,
             showXPAnimation,
             xpGained,
+            userProgress,
         }
     },
 })
@@ -769,7 +742,14 @@ export default defineComponent({
     min-height: 100vh;
     background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding-top: 80px;
     padding-bottom: 80px;
+}
+
+@media (max-width: 768px) {
+    .leccion {
+        padding-top: 110px;
+    }
 }
 
 .content {

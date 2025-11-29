@@ -130,8 +130,8 @@ export default defineComponent({
                     <span v-else>>_</span>
                     <span>{{ module.name }}</span>
                     <span v-if="module.locked" class="lock-icon">🔒</span>
-                    <span v-if="!module.locked && module.progreso > 0" class="progress-indicator">{{ module.progreso
-                        }}%</span>
+                    <span v-if="!module.locked && module.progreso >= 100" class="progress-indicator completed">Completada</span>
+                    <span v-else-if="!module.locked" class="progress-indicator in-progress">¡Resuélveme!</span>
                 </button>
             </div>
         </div>
@@ -159,6 +159,13 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    padding-top: 80px;
+}
+
+@media (max-width: 768px) {
+    .dashboard {
+        padding-top: 110px;
+    }
 }
 
 .logo {
@@ -304,12 +311,31 @@ export default defineComponent({
     position: absolute;
     top: 12px;
     right: 12px;
-    background: rgba(76, 175, 80, 0.9);
     color: white;
     padding: 4px 10px;
     border-radius: 12px;
     font-size: 12px;
     font-weight: bold;
+}
+
+.progress-indicator.completed {
+    background: rgba(76, 175, 80, 0.9);
+}
+
+.progress-indicator.in-progress {
+    background: rgba(255, 152, 0, 0.9);
+    animation: toast-pulse 2s ease-in-out infinite;
+}
+
+@keyframes toast-pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 8px rgba(255, 152, 0, 0);
+    }
 }
 
 .form-group button img {
