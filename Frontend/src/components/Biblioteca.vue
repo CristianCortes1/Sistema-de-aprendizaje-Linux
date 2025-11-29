@@ -133,6 +133,13 @@ export default {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    padding-top: 80px;
+}
+
+@media (max-width: 768px) {
+    .biblioteca {
+        padding-top: 110px;
+    }
 }
 
 

@@ -116,6 +116,11 @@ export default defineComponent({
 <style scoped>
 /* ...existing header styles from Dashboard.vue... */
 .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -126,12 +131,35 @@ export default defineComponent({
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Layout de dos filas solo en móvil */
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px 10px;
+        min-height: auto;
+    }
+}
+
 .logo {
     display: flex;
     align-items: center;
     gap: 12px;
     font-size: 20px;
     font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .logo {
+        width: 100%;
+        justify-content: center;
+        position: relative;
+    }
+
+    .menu-toggle-header {
+        position: absolute;
+        left: 0;
+    }
 }
 
 .logo img {
@@ -169,6 +197,13 @@ export default defineComponent({
     align-items: center;
     gap: 15px;
     font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .status {
+        width: 100%;
+        justify-content: space-between;
+    }
 }
 
 .status div {
@@ -230,8 +265,15 @@ export default defineComponent({
 
 @media (max-width: 768px) {
     .header {
-        padding: 8px 8px;
-        min-height: 70px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px 10px;
+        min-height: auto;
     }
 
     .header img.logo {

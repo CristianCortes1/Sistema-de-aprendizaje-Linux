@@ -23,11 +23,7 @@ export default defineComponent({
         const selectedPage = ref('')
 
         const pickIcon = (title: string) => {
-            const t = (title || '').toLowerCase()
-            if (t.includes('archivo')) return '/Assets/Archivos.svg'
-            if (t.includes('permiso')) return '/Assets/Permisos.svg'
-            if (t.includes('proceso') || t.includes('señal') || t.includes('senial')) return '/Assets/Procesos.svg'
-            if (t.includes('comando')) return '' // usa símbolo >_
+            // Todas las lecciones sin ícono (usan >_)
             return ''
         }
 
@@ -112,7 +108,7 @@ export default defineComponent({
     <div class="dashboard">
 
 
-    <Header :user="user" :logout="logout" />
+        <Header :user="user" :logout="logout" />
 
         <div v-if="isAdmin()" class="nav-selector">
             <label for="pagina" class="nav-label">Ir a:</label>
@@ -124,9 +120,9 @@ export default defineComponent({
         </div>
 
         <!-- PROGRESO -->
-    <h1 class="titulo">Tu progreso en Linux</h1>
+        <h1 class="titulo">Tu progreso en Linux</h1>
         <p class="subtitulo">Domina la línea de comandos paso a paso</p>
-        
+
         <div class="form-group">
             <div class="card" v-for="module in modules" :key="module.id" :class="{ 'locked': module.locked }">
                 <button type="button" @click="goLeccion(module)" :disabled="module.locked">
@@ -134,23 +130,24 @@ export default defineComponent({
                     <span v-else>>_</span>
                     <span>{{ module.name }}</span>
                     <span v-if="module.locked" class="lock-icon">🔒</span>
-                    <span v-if="!module.locked && module.progreso > 0" class="progress-indicator">{{ module.progreso }}%</span>
+                    <span v-if="!module.locked && module.progreso >= 100" class="progress-indicator completed">Completada</span>
+                    <span v-else-if="!module.locked" class="progress-indicator in-progress">¡Resuélveme!</span>
                 </button>
             </div>
         </div>
-        
-    <Footer :goInicio="goInicio" :goBiblioteca="goBiblioteca" :goRanking="goRanking" :goConfig="goConfig" />
+
+        <Footer :goInicio="goInicio" :goBiblioteca="goBiblioteca" :goRanking="goRanking" :goConfig="goConfig" />
     </div>
 </template>
-        
-        
+
+
 <style scoped>
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
-        
+
 .dashboard {
     position: fixed;
     top: 0;
@@ -162,6 +159,13 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    padding-top: 80px;
+}
+
+@media (max-width: 768px) {
+    .dashboard {
+        padding-top: 110px;
+    }
 }
 
 .logo {
@@ -245,15 +249,15 @@ export default defineComponent({
 }
 
 .card {
-    flex: 1 1 200px;
-    max-width: 250px;
+    flex: 0 0 auto;
+    width: 280px;
 }
 
 .form-group button {
     width: 100%;
-    min-width: 180px;
-    max-width: 250px;
-    padding: 25px 20px;
+    min-width: 200px;
+    max-width: 280px;
+    padding: 20px;
     border-radius: 16px;
     border: none;
     text-align: left;
@@ -263,12 +267,14 @@ export default defineComponent({
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
-    align-items: center;
-    gap: 15px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
     font-size: 18px;
     font-weight: 600;
     color: white;
-    min-height: 120px;
+    min-height: 140px;
+    position: relative;
 }
 
 /* Estilos para lecciones desbloqueadas (por defecto) */
@@ -295,17 +301,16 @@ export default defineComponent({
 
 .lock-icon {
     position: absolute;
-    top: 15px;
-    right: 15px;
-    font-size: 20px;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    top: 12px;
+    right: 12px;
+    font-size: 18px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .progress-indicator {
     position: absolute;
-    top: 15px;
-    right: 15px;
-    background: rgba(76, 175, 80, 0.9);
+    top: 12px;
+    right: 12px;
     color: white;
     padding: 4px 10px;
     border-radius: 12px;
@@ -313,10 +318,43 @@ export default defineComponent({
     font-weight: bold;
 }
 
+.progress-indicator.completed {
+    background: rgba(76, 175, 80, 0.9);
+}
+
+.progress-indicator.in-progress {
+    background: rgba(255, 152, 0, 0.9);
+    animation: toast-pulse 2s ease-in-out infinite;
+}
+
+@keyframes toast-pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 8px rgba(255, 152, 0, 0);
+    }
+}
+
 .form-group button img {
-    width: 60px;
-    height: 60px;
+    width: 48px;
+    height: 48px;
     object-fit: contain;
+    flex-shrink: 0;
+}
+
+.form-group button > span:first-of-type {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.form-group button > span:not(.lock-icon):not(.progress-indicator):not(:first-of-type) {
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    width: 100%;
 }
 
 .logout-btn {

@@ -344,6 +344,13 @@ export default {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-y: auto;
   color: #fff;
+  padding-top: 80px;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding-top: 110px;
+  }
 }
 
 .content {

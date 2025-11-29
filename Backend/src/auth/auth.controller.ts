@@ -11,6 +11,7 @@ import { RegisterDto, LoginDto } from './dto/create-auth.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ResendConfirmationDto } from './dto/resend-confirmation.dto';
 import { Public } from './decorators/public.decorator';
 
 @ApiTags('auth')
@@ -230,6 +231,40 @@ export class AuthController {
       resetPasswordDto.token,
       resetPasswordDto.newPassword,
     );
+  }
+
+  @Public()
+  @Post('resend-confirmation')
+  @ApiOperation({
+    summary: 'Reenviar correo de confirmación',
+    description:
+      'Envía un nuevo correo de confirmación si la cuenta aún no está activada',
+  })
+  @ApiBody({ type: ResendConfirmationDto })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Si el correo existe y no está activado, se enviará un nuevo email de confirmación',
+    schema: {
+      example: {
+        message:
+          'Si el correo existe en nuestro sistema, recibirás un nuevo email de confirmación',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'La cuenta ya está activada',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'La cuenta ya está activada',
+        error: 'Unauthorized',
+      },
+    },
+  })
+  async resendConfirmation(@Body() resendConfirmationDto: ResendConfirmationDto) {
+    return this.authService.resendConfirmationEmail(resendConfirmationDto.email);
   }
 
 }

@@ -134,11 +134,8 @@ export default defineComponent({
                 // Cargar progreso del usuario ANTES de asignar el reto inicial
                 await loadUserProgress()
                 
-                // Si no hay progreso cargado, empezar desde el primer reto
-                if (!currentReto.value && data.retos && data.retos.length > 0) {
-                    currentReto.value = data.retos[0]
-                    currentRetoIndex.value = 0
-                }
+                // loadUserProgress ya asigna el reto correcto basado en el progreso
+                // No necesitamos hacer nada más aquí
             } catch (error) {
                 console.error('Error loading lesson:', error)
                 errorMessage.value = 'No se pudo cargar la lección'
@@ -170,7 +167,7 @@ export default defineComponent({
             }
         }
 
-        // Cargar progreso del usuario
+        // Cargar progreso del usuario (solo para saber si está completada)
         const loadUserProgress = async () => {
             try {
                 const progressData = await ProgressService.getByUserAndLesson(
@@ -180,62 +177,90 @@ export default defineComponent({
                 
                 if (progressData && progressData.length > 0) {
                     const savedProgress = progressData[0].progreso
-                    userProgress.value = savedProgress
-                    progress.value = savedProgress
                     
-                    // Si el progreso es 100%, empezar desde el inicio
+                    // Si está completada (100%), mostrar como completada
                     if (savedProgress >= 100) {
-                        console.log('Lección ya completada, reiniciando desde el inicio')
-                        currentRetoIndex.value = 0
-                        if (lessonData.value && lessonData.value.retos[0]) {
-                            currentReto.value = lessonData.value.retos[0]
-                        }
-                        // No reiniciar el progreso, mantenerlo en 100%
-                        return
+                        userProgress.value = 100
+                        console.log('✅ Lección ya completada')
                     }
-                    
-                    // Calcular qué reto mostrar basado en el progreso (solo si no está completado)
-                    if (lessonData.value && lessonData.value.retos.length > 0) {
-                        const totalRetos = lessonData.value.retos.length
-                        // Calcular índice: progreso 0-99% → reto correspondiente
-                        const retoIndex = Math.floor((savedProgress / 100) * totalRetos)
-                        // Asegurar que no exceda el límite
-                        currentRetoIndex.value = Math.min(retoIndex, totalRetos - 1)
-                        currentReto.value = lessonData.value.retos[currentRetoIndex.value]
-                        
-                        console.log(`Progreso cargado: ${savedProgress}%, mostrando reto ${currentRetoIndex.value + 1} de ${totalRetos}`)
-                    }
-                } else {
-                    // Sin progreso guardado, empezar desde 0
-                    console.log('Sin progreso guardado, empezando desde el inicio')
-                    currentRetoIndex.value = 0
-                    progress.value = 0
                 }
             } catch (error) {
-                console.error('Error loading progress:', error)
+                console.log('Sin progreso guardado o error al cargar')
+            }
+            
+            // SIEMPRE empezar desde el primer reto (contenedores temporales)
+            currentRetoIndex.value = 0
+            progress.value = 0
+            if (lessonData.value && lessonData.value.retos.length > 0) {
+                currentReto.value = lessonData.value.retos[0]
             }
         }
 
         // Capturar último comando ejecutado
         const captureCommand = (data: string) => {
             if (data === '\r') {
-                // Enter pressed - comando completo
+                // Enter pressed - intentar capturar desde el buffer de la terminal
+                if (terminal) {
+                    try {
+                        const buffer = terminal.buffer.active
+                        const cursorY = buffer.cursorY
+                        const line = buffer.getLine(cursorY)
+                        
+                        if (line) {
+                            // Obtener el texto de la línea actual
+                            let lineText = line.translateToString(true).trim()
+                            
+                            console.log('📝 Línea capturada del buffer:', lineText)
+                            
+                            // Remover el prompt (ejemplo: "student@...:~$ ")
+                            const promptMatch = lineText.match(/^.*?[$#]\s*/)
+                            if (promptMatch) {
+                                lineText = lineText.substring(promptMatch[0].length).trim()
+                            }
+                            
+                            console.log('📝 Comando después de remover prompt:', lineText)
+                            
+                            if (lineText) {
+                                commandHistory.value.push(lineText)
+                                lastCommand.value = lineText
+                                
+                                // Verificar automáticamente
+                                setTimeout(() => {
+                                    verifyCommand()
+                                }, 500)
+                                return
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error capturando del buffer:', error)
+                    }
+                }
+                
+                // Fallback: usar el comando construido manualmente
                 const cmd = lastCommand.value.trim()
                 if (cmd) {
+                    console.log('📝 Usando comando construido manualmente:', cmd)
                     commandHistory.value.push(cmd)
                     
-                    // Verificar automáticamente cuando presiona Enter
                     setTimeout(() => {
                         verifyCommand()
-                    }, 500) // Pequeño delay para dar tiempo a la terminal de procesar
+                    }, 500)
                 }
                 lastCommand.value = ''
             } else if (data === '\x7F') {
                 // Backspace
                 lastCommand.value = lastCommand.value.slice(0, -1)
+            } else if (data === '\t') {
+                // Tab - no hacer nada, dejamos que la terminal lo maneje
             } else if (data.charCodeAt(0) >= 32 && data.charCodeAt(0) <= 126) {
                 // Caracter imprimible
                 lastCommand.value += data
+            } else if (data.length > 1 && !data.startsWith('\x1b')) {
+                // Texto pegado
+                const cleanText = data.replace(/[\x00-\x1F\x7F]/g, '')
+                if (cleanText) {
+                    lastCommand.value += cleanText
+                }
             }
         }
 
@@ -587,6 +612,7 @@ export default defineComponent({
             isVerifying,
             showXPAnimation,
             xpGained,
+            userProgress,
         }
     },
 })
@@ -716,7 +742,14 @@ export default defineComponent({
     min-height: 100vh;
     background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding-top: 80px;
     padding-bottom: 80px;
+}
+
+@media (max-width: 768px) {
+    .leccion {
+        padding-top: 110px;
+    }
 }
 
 .content {
@@ -1016,7 +1049,7 @@ export default defineComponent({
     padding: 8px;
     min-height: 280px;
     max-height: 350px;
-    overflow: auto;
+    overflow: hidden;
     -webkit-overflow-scrolling: touch;
     cursor: text;
     position: relative;
@@ -1034,6 +1067,12 @@ export default defineComponent({
 .terminal-container :deep(.xterm-viewport) {
     overflow-y: auto !important;
     width: 100%;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+.terminal-container :deep(.xterm-viewport)::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 
 .terminal-container :deep(.xterm-screen) {
@@ -1110,7 +1149,7 @@ export default defineComponent({
 
     /* En desktop con terminal: Layout en 2 columnas */
     .content:has(.terminal-section:not(.hidden-section)) {
-        grid-template-columns: 1fr 420px;
+        grid-template-columns: 1fr 360px;
     }
 
     .terminal-section {
@@ -1133,13 +1172,13 @@ export default defineComponent({
     }
 
     .terminal-container {
-        min-height: 500px;
-        max-height: 600px;
+        min-height: 350px;
+        max-height: 450px;
         padding: 12px;
     }
 
     .terminal-container :deep(.xterm) {
-        font-size: 14px;
+        font-size: 13px;
     }
 
     .challenge-panel {
@@ -1174,16 +1213,16 @@ export default defineComponent({
    ======================================== */
 @media (min-width: 1200px) {
     .content:has(.terminal-section:not(.hidden-section)) {
-        grid-template-columns: 1fr 480px;
+        grid-template-columns: 1fr 400px;
     }
 
     .terminal-container {
-        min-height: 550px;
-        max-height: 650px;
+        min-height: 400px;
+        max-height: 500px;
     }
 
     .terminal-container :deep(.xterm) {
-        font-size: 15px;
+        font-size: 14px;
     }
 }
 </style>

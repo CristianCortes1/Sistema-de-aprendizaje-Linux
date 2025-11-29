@@ -84,6 +84,10 @@ async function changePassword(email: string, currentPassword: string, newPasswor
     })
 }
 
+async function resendConfirmationEmail(email: string) {
+    return ApiService.post('/auth/resend-confirmation', { email }, { requiresAuth: false })
+}
+
 export default {
     setToken,
     getToken,
@@ -96,5 +100,6 @@ export default {
     confirmEmail,
     forgotPassword,
     resetPassword,
-    changePassword
+    changePassword,
+    resendConfirmationEmail
 }
