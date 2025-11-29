@@ -16,7 +16,7 @@ const isLoading = ref(false);
 onMounted(() => {
   // Obtener el token de la URL
   token.value = (route.query.token as string) || '';
-  
+
   if (!token.value) {
     errorMessage.value = 'Token de recuperación no válido. Por favor solicita un nuevo enlace.';
   }
@@ -51,13 +51,13 @@ const handleResetPassword = async () => {
 
   try {
     await AuthService.resetPassword(token.value, newPassword.value);
-    
+
     successMessage.value = '¡Contraseña restablecida exitosamente! Redirigiendo al inicio de sesión...';
-    
+
     // Limpiar el formulario
     newPassword.value = '';
     confirmNewPassword.value = '';
-    
+
     // Redirigir después de 3 segundos
     setTimeout(() => {
       router.push('/');
@@ -79,17 +79,8 @@ const handleResetPassword = async () => {
   <div class="reset-password-container">
     <div class="reset-password-card">
       <router-link to="/" class="back-button">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="19" y1="12" x2="5" y2="12"></line>
           <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
@@ -108,38 +99,19 @@ const handleResetPassword = async () => {
       <form @submit.prevent="handleResetPassword">
         <div class="form-group">
           <label for="newPassword">Nueva contraseña</label>
-          <input
-            id="newPassword"
-            v-model="newPassword"
-            type="password"
-            placeholder="Mínimo 6 caracteres"
-            :disabled="isLoading || !token"
-          />
+          <input id="newPassword" v-model="newPassword" type="password" placeholder="Mínimo 6 caracteres"
+            :disabled="isLoading || !token" />
         </div>
 
         <div class="form-group">
           <label for="confirmNewPassword">Confirmar nueva contraseña</label>
-          <input
-            id="confirmNewPassword"
-            v-model="confirmNewPassword"
-            type="password"
-            placeholder="Repite tu nueva contraseña"
-            :disabled="isLoading || !token"
-          />
+          <input id="confirmNewPassword" v-model="confirmNewPassword" type="password"
+            placeholder="Repite tu nueva contraseña" :disabled="isLoading || !token" />
         </div>
 
         <div v-if="errorMessage" class="error-message">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="15" y1="9" x2="9" y2="15"></line>
             <line x1="9" y1="9" x2="15" y2="15"></line>
@@ -148,17 +120,8 @@ const handleResetPassword = async () => {
         </div>
 
         <div v-if="successMessage" class="success-message">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
             <polyline points="22 4 12 14.01 9 11.01"></polyline>
           </svg>
@@ -185,7 +148,7 @@ const handleResetPassword = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
+  background: linear-gradient(135deg, #d17a47 0%, #4a2c5a 100%);
   padding: 20px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   margin: 0;
@@ -219,7 +182,7 @@ const handleResetPassword = async () => {
 }
 
 .back-button:hover {
-  color: #333;
+  color: #ff6600;
 }
 
 .logo {
@@ -272,8 +235,8 @@ const handleResetPassword = async () => {
 
 .form-group input:focus {
   outline: none;
-  border-color: #ef9c6c;
-  box-shadow: 0 0 0 3px rgba(239, 156, 108, 0.1);
+  border-color: #ff6600;
+  box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1);
 }
 
 .form-group input:disabled {
@@ -314,6 +277,7 @@ const handleResetPassword = async () => {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -326,16 +290,17 @@ const handleResetPassword = async () => {
   font-size: 16px;
   font-weight: 600;
   color: white;
-  background: linear-gradient(135deg, #ef9c6c 0%, #c57da1 50%, #956eaa 100%);
+  background-color: #ff6600;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .submit-button:hover:not(:disabled) {
+  background-color: #e55b00;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(239, 156, 108, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .submit-button:disabled {

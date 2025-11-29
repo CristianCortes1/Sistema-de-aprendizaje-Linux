@@ -3,7 +3,8 @@
     <!-- Main Header -->
     <nav class="main-header">
       <div class="logo-container">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Penguin Path Logo" class="logo-img" />
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Penguin Path Logo"
+          class="logo-img" />
         <span class="brand-name">Penguin Path</span>
       </div>
       <div class="nav-links">
@@ -17,12 +18,13 @@
       <div class="hero-container">
         <div class="hero-text">
           <h1>Domina la<br>Terminal de Linux</h1>
-          <p class="subtitle">Aprende a utilizar la línea de comandos con un entorno real, lecciones interactivas y práctica libre. Sin configuraciones, directo en tu navegador.</p>
+          <p class="subtitle">Aprende a utilizar la línea de comandos con un entorno real, lecciones interactivas y
+            práctica libre. Sin configuraciones, directo en tu navegador.</p>
           <div class="cta-buttons">
             <button @click="openRegisterModal" class="btn btn-primary">Comenzar Ahora 🚀</button>
           </div>
         </div>
-        
+
         <div class="hero-visual">
           <div class="terminal-window ubuntu-terminal">
             <div class="terminal-header">
@@ -35,15 +37,18 @@
             </div>
             <div class="terminal-body">
               <div class="line">
-                <span class="prompt-user">user@penguin</span>:<span class="prompt-path">~</span>$ <span class="cmd">echo "Hola Mundo"</span>
+                <span class="prompt-user">user@penguin</span>:<span class="prompt-path">~</span>$ <span class="cmd">echo
+                  "Hola Mundo"</span>
               </div>
               <div class="line output">Hola Mundo</div>
               <div class="line">
-                <span class="prompt-user">user@penguin</span>:<span class="prompt-path">~</span>$ <span class="cmd">whoami</span>
+                <span class="prompt-user">user@penguin</span>:<span class="prompt-path">~</span>$ <span
+                  class="cmd">whoami</span>
               </div>
               <div class="line output">root</div>
               <div class="line">
-                <span class="prompt-user">user@penguin</span>:<span class="prompt-path">~</span>$ <span class="cursor">_</span>
+                <span class="prompt-user">user@penguin</span>:<span class="prompt-path">~</span>$ <span
+                  class="cursor">_</span>
               </div>
             </div>
           </div>
@@ -78,7 +83,8 @@
       <div class="about-content">
         <h2>Sobre el Proyecto</h2>
         <p>
-          El Sistema de Aprendizaje Linux es una plataforma educativa diseñada para facilitar la enseñanza y el aprendizaje
+          El Sistema de Aprendizaje Linux es una plataforma educativa diseñada para facilitar la enseñanza y el
+          aprendizaje
           del sistema operativo Linux. Nuestra arquitectura basada en contenedores garantiza un entorno seguro y
           reproducible para cada estudiante.
         </p>
@@ -95,18 +101,10 @@
     </footer>
 
     <!-- Modals -->
-    <LoginModal 
-      :show="showLoginModal" 
-      @close="closeModals" 
-      @success="handleLoginSuccess"
-      @switchToRegister="openRegisterModal"
-    />
-    <RegisterModal 
-      :show="showRegisterModal" 
-      @close="closeModals" 
-      @success="handleRegisterSuccess"
-      @switchToLogin="openLoginModal"
-    />
+    <LoginModal :show="showLoginModal" @close="closeModals" @success="handleLoginSuccess"
+      @switchToRegister="openRegisterModal" />
+    <RegisterModal :show="showRegisterModal" @close="closeModals" @success="handleRegisterSuccess"
+      @switchToLogin="openLoginModal" />
   </div>
 </template>
 
@@ -161,7 +159,7 @@ const handleRegisterSuccess = () => {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 4rem;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -223,7 +221,8 @@ const handleRegisterSuccess = () => {
 }
 
 .nav-btn {
-  background-color: #ff6600; /* Orange Button */
+  background-color: #ff6600;
+  /* Orange Button */
   color: white;
   padding: 0.5rem 1.5rem;
   border-radius: 25px;
@@ -267,7 +266,7 @@ const handleRegisterSuccess = () => {
   margin-bottom: 1.5rem;
   font-weight: 800;
   color: white;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .subtitle {
@@ -299,11 +298,12 @@ const handleRegisterSuccess = () => {
 
 .btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 .btn-primary {
-  background-color: #ff6600; /* Orange Button */
+  background-color: #ff6600;
+  /* Orange Button */
   color: white;
 }
 
@@ -319,9 +319,10 @@ const handleRegisterSuccess = () => {
 }
 
 .terminal-window.ubuntu-terminal {
-  background: #300a24; /* Ubuntu Aubergine */
+  background: #300a24;
+  /* Ubuntu Aubergine */
   border-radius: 8px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   width: 100%;
   max-width: 500px;
   overflow: hidden;
@@ -330,11 +331,13 @@ const handleRegisterSuccess = () => {
 }
 
 .terminal-header {
-  background: #3e3e3e; /* Dark gray header */
+  background: #3e3e3e;
+  /* Dark gray header */
   padding: 8px 16px;
   display: flex;
   align-items: center;
-  justify-content: center; /* Center title */
+  justify-content: center;
+  /* Center title */
   position: relative;
   border-bottom: 1px solid #222;
 }
@@ -349,7 +352,8 @@ const handleRegisterSuccess = () => {
   display: flex;
   gap: 8px;
   position: absolute;
-  right: 12px; /* Ubuntu controls on right (modern) or left, sticking to right for web convention or left if preferred. Let's do right for now or match user preference if specified. User said "Ubuntu", standard Ubuntu desktop often has them on right in newer versions or left in older unity. Let's put them on the right. */
+  right: 12px;
+  /* Ubuntu controls on right (modern) or left, sticking to right for web convention or left if preferred. Let's do right for now or match user preference if specified. User said "Ubuntu", standard Ubuntu desktop often has them on right in newer versions or left in older unity. Let's put them on the right. */
 }
 
 .t-btn {
@@ -357,13 +361,23 @@ const handleRegisterSuccess = () => {
   height: 14px;
   border-radius: 50%;
   display: block;
-  background-color: #4f4f4f; /* Inactive state */
+  background-color: #4f4f4f;
+  /* Inactive state */
   border: 1px solid #333;
 }
 
-.close { background-color: #e95420; } /* Ubuntu Orange/Red */
-.minimize { background-color: #4f4f4f; }
-.maximize { background-color: #4f4f4f; }
+.close {
+  background-color: #e95420;
+}
+
+/* Ubuntu Orange/Red */
+.minimize {
+  background-color: #4f4f4f;
+}
+
+.maximize {
+  background-color: #4f4f4f;
+}
 
 .terminal-body {
   padding: 20px;
@@ -381,12 +395,14 @@ const handleRegisterSuccess = () => {
 }
 
 .prompt-user {
-  color: #8ae234; /* Ubuntu Green */
+  color: #8ae234;
+  /* Ubuntu Green */
   font-weight: bold;
 }
 
 .prompt-path {
-  color: #729fcf; /* Ubuntu Blue */
+  color: #729fcf;
+  /* Ubuntu Blue */
   font-weight: bold;
 }
 
@@ -410,8 +426,15 @@ const handleRegisterSuccess = () => {
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 /* Features Section */
@@ -427,7 +450,7 @@ const handleRegisterSuccess = () => {
   font-size: 2.5rem;
   margin-bottom: 4rem;
   color: white;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .feature-grid {
@@ -458,7 +481,7 @@ const handleRegisterSuccess = () => {
 .icon {
   font-size: 2.5rem;
   margin-bottom: 1.5rem;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .feature-card h3 {
