@@ -30,6 +30,7 @@ describe('AuthService', () => {
 
   const mockEmailService = {
     sendConfirmationEmail: jest.fn(),
+    sendPasswordResetEmail: jest.fn(),
     testEmailService: jest.fn(),
   };
 
@@ -86,7 +87,12 @@ describe('AuthService', () => {
         correo: 'test@example.com',
       });
       expect(prismaService.user.findFirst).toHaveBeenCalledWith({
-        where: { username: 'testuser' },
+        where: {
+          OR: [
+            { username: { equals: 'testuser', mode: 'insensitive' } },
+            { correo: { equals: 'testuser', mode: 'insensitive' } },
+          ],
+        },
       });
     });
 
@@ -308,6 +314,7 @@ describe('AuthService', () => {
         data: {
           activo: true,
           confirmationToken: null,
+          confirmationTokenExpires: null,
         },
       });
     });
@@ -316,6 +323,178 @@ describe('AuthService', () => {
       mockPrismaService.user.findFirst.mockResolvedValue(null);
 
       await expect(service.confirmEmail('invalid-token')).rejects.toThrow();
+    });
+  });
+
+  describe('changePassword', () => {
+    it('should change password successfully', async () => {
+      const mockUser = {
+        id_Usuario: 1,
+        username: 'testuser',
+        correo: 'test@example.com',
+        contraseña: 'oldHashedPassword',
+      };
+
+      mockPrismaService.user.findFirst.mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('newHashedPassword');
+      mockPrismaService.user.update.mockResolvedValue({
+        ...mockUser,
+        contraseña: 'newHashedPassword',
+      });
+
+      const result = await service.changePassword(
+        'test@example.com',
+        'oldPassword',
+        'newPassword',
+      );
+
+      expect(result).toEqual({ message: 'Contraseña actualizada exitosamente' });
+      expect(prismaService.user.update).toHaveBeenCalledWith({
+        where: { id_Usuario: 1 },
+        data: { contraseña: 'newHashedPassword' },
+      });
+    });
+
+    it('should throw error when current password is incorrect', async () => {
+      const mockUser = {
+        id_Usuario: 1,
+        correo: 'test@example.com',
+        contraseña: 'hashedPassword',
+      };
+
+      mockPrismaService.user.findFirst.mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      await expect(
+        service.changePassword('test@example.com', 'wrongPassword', 'newPassword'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw error when user not found', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.changePassword('notfound@example.com', 'oldPassword', 'newPassword'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should generate reset token and send email', async () => {
+      const mockUser = {
+        id_Usuario: 1,
+        username: 'testuser',
+        correo: 'test@example.com',
+      };
+
+      mockPrismaService.user.findFirst.mockResolvedValue(mockUser);
+      mockPrismaService.user.update.mockResolvedValue({
+        ...mockUser,
+        resetPasswordToken: 'reset-token',
+        resetPasswordExpires: new Date(),
+      });
+      mockEmailService.sendPasswordResetEmail = jest.fn().mockResolvedValue(undefined);
+
+      const result = await service.forgotPassword('test@example.com');
+
+      expect(result).toEqual({
+        message: 'Si el correo existe en nuestro sistema, recibirás instrucciones para restablecer tu contraseña',
+      });
+      expect(prismaService.user.update).toHaveBeenCalled();
+    });
+
+    it('should not reveal if user exists', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      const result = await service.forgotPassword('notfound@example.com');
+
+      expect(result).toEqual({
+        message: 'Si el correo existe en nuestro sistema, recibirás instrucciones para restablecer tu contraseña',
+      });
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should reset password with valid token', async () => {
+      const token = 'valid-reset-token';
+      const mockUser = {
+        id_Usuario: 1,
+        username: 'testuser',
+        correo: 'test@example.com',
+        resetPasswordToken: token,
+        resetPasswordExpires: new Date(Date.now() + 3600000),
+      };
+
+      mockPrismaService.user.findFirst.mockResolvedValue(mockUser);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('newHashedPassword');
+      mockPrismaService.user.update.mockResolvedValue({
+        ...mockUser,
+        contraseña: 'newHashedPassword',
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      });
+
+      const result = await service.resetPassword(token, 'newPassword123');
+
+      expect(result).toEqual({ message: 'Contraseña restablecida exitosamente' });
+      expect(prismaService.user.update).toHaveBeenCalledWith({
+        where: { id_Usuario: 1 },
+        data: {
+          contraseña: 'newHashedPassword',
+          resetPasswordToken: null,
+          resetPasswordExpires: null,
+        },
+      });
+    });
+
+    it('should throw error with invalid or expired token', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.resetPassword('invalid-token', 'newPassword'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('resendConfirmationEmail', () => {
+    it('should send new confirmation email', async () => {
+      const mockUser = {
+        id_Usuario: 1,
+        username: 'testuser',
+        correo: 'test@example.com',
+        activo: false,
+      };
+
+      mockPrismaService.user.findFirst.mockResolvedValue(mockUser);
+      mockPrismaService.user.update.mockResolvedValue({
+        ...mockUser,
+        confirmationToken: 'new-token',
+        confirmationTokenExpires: new Date(),
+      });
+      mockEmailService.sendConfirmationEmail.mockResolvedValue(undefined);
+
+      const result = await service.resendConfirmationEmail('test@example.com');
+
+      expect(result).toEqual({
+        message: 'Si el correo existe en nuestro sistema, recibirás un nuevo email de confirmación',
+      });
+      expect(prismaService.user.update).toHaveBeenCalled();
+    });
+
+    it('should throw error when account is already active', async () => {
+      const mockUser = {
+        id_Usuario: 1,
+        username: 'testuser',
+        correo: 'test@example.com',
+        activo: true,
+      };
+
+      mockPrismaService.user.findFirst.mockResolvedValue(mockUser);
+
+      await expect(
+        service.resendConfirmationEmail('test@example.com'),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 });

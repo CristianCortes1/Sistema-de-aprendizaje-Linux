@@ -12,7 +12,14 @@
     "build:prod": "vite build",
     "preview": "vite preview",
     "build-only": "vite build",
-    "type-check": "vue-tsc --build"
+    "type-check": "vue-tsc --build",
+    "test:e2e": "jest --config jest.config.json",
+    "test:e2e:watch": "jest --config jest.config.json --watch",
+    "test:e2e:basic": "jest --config jest.config.json tests/e2e/basic.test.ts",
+    "test:e2e:auth": "jest --config jest.config.json tests/e2e/auth.test.ts",
+    "test:e2e:nav": "jest --config jest.config.json tests/e2e/navigation.test.ts",
+    "test:e2e:app": "jest --config jest.config.json tests/e2e/app.test.ts",
+    "test:e2e:all": "./tests/e2e/run-tests.sh"
   },
   "dependencies": {
     "ansi_up": "^6.0.6",
@@ -25,10 +32,16 @@
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.2",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.18.9",
+    "@types/selenium-webdriver": "^4.35.4",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.7.0",
+    "chromedriver": "^142.0.3",
+    "jest": "^30.2.0",
     "npm-run-all2": "^8.0.4",
+    "selenium-webdriver": "^4.38.0",
+    "ts-jest": "^29.4.5",
     "typescript": "~5.8.3",
     "vite": "^7.1.9",
     "vite-plugin-vue-devtools": "^8.0.2",

@@ -1,0 +1,25 @@
+{
+  "preset": "ts-jest",
+  "testEnvironment": "node",
+  "testMatch": [
+    "**/tests/e2e/**/*.test.ts"
+  ],
+  "moduleFileExtensions": [
+    "ts",
+    "tsx",
+    "js",
+    "jsx",
+    "json"
+  ],
+  "transform": {
+    "^.+\\.tsx?$": ["ts-jest", {
+      "tsconfig": {
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "module": "commonjs"
+      }
+    }]
+  },
+  "testTimeout": 30000,
+  "verbose": true
+}

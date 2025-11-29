@@ -1,0 +1,67 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v3
+    
+    - name: Configurar Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+    
+    - name: Instalar pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 10
+    
+    - name: Instalar Chromium
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y chromium-browser
+    
+    - name: Instalar dependencias del Frontend
+      run: |
+        cd Frontend
+        pnpm install
+    
+    - name: Ejecutar pruebas básicas
+      run: |
+        cd Frontend
+        pnpm test:e2e:basic
+    
+    - name: Iniciar servidor de desarrollo
+      run: |
+        cd Frontend
+        pnpm dev &
+        sleep 10
+      
+    - name: Esperar que el servidor esté listo
+      run: |
+        timeout 60 bash -c 'until curl -s http://localhost:5173 > /dev/null; do sleep 2; done'
+    
+    - name: Ejecutar pruebas E2E de la aplicación
+      run: |
+        cd Frontend
+        pnpm test:e2e:app
+    
+    - name: Subir screenshots en caso de error
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-screenshots
+        path: Frontend/tests/e2e/screenshots/
+        if-no-files-found: ignore

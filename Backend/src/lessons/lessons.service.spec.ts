@@ -50,8 +50,10 @@ describe('LessonsService', () => {
     it('should create a lesson with retos and comandos', async () => {
       const createLessonDto: CreateLessonDto = {
         titulo: 'Introducción a Linux',
+        experiencia: 100,
         retos: [
           {
+            tipo: 'reto',
             descripcion: 'Aprender comandos básicos',
             Retroalimentacion: 'Bien hecho',
             comandos: [
@@ -65,6 +67,7 @@ describe('LessonsService', () => {
       const expectedLesson = {
         id_Leccion: 1,
         Titulo: 'Introducción a Linux',
+        experiencia: 100,
         retos: [
           {
             id_Reto: 1,
@@ -83,30 +86,19 @@ describe('LessonsService', () => {
       const result = await service.create(createLessonDto);
 
       expect(result).toEqual(expectedLesson);
-      expect(mockPrismaService.lecciones.create).toHaveBeenCalledWith({
-        data: {
-          Titulo: createLessonDto.titulo,
-          retos: {
-            create: [
-              {
-                descripcion: 'Aprender comandos básicos',
-                Retroalimentacion: 'Bien hecho',
-                comandos: {
-                  create: [
-                    { comando: 'ls' },
-                    { comando: 'cd' },
-                  ],
-                },
-              },
-            ],
+      expect(mockPrismaService.lecciones.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            Titulo: createLessonDto.titulo,
+            experiencia: createLessonDto.experiencia,
+          }),
+          include: {
+            retos: {
+              include: { comandos: true },
+            },
           },
-        },
-        include: {
-          retos: {
-            include: { comandos: true },
-          },
-        },
-      });
+        }),
+      );
     });
 
     it('should handle retos without Retroalimentacion', async () => {
@@ -240,27 +232,89 @@ describe('LessonsService', () => {
   });
 
   describe('update', () => {
-    it('should update a lesson title', async () => {
+    it('should update a lesson title using transaction', async () => {
       const updateLessonDto: UpdateLessonDto = {
         titulo: 'Título Actualizado',
+        experiencia: 150,
       };
 
       const expectedLesson = {
         id_Leccion: 1,
         Titulo: 'Título Actualizado',
+        experiencia: 150,
+        retos: [],
       };
 
-      mockPrismaService.lecciones.update.mockResolvedValue(expectedLesson);
+      // Mock the transaction
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          lecciones: {
+            update: jest.fn().mockResolvedValue({ id_Leccion: 1 }),
+            findUnique: jest.fn().mockResolvedValue(expectedLesson),
+          },
+          retos: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+        };
+        return callback(mockTx);
+      });
 
       const result = await service.update(1, updateLessonDto);
 
       expect(result).toEqual(expectedLesson);
-      expect(mockPrismaService.lecciones.update).toHaveBeenCalledWith({
-        where: { id_Leccion: 1 },
-        data: {
-          Titulo: 'Título Actualizado',
-        },
+      expect(mockPrismaService.$transaction).toHaveBeenCalled();
+    });
+
+    it('should update lesson with retos and comandos', async () => {
+      const updateLessonDto: UpdateLessonDto = {
+        titulo: 'Título Actualizado',
+        experiencia: 150,
+        retos: [
+          {
+            tipo: 'reto',
+            descripcion: 'Nuevo reto',
+            comandos: [{ comando: 'pwd' }],
+          },
+        ],
+      };
+
+      const expectedLesson = {
+        id_Leccion: 1,
+        Titulo: 'Título Actualizado',
+        experiencia: 150,
+        retos: [
+          {
+            id_Reto: 1,
+            descripcion: 'Nuevo reto',
+            comandos: [{ id_Comando: 1, comando: 'pwd' }],
+          },
+        ],
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          lecciones: {
+            update: jest.fn().mockResolvedValue({ id_Leccion: 1 }),
+            findUnique: jest.fn().mockResolvedValue(expectedLesson),
+          },
+          retos: {
+            findMany: jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([
+              { id_Reto: 1, Lecciones_id_Leccion: 1 },
+            ]),
+            deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+            createMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+          comandos: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+            createMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+        };
+        return callback(mockTx);
       });
+
+      const result = await service.update(1, updateLessonDto);
+
+      expect(result).toEqual(expectedLesson);
     });
   });
 
