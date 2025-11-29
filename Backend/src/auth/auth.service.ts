@@ -138,7 +138,7 @@ export class AuthService {
         activo: false, // Usuario debe confirmar email
         confirmationToken,
         confirmationTokenExpires: confirmationExpires,
-      },
+      } as any,
     });
 
     // Enviar email de confirmación de forma asíncrona (no bloqueante)
@@ -162,7 +162,7 @@ export class AuthService {
         confirmationTokenExpires: {
           gt: new Date(), // Token no expirado
         },
-      },
+      } as any,
     });
 
     if (!user) {
@@ -175,7 +175,7 @@ export class AuthService {
         activo: true,
         confirmationToken: null,
         confirmationTokenExpires: null,
-      },
+      } as any,
     });
 
     const { contraseña, ...result } = updatedUser;
@@ -306,5 +306,56 @@ export class AuthService {
     });
 
     return { message: 'Contraseña restablecida exitosamente' };
+  }
+
+  async resendConfirmationEmail(email: string) {
+    // Buscar usuario por email (case-insensitive)
+    const user = await this.prisma.user.findFirst({
+      where: {
+        correo: { equals: email.trim().toLowerCase(), mode: 'insensitive' },
+      },
+    });
+
+    if (!user) {
+      // No revelar si el usuario existe o no por seguridad
+      return {
+        message:
+          'Si el correo existe en nuestro sistema, recibirás un nuevo email de confirmación',
+      };
+    }
+
+    // Verificar si la cuenta ya está activa
+    if (user.activo) {
+      throw new UnauthorizedException('La cuenta ya está activada');
+    }
+
+    // Generar nuevo token de confirmación
+    const confirmationToken = crypto.randomBytes(32).toString('hex');
+    const confirmationExpires = new Date();
+    confirmationExpires.setHours(confirmationExpires.getHours() + 1); // Token válido por 1 hora
+
+    // Actualizar token en la base de datos
+    await this.prisma.user.update({
+      where: { id_Usuario: user.id_Usuario },
+      data: {
+        confirmationToken,
+        confirmationTokenExpires: confirmationExpires,
+      } as any,
+    });
+
+    // Enviar correo con el nuevo token de forma asíncrona (no bloqueante)
+    this.emailService.sendConfirmationEmail(
+      user.correo,
+      confirmationToken,
+      user.username,
+    ).catch(err => {
+      console.error('❌ Error enviando email de confirmación:', err?.message);
+      // No lanzar error, solo loguearlo
+    });
+
+    return {
+      message:
+        'Si el correo existe en nuestro sistema, recibirás un nuevo email de confirmación',
+    };
   }
 }

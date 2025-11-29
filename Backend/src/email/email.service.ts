@@ -13,31 +13,40 @@ export class EmailService implements OnModuleInit {
   }
 private async init() {
     try {
-      console.log('🔧 Configurando Gmail SMTP...');
+      const sendgridKey = process.env.SENDGRID_API_KEY;
       
-      this.transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false, // true para 465, false para 587
-        auth: {
-          user: process.env.GMAIL_USER,
-          pass: process.env.GMAIL_APP_PASSWORD,
-        },
-        // Configuración optimizada para Gmail
-        connectionTimeout: 30000,
-        greetingTimeout: 20000,
-        socketTimeout: 45000,
-        tls: {
-          rejectUnauthorized: false
-        }
-      });
-      
-      await this.transporter.verify();
-      this.ready = true;
-      console.log('✅ Gmail SMTP configurado correctamente');
+      if (sendgridKey && sendgridKey.startsWith('SG.')) {
+        console.log('🔧 Configurando SendGrid...');
+        sgMail.setApiKey(sendgridKey);
+        this.useSendgrid = true;
+        this.ready = true;
+        console.log('✅ SendGrid configurado correctamente');
+      } else {
+        console.log('🔧 Configurando Gmail SMTP...');
+        
+        this.transporter = nodemailer.createTransport({
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: {
+            user: process.env.GMAIL_USER,
+            pass: process.env.GMAIL_APP_PASSWORD,
+          },
+          connectionTimeout: 30000,
+          greetingTimeout: 20000,
+          socketTimeout: 45000,
+          tls: {
+            rejectUnauthorized: false
+          }
+        });
+        
+        await this.transporter.verify();
+        this.ready = true;
+        console.log('✅ Gmail SMTP configurado correctamente');
+      }
       
     } catch (err: any) {
-      console.error('❌ Error inicializando Gmail:', err?.message);
+      console.error('❌ Error inicializando servicio de email:', err?.message);
       this.ready = false;
     }
   }
@@ -135,10 +144,12 @@ El equipo de Penguin Path
 </html>`;    if (this.useSendgrid) {
       const res = await sgMail.send({
         to: email,
-        from,
+        from: 'noreply@penguinpath.duckdns.org',
         subject: 'Confirma tu cuenta - Penguin Path',
+        text,
         html,
       });
+      console.log('✅ Email de confirmación enviado vía SendGrid a:', email);
       return res;
     }
 
@@ -244,10 +255,12 @@ El equipo de Penguin Path
     if (this.useSendgrid) {
       const res = await sgMail.send({
         to: email,
-        from,
+        from: 'noreply@penguinpath.duckdns.org',
         subject: 'Recuperación de contraseña - Penguin Path',
+        text,
         html,
       });
+      console.log('✅ Email de recuperación enviado vía SendGrid a:', email);
       return res;
     }
 
