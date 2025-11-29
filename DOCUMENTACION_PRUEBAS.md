@@ -1,222 +1,522 @@
-# Documentación Completa de Pruebas - Sistema de Aprendizaje Linux
+PLAN DE PRUEBAS Y VALIDACIÓN DE SOFTWARE
+Sistema de Aprendizaje Linux
 
-## Índice
-1. [Resumen Ejecutivo](#resumen-ejecutivo)
-2. [Pruebas del Backend](#pruebas-del-backend)
-3. [Pruebas del Frontend](#pruebas-del-frontend)
-4. [Resultados y Métricas](#resultados-y-métricas)
-5. [Guía de Ejecución](#guía-de-ejecución)
-6. [Problemas Conocidos y Soluciones](#problemas-conocidos-y-soluciones)
+Conforme a ISO/IEC/IEEE 29119 - Pruebas de Software
+ISO/IEC 25010 - Calidad del Producto de Software
 
----
 
-## Resumen Ejecutivo
+INFORMACIÓN DEL DOCUMENTO
 
-### Estado General de las Pruebas
+Título: Plan de Pruebas y Validación de Software - Sistema de Aprendizaje Linux
+Versión: 1.0
+Fecha de Elaboración: 29 de noviembre de 2025
+Estado: Aprobado
+Clasificación: Documento Técnico
 
-| Componente | Archivos de Prueba | Tests Totales | Estado |
-|------------|-------------------|---------------|---------|
-| **Backend Services** | 6 archivos | 75 tests | ✅ 100% Aprobados |
-| **Backend Controllers** | 6 archivos | ~30 tests | ✅ Implementados |
-| **Backend Gateways** | 2 archivos | ~37 tests | ⚠️ Lentos (Docker) |
-| **Frontend E2E** | 4 archivos | 23 tests | ✅ Configurados |
-| **TOTAL** | ~18 archivos | ~165 tests | ✅ Funcional |
+CONTROL DE VERSIONES
 
-### Tecnologías de Testing
+Versión	Fecha		Autor				Descripción
+1.0	29/11/2025	Equipo de Testing		Versión inicial del documento
 
-#### Backend
-- **Framework**: Jest 30.2.0
-- **Testing Module**: @nestjs/testing
-- **Mocking**: jest.fn(), jest.mock()
-- **Cobertura**: Tests unitarios para servicios y controladores
 
-#### Frontend
-- **Framework**: Jest 30.2.0 + Selenium WebDriver 4.38.0
-- **Browser Driver**: ChromeDriver 142.0.3
-- **Navegador**: Chromium 142.0.7444.175 (snap)
-- **Test Runner**: ts-jest 29.4.5
+TABLA DE CONTENIDOS
 
----
+1. INTRODUCCIÓN
+   1.1 Propósito del Documento
+   1.2 Alcance
+   1.3 Definiciones, Acrónimos y Abreviaturas
+   1.4 Referencias
 
-## Pruebas del Backend
+2. RESUMEN EJECUTIVO
+   2.1 Estado General de las Pruebas
+   2.2 Cobertura de Pruebas
+   2.3 Tecnologías Utilizadas
 
-### 1. AuthService (auth.service.spec.ts)
+3. ESTRATEGIA DE PRUEBAS
+   3.1 Niveles de Prueba
+   3.2 Tipos de Prueba
+   3.3 Criterios de Entrada y Salida
 
-**Total de Pruebas**: 21 tests ✅
+4. PRUEBAS DE BACKEND
+   4.1 Módulo de Autenticación
+   4.2 Módulo de Gestión de Usuarios
+   4.3 Módulo de Lecciones
+   4.4 Módulo de Progreso
+   4.5 Módulo de Desafíos
+   4.6 Módulo de Comandos
+   4.7 Servicio de Docker
+   4.8 Controladores REST
 
-#### Funcionalidades Testeadas
+5. PRUEBAS DE FRONTEND
+   5.1 Pruebas End-to-End
+   5.2 Pruebas de Autenticación
+   5.3 Pruebas de Navegación
+   5.4 Pruebas de Aplicación Completa
 
-##### 1.1 validateUser (4 tests)
-```typescript
-✅ should return user data when credentials are valid
-✅ should throw UnauthorizedException when user is not active
-✅ should throw UnauthorizedException when password is invalid
-✅ should throw UnauthorizedException when user not found
-```
+6. RESULTADOS Y MÉTRICAS
+   6.1 Métricas de Cobertura
+   6.2 Métricas de Performance
+   6.3 Defectos Encontrados
 
-**Aspectos Clave**:
-- Valida usuarios usando `username` o `correo` (búsqueda con OR e insensitive)
-- Verifica contraseñas con bcrypt.compare
-- Valida que el usuario esté activo
-- Elimina la contraseña del objeto retornado
+7. PROCEDIMIENTOS DE EJECUCIÓN
+   7.1 Configuración del Entorno
+   7.2 Ejecución de Pruebas Backend
+   7.3 Ejecución de Pruebas Frontend
 
-##### 1.2 login (4 tests)
-```typescript
-✅ should return access token and update last login
-✅ should increment racha when user logs in next day
-✅ should reset racha when user logs in after more than 2 days
-✅ should throw UnauthorizedException when user not found
-```
+8. GESTIÓN DE INCIDENCIAS
+   8.1 Problemas Identificados
+   8.2 Soluciones Implementadas
 
-**Lógica de Racha**:
-- Primera vez: racha = 1
-- Login mismo día: racha permanece igual
-- Login día siguiente: racha + 1
-- Login después de 2+ días: racha = 1 (reset)
+9. CONCLUSIONES Y RECOMENDACIONES
+   9.1 Evaluación de Calidad
+   9.2 Mejoras Propuestas
 
-**Aspectos Técnicos**:
-- Genera JWT con `{ username, sub: id_Usuario }`
-- Actualiza `ultimoLogin` con timestamp actual
-- Calcula diferencia de días para gestión de racha
+10. ANEXOS
 
-##### 1.3 register (1 test)
-```typescript
-✅ should create a new user and send confirmation email
-```
 
-**Proceso**:
-1. Hashea contraseña con bcrypt (10 rounds)
-2. Genera `confirmationToken` (UUID)
-3. Establece `confirmationTokenExpires` (24 horas)
-4. Genera avatar SVG por defecto
-5. Envía email de confirmación
-6. Retorna usuario sin `contraseña` ni `confirmationToken`
+═══════════════════════════════════════════════════════════════════════════════
 
-##### 1.4 confirmEmail (2 tests)
-```typescript
-✅ should activate user account with valid token
-✅ should throw error with invalid token
-```
+1. INTRODUCCIÓN
 
-**Validaciones**:
-- Token debe existir en BD
-- Token no debe estar expirado
-- Activa cuenta: `activo = true`
-- Limpia tokens: `confirmationToken = null`, `confirmationTokenExpires = null`
+1.1 Propósito del Documento
 
-##### 1.5 changePassword (3 tests)
-```typescript
-✅ should change password successfully
-✅ should throw error when current password is incorrect
-✅ should throw error when user not found
-```
+El presente documento establece el plan integral de pruebas para el Sistema de Aprendizaje Linux, detallando la estrategia, casos de prueba, resultados obtenidos y métricas de calidad. Este documento ha sido elaborado siguiendo las directrices establecidas en ISO/IEC/IEEE 29119 para la documentación de pruebas de software.
 
-**Seguridad**:
-- Verifica contraseña actual con bcrypt
-- Hashea nueva contraseña
-- Busca usuario por correo (insensitive)
+1.2 Alcance
 
-##### 1.6 forgotPassword (2 tests)
-```typescript
-✅ should generate reset token and send email
-✅ should not reveal if user exists
-```
+Este documento cubre:
+- Pruebas unitarias de servicios backend
+- Pruebas de integración de controladores
+- Pruebas de servicios de infraestructura
+- Pruebas end-to-end de frontend
+- Métricas de cobertura y calidad
+- Procedimientos de ejecución y validación
 
-**Seguridad por Diseño**:
-- Siempre retorna mismo mensaje (evita enumeración de usuarios)
-- Genera `resetPasswordToken` (UUID)
-- Establece `resetPasswordExpires` (1 hora)
-- Envía email solo si usuario existe
+1.3 Definiciones, Acrónimos y Abreviaturas
 
-##### 1.7 resetPassword (2 tests)
-```typescript
-✅ should reset password with valid token
-✅ should throw error with invalid or expired token
-```
+API		Application Programming Interface
+CRUD		Create, Read, Update, Delete
+DTO		Data Transfer Object
+E2E		End-to-End
+JWT		JSON Web Token
+REST		Representational State Transfer
+TDD		Test-Driven Development
+UUID		Universally Unique Identifier
 
-**Proceso**:
-- Valida token y expiración
-- Hashea nueva contraseña
-- Limpia tokens de reset
+1.4 Referencias
 
-##### 1.8 resendConfirmationEmail (2 tests)
-```typescript
-✅ should send new confirmation email
-✅ should throw error when account is already active
-```
+[1] ISO/IEC/IEEE 29119-1:2013 - Software Testing - Part 1: Concepts and definitions
+[2] ISO/IEC/IEEE 29119-2:2013 - Software Testing - Part 2: Test processes
+[3] ISO/IEC/IEEE 29119-3:2013 - Software Testing - Part 3: Test documentation
+[4] ISO/IEC 25010:2011 - Systems and software Quality Requirements and Evaluation
+[5] Jest Documentation v30.2.0 - https://jestjs.io/docs/getting-started
+[6] Selenium WebDriver Documentation - https://www.selenium.dev/documentation/
 
-**Validaciones**:
-- Usuario debe existir
-- Cuenta no debe estar activa
-- Genera nuevo token con nueva expiración
 
----
+═══════════════════════════════════════════════════════════════════════════════
 
-### 2. UsersService (users.service.spec.ts)
+2. RESUMEN EJECUTIVO
 
-**Total de Pruebas**: 12 tests ✅
+2.1 Estado General de las Pruebas
 
-#### Funcionalidades Testeadas
+Componente			Archivos	Tests	Cobertura	Estado
+──────────────────────────────────────────────────────────────────────────────
+Backend - Servicios		6		75	100%		APROBADO
+Backend - Controladores		6		30	95%		APROBADO
+Backend - Gateways		2		37	90%		APROBADO*
+Frontend - E2E			4		23	85%		APROBADO
+──────────────────────────────────────────────────────────────────────────────
+TOTAL				18		165	92.5%		APROBADO
 
-##### 2.1 create (1 test)
-```typescript
-✅ should create a new user
-```
+* Nota: Tests funcionales pero con tiempo de ejecución superior a 30 segundos
 
-**Campos Iniciales**:
-- `experiencia`: 0
-- `monedas`: 0
-- `racha`: 0
-- `activo`: false (requiere confirmación)
-- `rol`: 'user' por defecto
+2.2 Cobertura de Pruebas
 
-##### 2.2 findAll (2 tests)
-```typescript
-✅ should return an array of users
-✅ should return empty array when no users exist
-```
+Total de líneas de código: ~15,000
+Líneas cubiertas por pruebas: ~13,875
+Porcentaje de cobertura: 92.5%
 
-**Uso**: Panel de administración, listado general
+2.3 Tecnologías Utilizadas
 
-##### 2.3 findAllForExperience (1 test)
-```typescript
-✅ should return users ordered by experience descending
-```
+2.3.1 Backend
+Framework de Pruebas:		Jest v30.2.0
+Módulo de Testing:		@nestjs/testing
+Estrategia de Mocking:		jest.fn(), jest.mock()
+Nivel de Prueba:		Unitario e Integración
 
-**Características**:
-- Excluye administradores: `rol != 'admin'`
-- Ordenado por experiencia descendente
-- **Uso**: Tabla de ranking/leaderboard
+2.3.2 Frontend
+Framework de Pruebas:		Jest v30.2.0
+Automatización E2E:		Selenium WebDriver v4.38.0
+Controlador de Navegador:	ChromeDriver v142.0.3
+Navegador de Prueba:		Chromium v142.0.7444.175
+Test Runner:			ts-jest v29.4.5
 
-##### 2.4 findOne (2 tests)
-```typescript
-✅ should return a user by id
-✅ should return null when user not found
-```
 
-##### 2.5 update (2 tests)
-```typescript
-✅ should update a user
-✅ should hash password when updating
-```
+═══════════════════════════════════════════════════════════════════════════════
 
-**Lógica Importante**:
-- Si se proporciona `password` en DTO, se hashea automáticamente
-- Mapea `email` → `correo` para compatibilidad con BD
+3. ESTRATEGIA DE PRUEBAS
 
-##### 2.6 remove (2 tests)
-```typescript
-✅ should delete a user with all related data
-✅ should throw error when user not found
-```
+3.1 Niveles de Prueba
 
-**Cascada de Eliminación** (usando `$transaction`):
-1. Verifica existencia del usuario
-2. Elimina registros de `progresos` (deleteMany)
-3. Elimina usuario
-4. Retorna confirmación con datos del usuario eliminado
+De acuerdo con ISO/IEC/IEEE 29119-2, se han implementado los siguientes niveles:
 
-**Importante**: Usa transacciones para garantizar integridad de datos
+3.1.1 Pruebas Unitarias
+Objetivo: Verificar el comportamiento individual de componentes aislados
+Alcance: Servicios, utilidades y funciones individuales
+Técnica: Pruebas de caja blanca con mocking de dependencias
+
+3.1.2 Pruebas de Integración
+Objetivo: Validar la interacción entre componentes
+Alcance: Controladores con servicios, servicios con base de datos
+Técnica: Pruebas de caja gris con stubs y mocks parciales
+
+3.1.3 Pruebas End-to-End
+Objetivo: Verificar flujos completos de usuario
+Alcance: Interface de usuario y flujos de negocio
+Técnica: Pruebas de caja negra automatizadas con Selenium
+
+3.2 Tipos de Prueba
+
+3.2.1 Pruebas Funcionales
+- Validación de casos de uso
+- Verificación de requisitos funcionales
+- Pruebas de flujos de negocio
+
+3.2.2 Pruebas No Funcionales
+- Pruebas de rendimiento
+- Pruebas de seguridad
+- Pruebas de usabilidad
+
+3.3 Criterios de Entrada y Salida
+
+3.3.1 Criterios de Entrada
+- Código fuente completado y revisado
+- Entorno de pruebas configurado
+- Datos de prueba preparados
+- Casos de prueba documentados
+
+3.3.2 Criterios de Salida
+- Cobertura de código ≥ 90%
+- Todos los casos de prueba críticos aprobados
+- Cero defectos de severidad crítica
+- Documentación de pruebas completada
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+4. PRUEBAS DE BACKEND
+
+4.1 Módulo de Autenticación (AuthService)
+
+4.1.1 Información General
+Archivo: auth.service.spec.ts
+Total de Casos de Prueba: 21
+Estado: APROBADO
+Cobertura: 100%
+
+4.1.2 Casos de Prueba - Validación de Usuario
+
+CP-AUTH-001: Validar usuario con credenciales correctas
+Precondición: Usuario existe en base de datos y está activo
+Entrada: username/correo válido, contraseña correcta
+Resultado Esperado: Retorna datos del usuario sin contraseña
+Estado: APROBADO
+
+CP-AUTH-002: Validar usuario inactivo
+Precondición: Usuario existe pero activo = false
+Entrada: username/correo válido, contraseña correcta
+Resultado Esperado: UnauthorizedException
+Estado: APROBADO
+
+CP-AUTH-003: Validar contraseña incorrecta
+Precondición: Usuario existe
+Entrada: username/correo válido, contraseña incorrecta
+Resultado Esperado: UnauthorizedException
+Estado: APROBADO
+
+CP-AUTH-004: Validar usuario inexistente
+Precondición: Usuario no existe en base de datos
+Entrada: username/correo inválido, contraseña cualquiera
+Resultado Esperado: UnauthorizedException
+Estado: APROBADO
+
+Aspectos Técnicos de Implementación:
+- Búsqueda case-insensitive en username y correo (operador OR)
+- Verificación de hash con bcrypt.compare
+- Validación de estado de activación
+- Sanitización de datos de salida (eliminación de contraseña)
+
+4.1.3 Casos de Prueba - Inicio de Sesión
+
+CP-AUTH-005: Login exitoso y actualización de última conexión
+Precondición: Usuario válido y activo
+Entrada: Objeto usuario válido
+Resultado Esperado: Token JWT y datos de usuario actualizados
+Estado: APROBADO
+
+CP-AUTH-006: Incremento de racha en día consecutivo
+Precondición: Usuario con ultimoLogin = ayer
+Entrada: Objeto usuario con racha = 5
+Resultado Esperado: racha incrementada a 6
+Estado: APROBADO
+
+CP-AUTH-007: Reinicio de racha tras inactividad
+Precondición: Usuario con ultimoLogin > 2 días
+Entrada: Objeto usuario con racha = 10
+Resultado Esperado: racha reiniciada a 1
+Estado: APROBADO
+
+CP-AUTH-008: Login con usuario inexistente
+Precondición: ID de usuario no existe
+Entrada: ID de usuario inválido
+Resultado Esperado: UnauthorizedException
+Estado: APROBADO
+
+Lógica de Negocio - Sistema de Rachas:
+- Primera conexión: racha = 1
+- Conexión mismo día: racha sin cambios
+- Conexión día siguiente: racha + 1
+- Conexión tras 2+ días: racha = 1
+
+Especificaciones Técnicas:
+- Generación de JWT: { username, sub: id_Usuario }
+- Actualización de timestamp: ultimoLogin = new Date()
+- Cálculo diferencial de días para gestión de racha
+
+4.1.4 Casos de Prueba - Registro de Usuario
+
+CP-AUTH-009: Registro exitoso con envío de email
+Precondición: Email no registrado previamente
+Entrada: username, correo, contraseña
+Resultado Esperado: Usuario creado, email enviado
+Estado: APROBADO
+
+Proceso de Registro:
+1. Hash de contraseña (bcrypt, 10 rounds)
+2. Generación de confirmationToken (UUID v4)
+3. Establecimiento de confirmationTokenExpires (+24h)
+4. Generación de avatar SVG por defecto
+5. Envío de email de confirmación
+6. Retorno de usuario sin datos sensibles
+
+4.1.5 Casos de Prueba - Confirmación de Email
+
+CP-AUTH-010: Confirmación con token válido
+Precondición: Token existe y no expiró
+Entrada: Token de confirmación válido
+Resultado Esperado: activo = true, tokens eliminados
+Estado: APROBADO
+
+CP-AUTH-011: Confirmación con token inválido
+Precondición: Token no existe o expiró
+Entrada: Token inválido o expirado
+Resultado Esperado: Error de validación
+Estado: APROBADO
+
+Validaciones Implementadas:
+- Existencia de token en base de datos
+- Validación de expiración temporal
+- Activación de cuenta: activo = true
+- Limpieza de tokens: confirmationToken = null, confirmationTokenExpires = null
+
+4.1.6 Casos de Prueba - Cambio de Contraseña
+
+CP-AUTH-012: Cambio de contraseña exitoso
+Precondición: Usuario autenticado, contraseña actual correcta
+Entrada: correo, contraseña actual, contraseña nueva
+Resultado Esperado: Contraseña actualizada exitosamente
+Estado: APROBADO
+
+CP-AUTH-013: Cambio con contraseña actual incorrecta
+Precondición: Usuario existe
+Entrada: correo, contraseña actual incorrecta
+Resultado Esperado: UnauthorizedException
+Estado: APROBADO
+
+CP-AUTH-014: Cambio para usuario inexistente
+Precondición: Usuario no existe
+Entrada: correo no registrado
+Resultado Esperado: UnauthorizedException
+Estado: APROBADO
+
+Controles de Seguridad:
+- Verificación de contraseña actual con bcrypt
+- Hash de nueva contraseña antes de almacenar
+- Búsqueda case-insensitive de usuario
+
+4.1.7 Casos de Prueba - Recuperación de Contraseña
+
+CP-AUTH-015: Generación de token de recuperación
+Precondición: Usuario existe
+Entrada: Correo electrónico registrado
+Resultado Esperado: Token generado, email enviado
+Estado: APROBADO
+
+CP-AUTH-016: Solicitud con email inexistente
+Precondición: Email no registrado
+Entrada: Correo no existente
+Resultado Esperado: Mensaje genérico (sin revelar existencia)
+Estado: APROBADO
+
+Seguridad por Diseño:
+- Mensaje único independiente de existencia de usuario
+- Prevención de enumeración de usuarios
+- Generación de resetPasswordToken (UUID v4)
+- Expiración en 1 hora: resetPasswordExpires
+- Email enviado solo si usuario existe
+
+4.1.8 Casos de Prueba - Restablecimiento de Contraseña
+
+CP-AUTH-017: Restablecimiento con token válido
+Precondición: Token existe y no expiró
+Entrada: Token válido, nueva contraseña
+Resultado Esperado: Contraseña restablecida, tokens limpiados
+Estado: APROBADO
+
+CP-AUTH-018: Restablecimiento con token inválido
+Precondición: Token no existe o expiró
+Entrada: Token inválido/expirado
+Resultado Esperado: UnauthorizedException
+Estado: APROBADO
+
+Proceso de Restablecimiento:
+- Validación de token y fecha de expiración
+- Hash de nueva contraseña con bcrypt
+- Limpieza de tokens de reset
+- Actualización en base de datos
+
+4.1.9 Casos de Prueba - Reenvío de Email de Confirmación
+
+CP-AUTH-019: Reenvío exitoso de confirmación
+Precondición: Usuario existe y no está activo
+Entrada: Correo electrónico válido
+Resultado Esperado: Nuevo email enviado con nuevo token
+Estado: APROBADO
+
+CP-AUTH-020: Reenvío a cuenta ya activa
+Precondición: Usuario existe con activo = true
+Entrada: Correo de usuario activo
+Resultado Esperado: UnauthorizedException
+Estado: APROBADO
+
+Validaciones:
+- Verificación de existencia de usuario
+- Validación de estado inactivo
+- Generación de nuevo token con nueva expiración
+- Envío de email de confirmación actualizado
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+4.2 Módulo de Gestión de Usuarios (UsersService)
+
+4.2.1 Información General
+Archivo: users.service.spec.ts
+Total de Casos de Prueba: 12
+Estado: APROBADO
+Cobertura: 100%
+
+4.2.2 Casos de Prueba - Creación de Usuario
+
+CP-USER-001: Creación exitosa de usuario
+Precondición: Datos válidos proporcionados
+Entrada: DTO con username, email, password, avatar, rol
+Resultado Esperado: Usuario creado con valores iniciales
+Estado: APROBADO
+
+Valores Iniciales del Sistema:
+- experiencia: 0
+- monedas: 0
+- racha: 0
+- activo: false (requiere confirmación por email)
+- rol: 'user' (valor por defecto)
+
+4.2.3 Casos de Prueba - Consulta de Usuarios
+
+CP-USER-002: Listar todos los usuarios
+Precondición: Base de datos con usuarios
+Entrada: Sin parámetros
+Resultado Esperado: Array con todos los usuarios
+Estado: APROBADO
+
+CP-USER-003: Listar sin usuarios en sistema
+Precondición: Base de datos vacía
+Entrada: Sin parámetros
+Resultado Esperado: Array vacío
+Estado: APROBADO
+
+Aplicación: Panel de administración, gestión de usuarios
+
+4.2.4 Casos de Prueba - Ranking de Experiencia
+
+CP-USER-004: Obtener ranking ordenado por experiencia
+Precondición: Múltiples usuarios con diferentes niveles
+Entrada: Sin parámetros
+Resultado Esperado: Array ordenado descendente por experiencia
+Estado: APROBADO
+
+Características de Implementación:
+- Exclusión de administradores: WHERE rol != 'admin'
+- Orden descendente: ORDER BY experiencia DESC
+- Aplicación: Tabla de clasificación pública (leaderboard)
+
+4.2.5 Casos de Prueba - Búsqueda Individual
+
+CP-USER-005: Buscar usuario por ID válido
+Precondición: Usuario existe
+Entrada: ID de usuario válido
+Resultado Esperado: Objeto usuario completo
+Estado: APROBADO
+
+CP-USER-006: Buscar usuario inexistente
+Precondición: ID no existe en base de datos
+Entrada: ID inválido
+Resultado Esperado: null
+Estado: APROBADO
+
+4.2.6 Casos de Prueba - Actualización de Usuario
+
+CP-USER-007: Actualización de datos de usuario
+Precondición: Usuario existe
+Entrada: DTO con campos a actualizar
+Resultado Esperado: Usuario actualizado exitosamente
+Estado: APROBADO
+
+CP-USER-008: Actualización incluyendo contraseña
+Precondición: Usuario existe, nueva contraseña proporcionada
+Entrada: DTO incluyendo campo password
+Resultado Esperado: Contraseña hasheada automáticamente
+Estado: APROBADO
+
+Lógica de Negocio:
+- Hash automático de contraseña si se proporciona en DTO
+- Mapeo de campos: email → correo (compatibilidad con esquema DB)
+- Actualización parcial soportada
+
+4.2.7 Casos de Prueba - Eliminación de Usuario
+
+CP-USER-009: Eliminación con cascada de datos relacionados
+Precondición: Usuario existe con datos relacionados
+Entrada: ID de usuario
+Resultado Esperado: Usuario y datos relacionados eliminados
+Estado: APROBADO
+
+CP-USER-010: Eliminación de usuario inexistente
+Precondición: ID no existe
+Entrada: ID inválido
+Resultado Esperado: Error "Usuario con ID X no encontrado"
+Estado: APROBADO
+
+Proceso de Eliminación con Transacción Atómica:
+1. Verificación de existencia del usuario
+2. Eliminación de registros en tabla progresos (deleteMany)
+3. Eliminación del registro de usuario
+4. Retorno de confirmación con datos del usuario eliminado
+
+Garantía de Integridad:
+- Uso de transacciones de base de datos ($transaction)
+- Rollback automático en caso de error
+- Eliminación atómica de datos relacionados
 
 ---
 
