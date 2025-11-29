@@ -29,6 +29,7 @@ html, body, #app {
   width: 100%;
   max-width: 100vw; /* clamp to viewport width */
   overflow-x: hidden; /* avoid white gap when panning horizontally */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 /* Media elements never exceed container width */
 img, video, canvas, svg {

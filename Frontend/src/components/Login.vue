@@ -64,7 +64,6 @@ async function handleLogin() {
 }
 </script>
 
-
 <template>
     <div class="login">
         <div class="Background"></div>
@@ -83,37 +82,35 @@ async function handleLogin() {
                 {{ errorMessage }}
             </div>
 
-            <form @submit.prevent="handleLogin">
-                <div class="form-group">
-                    <label class="label-left">Apodo</label>
-                    <input type="text" placeholder="Ingresa tu apodo" v-model="email" autocomplete="username" />
-                </div>
+            <form @submit.prevent="handleLogin" class="form-group">
+                <label for="email">Apodo:</label>
+                <input v-model="email" type="text" id="email" placeholder="Ingresa tu apodo" required />
 
-                <div class="form-group">
-                    <label class="label-left">Contraseña</label>
-                    <input type="password" placeholder="Ingresa tu contraseña" v-model="password" autocomplete="current-password" />
-                </div>
+                <label for="password">Contraseña:</label>
+                <input v-model="password" type="password" id="password" placeholder="Ingresa tu contraseña" required />
 
-                <button type="submit" class="login-btn" :disabled="loading">
+                <button type="submit" class="boton-enviar" :disabled="loading">
                     {{ loading ? 'Cargando...' : 'Iniciar sesión' }}
                 </button>
             </form>
 
-            <div class="links">
-                <router-link to="/forgot-password" class="forgot-password">¿Olvidaste tu contraseña?</router-link>
-                <p class="register-text">
-                    ¿No tienes cuenta?
-                    <router-link to="/registro" class="register-link">Regístrate</router-link>
-                </p>
+            <router-link to="/forgot-password" class="back-link">
+                ¿Olvidaste tu contraseña?
+            </router-link>
+
+            <div class="legal-links">
+                <router-link to="/registro" class="legal-link">¿No tienes cuenta? Regístrate</router-link>
             </div>
         </div>
     </div>
 </template>
+
 <style scoped>
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    text-decoration: none;
 }
 
 body {
@@ -127,6 +124,7 @@ html {
     padding: 0;
 }
 
+/* Si estás usando Vue, también resetea el div principal */
 #app {
     margin: 0;
     padding: 0;
@@ -153,14 +151,14 @@ html {
 }
 
 .Plantilla {
-    margin-top: 100px;
+    margin-top: 50px;
     background: #fff;
-    padding: 30px;
-    border-radius: 10px;
+    padding: 40px;
+    border-radius: 20px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     text-align: center;
     width: 550px;
-
+    color: #333;
 }
 
 .Plantilla img {
@@ -169,39 +167,91 @@ html {
     margin-bottom: 25px;
 }
 
+.Plantilla h1 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #333;
+    text-shadow: none;
+}
+
+.Plantilla p {
+    color: #666;
+}
+
 .label-left {
     display: block;
     text-align: left;
     margin-bottom: 5px;
 }
 
+label {
+    display: block;
+    text-align: left;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #333;
+}
+
 input {
-    padding: 10px;
-    margin: 5px;
+    padding: 12px;
+    margin-bottom: 15px;
     width: 100%;
     border: 1px solid #ccc;
-    border-radius: 5px;
+    border-radius: 8px;
+    background: #fff;
+    color: #333;
+    font-size: 1rem;
+}
+
+input::placeholder {
+    color: #999;
+}
+
+input:focus {
+    outline: none;
+    border-color: #ff6600;
+    background: #fff;
 }
 
 button {
     background-color: #ff6600;
     color: white;
     border: none;
-    padding: 10px 20px;
+    padding: 12px 20px;
     margin-top: 10px;
-    border-radius: 5px;
+    border-radius: 50px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 1rem;
     width: 100%;
 }
 
 button:hover:not(:disabled) {
     background-color: #e55b00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 button:disabled {
     background-color: #ccc;
     cursor: not-allowed;
+}
+
+.back-link {
+    display: inline-block;
+    color: #666;
+    text-decoration: none;
+    font-size: 14px;
+    margin-top: 20px;
+    padding: 8px 16px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.back-link:hover {
+    color: #ff6600;
+    background: #f5f5f5;
 }
 
 .message {
@@ -238,34 +288,74 @@ button:disabled {
     flex-shrink: 0;
 }
 
-.links {
+.success-message {
+    background: #efe;
+    color: #2a7;
+    border: 1px solid #cfc;
+}
+
+.success-message svg {
+    color: #2a7;
+    flex-shrink: 0;
+}
+
+.legal-links {
     margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    font-size: 12px;
+    color: #999;
 }
 
-.forgot-password {
-    color: #ff6600;
+.legal-link {
+    color: #999;
     text-decoration: none;
-    font-size: 14px;
-    display: block;
-    margin-bottom: 15px;
+    transition: color 0.3s ease;
 }
 
-.forgot-password:hover {
+.legal-link:hover {
+    color: #ff6600;
     text-decoration: underline;
 }
 
-.register-text {
-    color: #666;
-    font-size: 14px;
+.separator {
+    margin: 0 8px;
+    color: #ddd;
 }
 
-.register-link {
+.checkbox-group {
+    margin: 15px 0;
+    text-align: left;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #555;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin: 0;
+    margin-top: 3px;
+    width: auto;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.checkbox-label span {
+    line-height: 1.5;
+}
+
+.inline-link {
     color: #ff6600;
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 500;
 }
 
-.register-link:hover {
+.inline-link:hover {
     text-decoration: underline;
 }
 

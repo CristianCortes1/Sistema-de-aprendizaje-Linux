@@ -79,7 +79,7 @@ export default defineComponent({
                 <section>
                     <h2>6. Contacto</h2>
                     <p>Si tienes preguntas sobre esta política, contáctanos en:</p>
-                    <p><strong>Email:</strong> privacy@penguinpath.com</p>
+                    <p><strong>Email:</strong> penguinpathemail@gmail.com </p>
                 </section>
             </div>
         </div>

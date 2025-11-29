@@ -7,8 +7,8 @@
         <span class="brand-name">Penguin Path</span>
       </div>
       <div class="nav-links">
-        <router-link to="/login" class="nav-link">Iniciar Sesión</router-link>
-        <router-link to="/registro" class="nav-btn">Registrarse</router-link>
+        <button @click="openLoginModal" class="nav-link-btn">Iniciar Sesión</button>
+        <button @click="openRegisterModal" class="nav-btn">Registrarse</button>
       </div>
     </nav>
 
@@ -19,8 +19,7 @@
           <h1>Domina la<br>Terminal de Linux</h1>
           <p class="subtitle">Aprende a utilizar la línea de comandos con un entorno real, lecciones interactivas y práctica libre. Sin configuraciones, directo en tu navegador.</p>
           <div class="cta-buttons">
-            <router-link to="/registro" class="btn btn-primary">Comenzar Ahora 🚀</router-link>
-            <!-- <router-link to="/login" class="btn btn-secondary">Iniciar Sesión</router-link> -->
+            <button @click="openRegisterModal" class="btn btn-primary">Comenzar Ahora 🚀</button>
           </div>
         </div>
         
@@ -94,15 +93,55 @@
         <router-link to="/terms">Términos y Condiciones</router-link>
       </div>
     </footer>
+
+    <!-- Modals -->
+    <LoginModal 
+      :show="showLoginModal" 
+      @close="closeModals" 
+      @success="handleLoginSuccess"
+      @switchToRegister="openRegisterModal"
+    />
+    <RegisterModal 
+      :show="showRegisterModal" 
+      @close="closeModals" 
+      @success="handleRegisterSuccess"
+      @switchToLogin="openLoginModal"
+    />
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script setup lang="ts">
+import { ref } from 'vue'
+import LoginModal from './LoginModal.vue'
+import RegisterModal from './RegisterModal.vue'
 
-export default defineComponent({
-  name: 'Home',
-});
+const showLoginModal = ref(false)
+const showRegisterModal = ref(false)
+
+const openLoginModal = () => {
+  showRegisterModal.value = false
+  showLoginModal.value = true
+}
+
+const openRegisterModal = () => {
+  showLoginModal.value = false
+  showRegisterModal.value = true
+}
+
+const closeModals = () => {
+  showLoginModal.value = false
+  showRegisterModal.value = false
+}
+
+const handleLoginSuccess = () => {
+  closeModals()
+  // Router push is handled in the modal component
+}
+
+const handleRegisterSuccess = () => {
+  closeModals()
+  // Show success message or redirect
+}
 </script>
 
 <style scoped>
@@ -167,6 +206,22 @@ export default defineComponent({
   opacity: 0.8;
 }
 
+.nav-link-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+}
+
+.nav-link-btn:hover {
+  opacity: 0.8;
+}
+
 .nav-btn {
   background-color: #ff6600; /* Orange Button */
   color: white;
@@ -175,6 +230,9 @@ export default defineComponent({
   text-decoration: none;
   font-weight: 600;
   transition: background-color 0.2s;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
 }
 
 .nav-btn:hover {

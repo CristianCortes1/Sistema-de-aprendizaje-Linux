@@ -158,8 +158,8 @@ export default defineComponent({
                 </button>
             </form>
 
-            <router-link to="/" class="back-link">
-                ← Volver al Login
+            <router-link to="/login" class="back-link">
+                ← Volver al login
             </router-link>
 
             <div class="legal-links">
@@ -170,7 +170,6 @@ export default defineComponent({
         </div>
     </div>
 </template>
-
 
 <style scoped>
 * {
@@ -218,14 +217,14 @@ html {
 }
 
 .Plantilla {
-    margin-top: 100px;
+    margin-top: 50px;
     background: #fff;
-    padding: 30px;
-    border-radius: 10px;
+    padding: 40px;
+    border-radius: 20px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     text-align: center;
     width: 550px;
-
+    color: #333;
 }
 
 .Plantilla img {
@@ -234,33 +233,70 @@ html {
     margin-bottom: 25px;
 }
 
+.Plantilla h1 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #333;
+    text-shadow: none;
+}
+
+.Plantilla p {
+    color: #666;
+}
+
 .label-left {
     display: block;
     text-align: left;
     margin-bottom: 5px;
 }
 
+label {
+    display: block;
+    text-align: left;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #333;
+}
+
 input {
-    padding: 10px;
-    margin: 5px;
+    padding: 12px;
+    margin-bottom: 15px;
     width: 100%;
     border: 1px solid #ccc;
-    border-radius: 5px;
+    border-radius: 8px;
+    background: #fff;
+    color: #333;
+    font-size: 1rem;
+}
+
+input::placeholder {
+    color: #999;
+}
+
+input:focus {
+    outline: none;
+    border-color: #ff6600;
+    background: #fff;
 }
 
 button {
     background-color: #ff6600;
     color: white;
     border: none;
-    padding: 10px 20px;
+    padding: 12px 20px;
     margin-top: 10px;
-    border-radius: 5px;
+    border-radius: 50px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 1rem;
+    width: 100%;
 }
 
 button:hover:not(:disabled) {
     background-color: #e55b00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 button:disabled {
@@ -273,7 +309,7 @@ button:disabled {
     color: #666;
     text-decoration: none;
     font-size: 14px;
-    margin-top: 15px;
+    margin-top: 20px;
     padding: 8px 16px;
     border-radius: 5px;
     transition: all 0.3s ease;
@@ -293,6 +329,7 @@ button:disabled {
     margin-bottom: 20px;
     font-size: 14px;
     animation: slideIn 0.3s ease;
+    text-align: left;
 }
 
 @keyframes slideIn {
@@ -385,37 +422,6 @@ button:disabled {
 }
 
 .inline-link:hover {
-    text-decoration: underline;
-}
-
-.links {
-    margin-top: 20px;
-}
-
-.forgot-password {
-    color: #ff6600;
-    text-decoration: none;
-    font-size: 14px;
-    display: block;
-    margin-bottom: 15px;
-}
-
-.forgot-password:hover {
-    text-decoration: underline;
-}
-
-.register-text {
-    color: #666;
-    font-size: 14px;
-}
-
-.register-link {
-    color: #ff6600;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.register-link:hover {
     text-decoration: underline;
 }
 

@@ -103,7 +103,7 @@ export default defineComponent({
                 <section>
                     <h2>10. Contacto</h2>
                     <p>Para preguntas sobre estos términos:</p>
-                    <p><strong>Email:</strong> legal@penguinpath.com</p>
+                    <p><strong>Email:</strong> penguinpathemail@gmail.com</p>
                 </section>
             </div>
         </div>
