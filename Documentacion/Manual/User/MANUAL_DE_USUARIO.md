@@ -2,7 +2,7 @@
 
 - Versión del manual: 1.0.0
 - Fecha: 2025-11-13
-- Versión de la app: v2.x (Nest.js + PostgreSQL + AWS)
+- Versión de la app: 1.3.0 (Nest.js + PostgreSQL + AWS)
 - Estado: Borrador
 - Propietario: Equipo de Desarrollo
 - Revisores: David Santiago Chacon Herrera
