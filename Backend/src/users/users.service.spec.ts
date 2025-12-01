@@ -17,6 +17,10 @@ describe('UsersService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
+    progresos: {
+      deleteMany: jest.fn(),
+    },
+    $transaction: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -73,14 +77,13 @@ describe('UsersService', () => {
 
       expect(result).toEqual(expectedUser);
       expect(mockPrismaService.user.create).toHaveBeenCalledWith({
-        data: {
+        data: expect.objectContaining({
           username: createUserDto.username,
           correo: createUserDto.email,
-          contraseña: createUserDto.password,
           avatar: createUserDto.avatar,
           rol: createUserDto.rol,
           activo: createUserDto.activo,
-        },
+        }),
       });
       expect(mockPrismaService.user.create).toHaveBeenCalledTimes(1);
     });
@@ -128,11 +131,13 @@ describe('UsersService', () => {
           id_Usuario: 2,
           username: 'user2',
           experiencia: 200,
+          rol: 'user',
         },
         {
           id_Usuario: 1,
           username: 'user1',
           experiencia: 100,
+          rol: 'user',
         },
       ];
 
@@ -142,6 +147,9 @@ describe('UsersService', () => {
 
       expect(result).toEqual(expectedUsers);
       expect(mockPrismaService.user.findMany).toHaveBeenCalledWith({
+        where: {
+          rol: { not: 'admin' },
+        },
         orderBy: { experiencia: 'desc' },
       });
     });
@@ -201,31 +209,94 @@ describe('UsersService', () => {
         data: {
           username: updateUserDto.username,
           correo: updateUserDto.email,
-          contraseña: updateUserDto.password,
           avatar: updateUserDto.avatar,
           rol: updateUserDto.rol,
           activo: updateUserDto.activo,
         },
       });
     });
+
+    it('should hash password when updating', async () => {
+      const userId = 1;
+      const updateUserDto: UpdateUserDto = {
+        username: 'updateduser',
+        email: 'updated@example.com',
+        password: 'newPassword123',
+      };
+
+      const expectedUser = {
+        id_Usuario: userId,
+        username: 'updateduser',
+        correo: 'updated@example.com',
+      };
+
+      const bcrypt = require('bcryptjs');
+      jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedPassword');
+
+      mockPrismaService.user.update.mockResolvedValue(expectedUser);
+
+      await service.update(userId, updateUserDto);
+
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id_Usuario: userId },
+        data: expect.objectContaining({
+          username: updateUserDto.username,
+          contraseña: 'hashedPassword',
+        }),
+      });
+    });
   });
 
   describe('remove', () => {
-    it('should delete a user', async () => {
+    it('should delete a user with all related data', async () => {
       const userId = 1;
+      const mockUser = {
+        id_Usuario: userId,
+        username: 'deleteduser',
+      };
+
       const deletedUser = {
         id_Usuario: userId,
         username: 'deleteduser',
       };
 
-      mockPrismaService.user.delete.mockResolvedValue(deletedUser);
+      // Mock the transaction
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          user: {
+            findUnique: jest.fn().mockResolvedValue(mockUser),
+            delete: jest.fn().mockResolvedValue(deletedUser),
+          },
+          progresos: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 3 }),
+          },
+        };
+        return callback(mockTx);
+      });
 
       const result = await service.remove(userId);
 
-      expect(result).toEqual(deletedUser);
-      expect(mockPrismaService.user.delete).toHaveBeenCalledWith({
-        where: { id_Usuario: userId },
+      expect(result).toEqual({
+        message: 'Usuario y todos sus datos relacionados eliminados exitosamente',
+        id: userId,
+        username: 'deleteduser',
       });
+      expect(mockPrismaService.$transaction).toHaveBeenCalled();
+    });
+
+    it('should throw error when user not found', async () => {
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          user: {
+            findUnique: jest.fn().mockResolvedValue(null),
+          },
+        };
+        return callback(mockTx);
+      });
+
+      await expect(service.remove(999)).rejects.toThrow(
+        'Usuario con ID 999 no encontrado',
+      );
     });
   });
 });

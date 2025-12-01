@@ -60,6 +60,7 @@ describe('CommandsService', () => {
       expect(mockPrismaService.comandos.create).toHaveBeenCalledWith({
         data: {
           comando: createCommandDto.comando,
+          descripcion: null,
           Retos_id_Reto: createCommandDto.retoId,
         },
       });
@@ -171,6 +172,7 @@ describe('CommandsService', () => {
         where: { id_Comando: 1 },
         data: {
           comando: updateCommandDto.comando,
+          descripcion: null,
           Retos_id_Reto: updateCommandDto.retoId,
         },
       });
