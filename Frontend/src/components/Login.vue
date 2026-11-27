@@ -65,10 +65,7 @@ async function handleLogin() {
     }
 }
 
-function handleGoogleLogin() {
-    // Redirigir a la ruta de Google OAuth del backend
-    window.location.href = `${API_URL}/auth/google`
-}
+
 </script>
 
 <template>

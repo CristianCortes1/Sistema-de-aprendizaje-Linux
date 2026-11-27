@@ -44,11 +44,11 @@ const routes = [
         name: 'ResetPassword',
         component: ResetPassword
     },
-    {
-        path: '/auth/callback',
-        name: 'AuthCallback',
-        component: AuthCallback
-    },
+    // {
+    //     path: '/auth/callback',
+    //     name: 'AuthCallback',
+    //     component: AuthCallback
+    // },
     {
         path: '/privacy-policy',
         name: 'PrivacyPolicy',

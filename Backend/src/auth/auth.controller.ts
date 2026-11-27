@@ -235,25 +235,25 @@ export class AuthController {
     );
   }
 
-  @Public()
-  @Get('google')
-  @UseGuards(GoogleAuthGuard)
-  @ApiOperation({ summary: 'Iniciar sesión con Google' })
-  @ApiResponse({ status: 200, description: 'Redirige a Google OAuth' })
-  async googleAuth() {
-    // El guard se encarga de redirigir
-  }
+  // @Public()
+  // @Get('google')
+  // @UseGuards(GoogleAuthGuard)
+  // @ApiOperation({ summary: 'Iniciar sesión con Google' })
+  // @ApiResponse({ status: 200, description: 'Redirige a Google OAuth' })
+  // async googleAuth() {
+  //   // El guard se encarga de redirigir
+  // }
 
-  @Public()
-  @Get('google/callback')
-  @UseGuards(GoogleAuthGuard)
-  @ApiOperation({ summary: 'Callback de Google OAuth' })
-  @ApiResponse({ status: 200, description: 'Usuario autenticado exitosamente' })
-  async googleAuthRedirect(@Req() req, @Res() res: Response) {
-    const result = await this.authService.googleLogin(req);
+  // @Public()
+  // @Get('google/callback')
+  // @UseGuards(GoogleAuthGuard)
+  // @ApiOperation({ summary: 'Callback de Google OAuth' })
+  // @ApiResponse({ status: 200, description: 'Usuario autenticado exitosamente' })
+  // async googleAuthRedirect(@Req() req, @Res() res: Response) {
+  //   const result = await this.authService.googleLogin(req);
     
-    // Redirigir al frontend con el token
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/auth/callback?token=${result.access_token}`);
-  }
+  //   // Redirigir al frontend con el token
+  //   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  //   res.redirect(`${frontendUrl}/auth/callback?token=${result.access_token}`);
+  // }
 }

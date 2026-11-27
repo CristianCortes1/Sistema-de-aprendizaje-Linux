@@ -11,9 +11,11 @@ import { ProgressModule } from './progress/progress.module';
 import { TerminalModule } from './terminal/terminal.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+import { ConfigModule } from '@nestjs/config/dist/config.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 60 segundos

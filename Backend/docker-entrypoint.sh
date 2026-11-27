@@ -9,7 +9,7 @@ sleep 5
 
 # Ejecutar migraciones de Prisma
 echo "📊 Running database migrations..."
-pnpm prisma migrate deploy
+pnpm prisma db push
 
 # Generar Prisma Client (por si acaso)
 echo "🔧 Generating Prisma Client..."
