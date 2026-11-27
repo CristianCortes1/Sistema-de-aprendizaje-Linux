@@ -11,7 +11,7 @@ RUN npm install -g pnpm
 WORKDIR /app
 
 # Copiar archivos de dependencias
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Instalar dependencias
 RUN pnpm install --frozen-lockfile
@@ -45,7 +45,7 @@ RUN npm install -g pnpm
 WORKDIR /app
 
 # Copiar package.json y pnpm-lock.yaml
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Crear directorio para Prisma Client y cambiar permisos ANTES de instalar
 RUN mkdir -p /app/generated && chown -R node:node /app
