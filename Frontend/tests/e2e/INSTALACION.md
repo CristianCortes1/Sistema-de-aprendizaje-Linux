@@ -4,14 +4,14 @@
 
 ### Dependencias npm
 - **selenium-webdriver** `4.38.0` - Framework principal de Selenium
-- **chromedriver** `142.0.3` - Driver para controlar Chrome/Chromium
+- **Selenium Manager** - Descarga automáticamente el driver compatible con Chrome/Chromium
 - **@types/selenium-webdriver** - Tipos TypeScript para Selenium
 - **jest** `30.2.0` - Framework de testing
 - **ts-jest** `29.4.5` - Transformador TypeScript para Jest
 - **@types/jest** - Tipos TypeScript para Jest
 
 ### Software del sistema
-- **chromium-browser** `142.0.7444.175` - Navegador para las pruebas
+- **chromium-browser** - Navegador para las pruebas
 
 ## 📁 Archivos creados
 
@@ -72,7 +72,7 @@ pnpm test:e2e:all
 ## 📝 Tipos de pruebas creadas
 
 ### 1. **basic.test.ts** - Verificación de configuración
-- Verifica que Selenium y ChromeDriver funcionan correctamente
+- Verifica que Selenium Manager y Chrome funcionan correctamente
 - Prueba básica navegando a Google
 
 ### 2. **auth.test.ts** - Autenticación

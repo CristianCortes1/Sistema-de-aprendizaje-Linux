@@ -1,6 +1,5 @@
 import { Builder, WebDriver, Browser } from 'selenium-webdriver';
 import chrome from 'selenium-webdriver/chrome';
-import { ServiceBuilder } from 'selenium-webdriver/chrome';
 
 export class TestSetup {
   private driver: WebDriver | null = null;
@@ -23,13 +22,8 @@ export class TestSetup {
     options.addArguments('--remote-debugging-port=9222');
     options.addArguments('--window-size=1920,1080');
     
-    // Configurar chromedriver
-    const service = new ServiceBuilder()
-      .setPath(require('chromedriver').path);
-    
     this.driver = await new Builder()
       .forBrowser(Browser.CHROME)
-      .setChromeService(service)
       .setChromeOptions(options)
       .build();
 
