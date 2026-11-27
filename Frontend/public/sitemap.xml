@@ -7,33 +7,9 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://penguinpath.online/login</loc>
-    <lastmod>2025-11-17</lastmod>
+    <loc>https://penguinpath.duckdns.org/registro</loc>
+    <lastmod>2025-11-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://penguinpath.online/registro</loc>
-    <lastmod>2025-11-17</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://penguinpath.online/dashboard</loc>
-    <lastmod>2025-11-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://penguinpath.online/biblioteca</loc>
-    <lastmod>2025-11-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://penguinpath.online/ranking</loc>
-    <lastmod>2025-11-17</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
   </url>
 </urlset>

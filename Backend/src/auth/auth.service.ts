@@ -308,54 +308,74 @@ export class AuthService {
     return { message: 'Contraseña restablecida exitosamente' };
   }
 
-  async resendConfirmationEmail(email: string) {
-    // Buscar usuario por email (case-insensitive)
-    const user = await this.prisma.user.findFirst({
+  async googleLogin(req: any) {
+    const googleUser = req.user;
+    
+    if (!googleUser || !googleUser.email) {
+      throw new UnauthorizedException('No user from Google');
+    }
+
+    // Buscar usuario por email
+    let user = await this.prisma.user.findFirst({
       where: {
-        correo: { equals: email.trim().toLowerCase(), mode: 'insensitive' },
+        correo: { equals: googleUser.email.toLowerCase(), mode: 'insensitive' },
       },
     });
 
+    // Si no existe, crear nuevo usuario
     if (!user) {
-      // No revelar si el usuario existe o no por seguridad
-      return {
-        message:
-          'Si el correo existe en nuestro sistema, recibirás un nuevo email de confirmación',
-      };
+      const username = googleUser.email.split('@')[0] + '_' + Math.floor(Math.random() * 1000);
+      
+      user = await this.prisma.user.create({
+        data: {
+          username,
+          correo: googleUser.email.toLowerCase(),
+          contraseña: '', // Sin contraseña para OAuth users
+          avatar: googleUser.picture || '',
+          activo: true, // Ya verificado por Google
+        },
+      });
     }
 
-    // Verificar si la cuenta ya está activa
-    if (user.activo) {
-      throw new UnauthorizedException('La cuenta ya está activada');
+    // Actualizar racha y login
+    const now = new Date();
+    let newRacha = user.racha;
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const twoDaysMs = 48 * 60 * 60 * 1000;
+
+    if (user.ultimoLogin) {
+      const diffMs = now.getTime() - user.ultimoLogin.getTime();
+      if (diffMs < oneDayMs) {
+        // Mismo día, mantener racha
+      } else if (diffMs >= oneDayMs && diffMs < twoDaysMs) {
+        newRacha = user.racha + 1;
+      } else {
+        newRacha = 1;
+      }
+    } else {
+      newRacha = 1;
     }
 
-    // Generar nuevo token de confirmación
-    const confirmationToken = crypto.randomBytes(32).toString('hex');
-    const confirmationExpires = new Date();
-    confirmationExpires.setHours(confirmationExpires.getHours() + 1); // Token válido por 1 hora
-
-    // Actualizar token en la base de datos
-    await this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id_Usuario: user.id_Usuario },
       data: {
-        confirmationToken,
-        confirmationTokenExpires: confirmationExpires,
-      } as any,
+        racha: newRacha,
+        ultimoLogin: now,
+      },
     });
 
-    // Enviar correo con el nuevo token de forma asíncrona (no bloqueante)
-    this.emailService.sendConfirmationEmail(
-      user.correo,
-      confirmationToken,
-      user.username,
-    ).catch(err => {
-      console.error('❌ Error enviando email de confirmación:', err?.message);
-      // No lanzar error, solo loguearlo
-    });
-
+    // Generar JWT
+    const payload = { 
+      username: updated.username, 
+      sub: updated.id_Usuario,
+      rol: updated.rol 
+    };
+    
+    const { contraseña, ...userSafe } = updated as any;
+    
     return {
-      message:
-        'Si el correo existe en nuestro sistema, recibirás un nuevo email de confirmación',
+      access_token: this.jwtService.sign(payload),
+      user: userSafe,
     };
   }
 }

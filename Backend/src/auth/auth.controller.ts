@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, Query } from '@nestjs/common';
+import { Body, Controller, Post, Get, Query, Req, Res, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -13,6 +13,8 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ResendConfirmationDto } from './dto/resend-confirmation.dto';
 import { Public } from './decorators/public.decorator';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+import type { Response } from 'express';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -234,37 +236,24 @@ export class AuthController {
   }
 
   @Public()
-  @Post('resend-confirmation')
-  @ApiOperation({
-    summary: 'Reenviar correo de confirmación',
-    description:
-      'Envía un nuevo correo de confirmación si la cuenta aún no está activada',
-  })
-  @ApiBody({ type: ResendConfirmationDto })
-  @ApiResponse({
-    status: 200,
-    description:
-      'Si el correo existe y no está activado, se enviará un nuevo email de confirmación',
-    schema: {
-      example: {
-        message:
-          'Si el correo existe en nuestro sistema, recibirás un nuevo email de confirmación',
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'La cuenta ya está activada',
-    schema: {
-      example: {
-        statusCode: 401,
-        message: 'La cuenta ya está activada',
-        error: 'Unauthorized',
-      },
-    },
-  })
-  async resendConfirmation(@Body() resendConfirmationDto: ResendConfirmationDto) {
-    return this.authService.resendConfirmationEmail(resendConfirmationDto.email);
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Iniciar sesión con Google' })
+  @ApiResponse({ status: 200, description: 'Redirige a Google OAuth' })
+  async googleAuth() {
+    // El guard se encarga de redirigir
   }
 
+  @Public()
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Callback de Google OAuth' })
+  @ApiResponse({ status: 200, description: 'Usuario autenticado exitosamente' })
+  async googleAuthRedirect(@Req() req, @Res() res: Response) {
+    const result = await this.authService.googleLogin(req);
+    
+    // Redirigir al frontend con el token
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/auth/callback?token=${result.access_token}`);
+  }
 }
