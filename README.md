@@ -2,117 +2,191 @@
 
 Sistema interactivo de aprendizaje de comandos Linux con gamificación y terminal virtual.
 
-## 🚀 Inicio Rápido con Docker
+## Requisitos
 
-### Prerrequisitos
+### Para ejecutar con Docker (recomendado)
 
-- Docker Desktop o Docker Engine
-- Docker Compose
-- Git
+- Git.
+- Docker Desktop en Windows/macOS, o Docker Engine en Linux.
+- Docker Compose v2 (`docker compose version`).
+- Docker debe estar iniciado y configurado para usar contenedores Linux. En Windows, Docker Desktop con WSL 2 es la opción recomendada.
+- Conexión a Internet la primera vez, para descargar imágenes y dependencias.
 
-### Pasos para Iniciar
+Node.js y pnpm no son necesarios para el inicio con Docker: las imágenes instalan las dependencias del proyecto. Son necesarios si vas a ejecutar comandos de Node/pnpm directamente en tu equipo.
+
+### Para desarrollo o pruebas fuera de Docker
+
+- Node.js 20.19 o superior de la rama 20, o Node.js 22.12 o superior.
+- npm (incluido con Node.js) y pnpm. Puedes instalar pnpm con:
+
+  ```bash
+  npm install -g pnpm
+  ```
+
+- PostgreSQL 16 si también ejecutarás el backend fuera de Docker.
+
+## Inicio local con Docker
+
+Ejecuta estos pasos desde una terminal en la raíz del repositorio.
+
+### 1. Clonar el proyecto
 
 ```bash
-# 1. Clonar el repositorio
-git clone <repository-url>
+git clone https://github.com/CristianCortes1/Sistema-de-aprendizaje-Linux.git
 cd Sistema-de-aprendizaje-Linux
-
-# 2. Configurar variables de entorno (opcional)
-# Puedes configurar JWT_SECRET, SENDGRID_API_KEY, etc.
-# O dejar los valores por defecto para desarrollo
-
-# 3. Iniciar todos los servicios
-docker-compose -f docker-compose.dev.yml up -d
-
-# 4. Ver logs para confirmar que todo está corriendo
-docker-compose -f docker-compose.dev.yml logs -f
 ```
 
-### 📊 Servicios Disponibles
+### 2. Crear el archivo `.env`
 
-Una vez iniciado, tendrás acceso a:
+Crea `.env` en la raíz del repositorio, al mismo nivel que `docker-compose.dev.yml`:
 
-- 🎨 **Frontend**: http://localhost:5173
-- 🚀 **Backend API**: http://localhost:3000
-- 📚 **Swagger/API Docs**: http://localhost:3000/api
-- 🐘 **PostgreSQL**: localhost:5432
+```env
+JWT_SECRET=pon_aqui_un_valor_aleatorio_largo
+SENDGRID_API_KEY=
+```
+
+Puedes generar un valor aleatorio para `JWT_SECRET` con Node.js:
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(64).toString('hex'))"
+```
+
+Copia el resultado después de `JWT_SECRET=`. Si quieres que la aplicación envíe correos de confirmación, coloca una API key válida de SendGrid en `SENDGRID_API_KEY`. Sin un proveedor de correo configurado, la aplicación puede iniciar, pero no podrás recibir los enlaces de confirmación. El remitente utilizado por el código también debe estar verificado en SendGrid.
+
+El `.env` de la raíz se usa para la interpolación de Docker Compose. No copies `Backend/.env.example` para este modo: sus valores de base de datos están pensados para una conexión local fuera de Docker.
+
+### 3. Construir la imagen Ubuntu del terminal
+
+La aplicación crea contenedores Linux para su terminal interactiva. Esa imagen personalizada no se construye automáticamente junto con Compose; créala una vez:
+
+```bash
+docker build -f Backend/Dockerfile.ubuntu-user -t penguinpath-ubuntu:latest Backend
+```
+
+### 4. Construir e iniciar los servicios
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+La primera construcción puede tardar varios minutos. El backend espera a que PostgreSQL esté listo, sincroniza el esquema usando `prisma db push` y después inicia NestJS.
+
+### 5. Confirmar que arrancaron
+
+```bash
+docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml logs -f backend
+```
+
+Para salir de los logs sin detener los servicios, pulsa `Ctrl+C`.
+
+### 6. Abrir la aplicación
+
+- Frontend: <http://localhost:5173>
+- Backend: <http://localhost:3000>
+- Documentación Swagger: <http://localhost:3000/api>
+
+No se crea automáticamente una cuenta de la aplicación. Regístrate con usuario y contraseña; Google OAuth no está configurado en este entorno. Para activar la cuenta y recibir el correo de confirmación necesitas configurar correctamente SendGrid. Sin correo, las cuentas nuevas quedan inactivas hasta confirmar la dirección.
+
+PostgreSQL solo está disponible dentro de la red de Docker y no publica el puerto 5432 en el equipo anfitrión. Para entrar a la base, usa el comando indicado en la sección de comandos Docker.
+
+### (Opcional) Crear un usuario y un administrador de prueba
+
+Si prefieres tener cuentas listas para iniciar sesión, entra a PostgreSQL desde la raíz del proyecto:
+
+```bash
+docker compose -f docker-compose.dev.yml exec postgres psql -U postgres -d penguinpath
+```
+
+En el prompt de `psql` (`penguinpath=#`), ejecuta:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+INSERT INTO "Usuarios"
+    ("username", "correo", "contraseña", "rol", "activo", "createdAt", "updatedAt")
+VALUES
+    ('admin', 'admin@test.com',
+     crypt('AdminLocal-2026!', gen_salt('bf', 10)), 'admin', TRUE, NOW(), NOW()),
+    ('usuario', 'usuario@test.com',
+     crypt('UsuarioLocal-2026!', gen_salt('bf', 10)), 'usuario', TRUE, NOW(), NOW());
+```
+
+Inicia sesión con el nombre de usuario `admin` y la contraseña `AdminLocal-2026!`, o con `usuario` y `UsuarioLocal-2026!`. Estas son credenciales públicas de prueba: úsalas únicamente en la base local y no las reutilices en un servidor ni con datos reales. Sal de `psql` con `\q`.
 
 ## 📁 Estructura del Proyecto
 
 ```
 Sistema-de-aprendizaje-Linux/
-├── Backend/              # API NestJS
-│   ├── src/             # Código fuente
-│   ├── prisma/          # Base de datos
-│   └── Dockerfile
-├── Frontend/            # Aplicación Vue.js
-│   ├── src/
-│   └── Dockerfile
-├── Documentacion/       # Documentación del proyecto
-├── docker-compose.dev.yml    # Desarrollo
-├── docker-compose.yml        # Producción local
-└── docker-compose.prod.yml   # Producción servidor
+├── Backend/                 # API NestJS
+│   ├── src/                  # Código fuente
+│   ├── prisma/               # Schema de Prisma
+│   ├── Dockerfile            # Imagen del backend
+│   └── Dockerfile.ubuntu-user # Imagen de la terminal Linux
+├── Frontend/                 # Aplicación Vue.js
+│   ├── src/                  # Código fuente
+│   ├── Dockerfile
+│   └── nginx.dev.conf        # Nginx HTTP para desarrollo local
+├── Documentacion/            # Documentación del proyecto
+├── docker-compose.dev.yml # Desarrollo local
+└── docker-compose.yml     # Configuración con HTTPS/certificados
 ```
 
 ## 🐳 Comandos Docker Útiles
 
-### Ver estado de los servicios
+Los comandos usan Docker Compose v2. Si tu instalación solo reconoce `docker-compose`, reemplaza `docker compose` por `docker-compose`.
+
+### Ver estado y logs
+
 ```bash
-docker-compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml logs -f
 ```
 
-### Ver logs
+Para ver un servicio específico:
+
 ```bash
-# Todos los servicios
-docker-compose -f docker-compose.dev.yml logs -f
-
-# Solo backend
-docker-compose -f docker-compose.dev.yml logs -f backend
-
-# Solo frontend
-docker-compose -f docker-compose.dev.yml logs -f frontend
+docker compose -f docker-compose.dev.yml logs -f backend
+docker compose -f docker-compose.dev.yml logs -f frontend
+docker compose -f docker-compose.dev.yml logs -f postgres
 ```
 
 ### Reiniciar servicios
-```bash
-# Reiniciar todo
-docker-compose -f docker-compose.dev.yml restart
 
-# Reiniciar solo backend
-docker-compose -f docker-compose.dev.yml restart backend
+```bash
+docker compose -f docker-compose.dev.yml restart
+docker compose -f docker-compose.dev.yml restart backend
 ```
 
 ### Detener servicios
-```bash
-# Detener sin borrar datos
-docker-compose -f docker-compose.dev.yml down
 
-# Detener y borrar todo (incluyendo base de datos)
-docker-compose -f docker-compose.dev.yml down -v
+```bash
+# Detener sin borrar la base de datos
+docker compose -f docker-compose.dev.yml down
+
+# Detener y borrar el volumen de PostgreSQL (BORRA todos los datos locales)
+docker compose -f docker-compose.dev.yml down -v
 ```
 
-### Acceder a los contenedores
+### Acceder a PostgreSQL
+
 ```bash
-# Backend
-docker exec -it penguinpath-backend sh
-
-# Base de datos
-docker exec -it penguinpath-db psql -U postgres -d penguinpath
-
-# Frontend
-docker exec -it penguinpath-frontend sh
+docker compose -f docker-compose.dev.yml exec postgres psql -U postgres -d penguinpath
 ```
 
-### Ejecutar comandos en los contenedores
+Dentro de `psql`, usa `\dt` para listar tablas, `\d "Usuarios"` para ver una tabla y `\q` para salir. El puerto PostgreSQL no está publicado en el equipo anfitrión.
+
+### Construir o reconstruir
+
 ```bash
-# Migraciones de Prisma
-docker exec -it penguinpath-backend npx prisma migrate dev
+# Reconstruir todos los servicios
+docker compose -f docker-compose.dev.yml up -d --build
 
-# Ver base de datos con Prisma Studio
-docker exec -it penguinpath-backend npx prisma studio
+# Reconstruir solamente el backend
+docker compose -f docker-compose.dev.yml up -d --build backend
 
-# Instalar dependencias en el backend
-docker exec -it penguinpath-backend pnpm install
+# Reconstruir la imagen Ubuntu del terminal
+docker build -f Backend/Dockerfile.ubuntu-user -t penguinpath-ubuntu:latest Backend
 ```
 
 ## 📚 Documentación
@@ -152,76 +226,52 @@ docker exec -it penguinpath-backend pnpm install
 
 ## 🔧 Desarrollo
 
-### Modo Desarrollo
+El Compose de desarrollo construye una imagen del backend y una imagen estática del frontend; no monta el código fuente para hot reload. Después de cambiar código, reconstruye el servicio correspondiente:
 
-El archivo `docker-compose.dev.yml` incluye:
-- ✅ Hot-reload automático
-- ✅ Volúmenes montados para cambios en tiempo real
-- ✅ Variables de entorno de desarrollo
-- ✅ Puertos expuestos para debugging
+```bash
+docker compose -f docker-compose.dev.yml up -d --build backend
+docker compose -f docker-compose.dev.yml up -d --build frontend
+```
 
-### Trabajar sin Docker
+Para ejecutar comandos de desarrollo o pruebas directamente en el equipo, instala Node.js y pnpm y luego las dependencias en la carpeta correspondiente:
 
-Si prefieres trabajar sin Docker:
-
-**Backend:**
 ```bash
 cd Backend
 pnpm install
-pnpm run start:dev
+pnpm test
 ```
 
-**Frontend:**
 ```bash
 cd Frontend
 pnpm install
-pnpm run dev
+pnpm run type-check
 ```
 
-Necesitarás tener PostgreSQL instalado y configurado.
+Ejecutar el backend fuera de Docker requiere una instancia local de PostgreSQL y un `DATABASE_URL` válido en `Backend/.env`. Para el terminal virtual también se necesita Docker Engine y la imagen `penguinpath-ubuntu:latest`.
 
 ## 🧪 Testing
 
+Los contenedores de Compose están preparados para ejecutar la aplicación, no incluyen todas las dependencias de desarrollo. Ejecuta las pruebas desde el equipo anfitrión después de instalar las dependencias:
+
 ```bash
-# Tests del backend
-docker exec -it penguinpath-backend pnpm test
-
-# Tests E2E
-docker exec -it penguinpath-backend pnpm run test:e2e
-
-# Coverage
-docker exec -it penguinpath-backend pnpm run test:cov
+cd Backend
+pnpm test
+pnpm run test:e2e
 ```
 
-## 📦 Despliegue
+El frontend ofrece pruebas E2E con `pnpm run test:e2e:basic` desde `Frontend`; requieren que el navegador y el servidor estén disponibles.
 
-### Producción Local
-```bash
-docker-compose up -d
-```
+## Despliegue
 
-### Producción en Servidor
-```bash
-# Usar docker-compose.prod.yml
-docker-compose -f docker-compose.prod.yml up -d
-```
+Esta guía cubre el entorno local de `docker-compose.dev.yml`. La configuración de [docker-compose.yml](./docker-compose.yml) usa HTTPS y requiere certificados válidos de Let's Encrypt montados en el equipo. No la uses para el primer inicio local.
 
-Ver [deploy-vps.sh](./deploy-vps.sh) para el script de despliegue automático.
+## Variables de entorno
 
-## 🔐 Variables de Entorno
+Para Docker, crea `.env` en la raíz del repositorio. Compose usa `JWT_SECRET` y `SENDGRID_API_KEY`; la conexión a PostgreSQL ya está configurada dentro de `docker-compose.dev.yml` y no debe usar `localhost` desde el contenedor backend.
 
-Crea un archivo `.env` en la raíz del proyecto:
+La configuración actual del módulo JWT contiene una clave local fija; cambiar `JWT_SECRET` en `.env` no cambia esa clave hasta que el código la lea desde la variable de entorno.
 
-```env
-# JWT
-JWT_SECRET=tu-secreto-super-seguro
-
-# Email (opcional)
-SENDGRID_API_KEY=tu-api-key
-
-# Base de datos (ya configurado en docker-compose)
-DATABASE_URL=postgresql://postgres:postgres@postgres:5432/penguinpath
-```
+Para recibir correos de registro y restablecimiento de contraseña, configura `SENDGRID_API_KEY` con una clave válida y verifica el remitente que utiliza el servicio de correo. Además, para que el enlace del correo apunte al frontend local, agrega `FRONTEND_URL: http://localhost:5173` a `environment` del servicio `backend` en `docker-compose.dev.yml`.
 
 ## 🤝 Contribuir
 
@@ -242,34 +292,55 @@ Este proyecto está bajo la licencia MIT.
 
 ## 🆘 Solución de Problemas
 
-### El backend no se conecta a la base de datos
-```bash
-# Verificar que PostgreSQL esté corriendo
-docker-compose -f docker-compose.dev.yml ps
+### El backend no se conecta a PostgreSQL
 
-# Ver logs de la base de datos
-docker-compose -f docker-compose.dev.yml logs postgres
+```bash
+docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml logs postgres backend
 ```
 
-### Los cambios no se reflejan
-```bash
-# Reiniciar el servicio
-docker-compose -f docker-compose.dev.yml restart backend
+Si aparece `P1000` después de cambiar la contraseña de PostgreSQL, el volumen puede conservar las credenciales de una inicialización anterior. Si puedes borrar los datos locales, recrea el volumen:
 
-# O reconstruir la imagen
-docker-compose -f docker-compose.dev.yml up -d --build backend
+```bash
+docker compose -f docker-compose.dev.yml down -v
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-### Problemas con volúmenes o permisos
+`down -v` elimina la base de datos local.
+
+### Prisma indica que falta una columna (`P2022`)
+
+El entrypoint del backend ejecuta `prisma db push` al iniciar. Comprueba que estás usando la rama y el schema esperados y reconstruye el backend:
+
 ```bash
-# Reinicio completo
-docker-compose -f docker-compose.dev.yml down -v
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d --build backend
+docker compose -f docker-compose.dev.yml logs -f backend
 ```
 
-### Ver todos los logs
+### El terminal dice que no existe `penguinpath-ubuntu:latest`
+
+Construye la imagen personalizada desde la raíz del proyecto:
+
 ```bash
-docker-compose -f docker-compose.dev.yml logs -f
+docker build -f Backend/Dockerfile.ubuntu-user -t penguinpath-ubuntu:latest Backend
+```
+
+### Nginx no encuentra un certificado HTTPS
+
+Para desarrollo local, inicia `docker-compose.dev.yml`, que monta `Frontend/nginx.dev.conf` y sirve por HTTP. La configuración de `docker-compose.yml` requiere certificados de producción.
+
+### No llega el correo de confirmación
+
+Comprueba que `SENDGRID_API_KEY` esté en el `.env` de la raíz, que la clave sea válida y que el remitente esté verificado en SendGrid. Revisa también que `FRONTEND_URL: http://localhost:5173` esté en el entorno del servicio `backend` en `docker-compose.dev.yml`.
+
+### Advertencia sobre `version` en Compose
+
+El aviso de que `version` está obsoleto no impide que Docker Compose inicie los servicios.
+
+### Los cambios de código no se reflejan
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
 ---
