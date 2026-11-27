@@ -159,8 +159,10 @@ Ejemplo de GitHub Actions:
 
 ### Chrome no encontrado
 ```bash
-sudo apt-get install chromium-browser chromium-chromedriver
+sudo apt-get install chromium-browser
 ```
+
+Selenium Manager descarga automáticamente una versión de ChromeDriver compatible con el navegador instalado al ejecutar las pruebas.
 
 ### Timeouts
 Aumenta los timeouts en `jest.config.json`:
